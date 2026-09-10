@@ -108,7 +108,7 @@ User stats:
 - Foods to include: ${wantedFoods || 'none'}
 - Available appliances: ${applianceText}
 
-Only suggest recipes makeable with the listed appliances.
+Only suggest recipes makeable with the listed appliances. Unless the user has requested specific foods, default to universally popular, crowd-pleasing meals that most people enjoy — things like chicken and rice, pasta, tacos, burgers, eggs, stir fry, sandwiches, oatmeal, and similar widely-liked foods. Avoid niche or polarizing ingredients like tofu, tempeh, liver, anchovies, Brussels sprouts, or bitter greens unless explicitly requested.
 
 Return ONLY valid JSON, no markdown. Structure:
 {
@@ -201,3 +201,4 @@ Use affordable, common ingredients. Return ONLY JSON:
 }
 
 module.exports = { listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, generate, swap };
+
