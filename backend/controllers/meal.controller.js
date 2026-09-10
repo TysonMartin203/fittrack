@@ -88,7 +88,7 @@ Include Breakfast, Lunch, Dinner, and one Snack per day. Make meals practical, d
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
+      max_tokens: 4000,
       messages: [{ role: 'user', content: prompt }]
     });
 
@@ -136,3 +136,4 @@ Return ONLY JSON: { "name": "...", "calories": number, "protein": number, "carbs
 }
 
 module.exports = { getPlan, saveProfile, generate, swap };
+
