@@ -18,13 +18,14 @@ app.use(cors({
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-app.use('/api/auth',     require('./routes/auth.routes'));
-app.use('/api/workouts', require('./routes/workout.routes'));
-app.use('/api/prs',      require('./routes/pr.routes'));
-app.use('/api/photos',   require('./routes/photo.routes'));
-app.use('/api/friends',  require('./routes/friend.routes'));
-app.use('/api/messages', require('./routes/message.routes'));
-app.use('/api/meals',    require('./routes/meal.routes'));
+app.use('/api/auth',         require('./routes/auth.routes'));
+app.use('/api/workouts',     require('./routes/workout.routes'));
+app.use('/api/prs',          require('./routes/pr.routes'));
+app.use('/api/photos',       require('./routes/photo.routes'));
+app.use('/api/friends',      require('./routes/friend.routes'));
+app.use('/api/messages',     require('./routes/message.routes'));
+app.use('/api/meals',        require('./routes/meal.routes'));
+app.use('/api/achievements', require('./routes/achievement.routes'));
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 

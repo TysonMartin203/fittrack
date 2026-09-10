@@ -46,5 +46,7 @@ export const api = {
   generateMealPlan: (b) => request('POST', '/api/meals/generate', b),
   swapMeal:         (b) => request('POST', '/api/meals/swap', b),
 
+  getAchievements: () => request('GET', '/api/achievements'),
+
   fileUrl: (p) => p ? `${BASE}${p}` : null,
 };
