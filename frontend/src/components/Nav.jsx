@@ -1,33 +1,33 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { IconHome, IconBarbell, IconTrophy, IconCamera, IconPeople, IconLogout } from './Icons';
 
 const links = [
-  { to: '/dashboard', label: 'Home',    icon: '🏠' },
-  { to: '/log',       label: 'Log',     icon: '➕' },
-  { to: '/prs',       label: 'PRs',     icon: '🏆' },
-  { to: '/photos',    label: 'Photos',  icon: '📷' },
-  { to: '/friends',   label: 'Friends', icon: '👥' },
+  { to: '/dashboard', label: 'Home',    Icon: IconHome },
+  { to: '/log',       label: 'Log',     Icon: IconBarbell },
+  { to: '/prs',       label: 'PRs',     Icon: IconTrophy },
+  { to: '/photos',    label: 'Photos',  Icon: IconCamera },
+  { to: '/friends',   label: 'Friends', Icon: IconPeople },
 ];
 
 export default function Nav() {
   const { logout } = useAuth();
   const navigate   = useNavigate();
 
-  function handleLogout() {
-    logout();
-    navigate('/');
-  }
-
   return (
     <nav className="bottom-nav">
-      {links.map(({ to, label, icon }) => (
+      {links.map(({ to, label, Icon }) => (
         <NavLink key={to} to={to} className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-          <span className="nav-icon">{icon}</span>
+          <div className="nav-icon-wrap">
+            <Icon className="nav-icon" />
+          </div>
           <span className="nav-label">{label}</span>
         </NavLink>
       ))}
-      <button className="nav-item nav-logout" onClick={handleLogout}>
-        <span className="nav-icon">🚪</span>
+      <button className="nav-item nav-logout" onClick={() => { logout(); navigate('/'); }}>
+        <div className="nav-icon-wrap">
+          <IconLogout className="nav-icon" />
+        </div>
         <span className="nav-label">Out</span>
       </button>
     </nav>

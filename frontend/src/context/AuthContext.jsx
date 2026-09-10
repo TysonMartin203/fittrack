@@ -1,17 +1,24 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('fittrack_user');
-    return stored ? JSON.parse(stored) : null;
+    try { return JSON.parse(localStorage.getItem('fittrack_user') || 'null'); }
+    catch { return null; }
   });
 
   function login(data) {
+    const u = { id: data.userId, username: data.username, email: data.email, avatarUrl: data.avatarUrl || null };
     localStorage.setItem('fittrack_token', data.token);
-    localStorage.setItem('fittrack_user',  JSON.stringify({ id: data.userId, username: data.username }));
-    setUser({ id: data.userId, username: data.username });
+    localStorage.setItem('fittrack_user', JSON.stringify(u));
+    setUser(u);
+  }
+
+  function updateUser(updates) {
+    const u = { ...user, ...updates };
+    localStorage.setItem('fittrack_user', JSON.stringify(u));
+    setUser(u);
   }
 
   function logout() {
@@ -21,12 +28,10 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export function useAuth() { return useContext(AuthContext); }

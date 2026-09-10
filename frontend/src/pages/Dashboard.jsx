@@ -3,6 +3,16 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 
+function Skeleton() {
+  return (
+    <div>
+      <div className="skeleton skeleton-card" style={{animationDelay:'.05s'}}/>
+      <div className="skeleton skeleton-card" style={{animationDelay:'.1s'}}/>
+      <div className="skeleton skeleton-card" style={{animationDelay:'.15s'}}/>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [workouts, setWorkouts] = useState([]);
@@ -16,54 +26,57 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="page"><p className="muted">Loading…</p></div>;
-
   const recent = workouts.slice(0, 5);
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
     <div className="page">
-      <h2 className="page-title">Hey, {user.username} 👋</h2>
+      <p className="page-subtitle" style={{color:'var(--muted)',fontSize:'13px',marginBottom:'4px',marginTop:'0'}}>{greeting}</p>
+      <h2 className="page-title" style={{marginBottom:'20px'}}>{user.username} 👋</h2>
 
       <div className="stat-row">
-        <div className="stat-card">
+        <div className="stat-card" style={{animationDelay:'.05s'}}>
           <span className="stat-num">{workouts.length}</span>
           <span className="stat-label">Workouts</span>
         </div>
-        <div className="stat-card">
+        <div className="stat-card" style={{animationDelay:'.1s'}}>
           <span className="stat-num">{prs.length}</span>
-          <span className="stat-label">PRs</span>
+          <span className="stat-label">PRs Set</span>
         </div>
       </div>
 
       <section className="section">
         <div className="section-header">
-          <h3>Recent Workouts</h3>
-          <Link to="/log" className="link-small">+ Log workout</Link>
+          <span className="section-title">Recent Workouts</span>
+          <Link to="/log" className="link-small">+ Log one</Link>
         </div>
-        {recent.length === 0
-          ? <p className="muted">No workouts yet. <Link to="/log">Log your first one!</Link></p>
-          : recent.map(w => (
-              <div key={w.id} className="list-item">
-                <span className="item-main">{w.exercise}</span>
-                <span className="item-meta">{w.sets}×{w.reps} @ {w.weight} lbs</span>
-                <span className="item-date">{new Date(w.date).toLocaleDateString()}</span>
+        {loading ? <Skeleton /> : recent.length === 0
+          ? <p className="muted">No workouts yet. <Link to="/log">Log your first!</Link></p>
+          : recent.map((w, i) => (
+            <div key={w.id} className="list-item" style={{animationDelay:`${i*.05}s`,animation:'fadeInUp .3s ease both'}}>
+              <div style={{flex:1}}>
+                <div className="item-main">{w.exercise}</div>
+                <div className="item-meta">{w.sets}×{w.reps} @ {w.weight} lbs</div>
               </div>
-            ))
+              <span className="item-date">{new Date(w.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+            </div>
+          ))
         }
       </section>
 
       <section className="section">
         <div className="section-header">
-          <h3>Top PRs</h3>
+          <span className="section-title">Top PRs</span>
           <Link to="/prs" className="link-small">View all</Link>
         </div>
-        {prs.slice(0, 3).map(pr => (
-          <div key={pr.id} className="list-item">
+        {loading ? <Skeleton /> : prs.slice(0, 3).map((pr, i) => (
+          <div key={pr.id} className="list-item" style={{animationDelay:`${i*.05}s`,animation:'fadeInUp .3s ease both'}}>
             <span className="item-main">{pr.exercise}</span>
             <span className="item-accent">{pr.max_weight} lbs</span>
           </div>
         ))}
-        {prs.length === 0 && <p className="muted">Log a workout to set your first PR.</p>}
+        {!loading && prs.length === 0 && <p className="muted">Log a workout to set your first PR.</p>}
       </section>
     </div>
   );

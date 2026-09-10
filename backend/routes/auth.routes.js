@@ -1,5 +1,16 @@
-const router = require('express').Router();
-const { register, login } = require('../controllers/auth.controller');
+const router  = require('express').Router();
+const multer  = require('multer');
+const path    = require('path');
+const auth    = require('../middleware/auth');
+const { register, login, uploadAvatar } = require('../controllers/auth.controller');
+
+const storage = multer.diskStorage({
+  destination: path.join(__dirname, '../public/uploads'),
+  filename: (req, file, cb) => cb(null, `avatar-${req.userId}-${Date.now()}${path.extname(file.originalname)}`),
+});
+const uploader = multer({ storage, limits: { fileSize: 5*1024*1024 } });
+
 router.post('/register', register);
 router.post('/login',    login);
+router.post('/avatar',   auth, uploader.single('avatar'), uploadAvatar);
 module.exports = router;

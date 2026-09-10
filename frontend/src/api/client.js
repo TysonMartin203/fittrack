@@ -1,29 +1,23 @@
-// Base URL: reads from environment variable so it works both locally and deployed
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-function getToken() {
-  return localStorage.getItem('fittrack_token');
-}
+function getToken() { return localStorage.getItem('fittrack_token'); }
 
 async function request(method, path, body) {
   const headers = { 'Content-Type': 'application/json' };
   const token = getToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
-
   const res = await fetch(`${BASE}${path}`, {
-    method,
-    headers,
+    method, headers,
     body: body != null ? JSON.stringify(body) : undefined,
   });
-
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(data.error || 'Request failed'), { status: res.status });
   return data;
 }
 
-async function uploadPhoto(formData) {
+async function uploadFile(path, formData) {
   const token = getToken();
-  const res = await fetch(`${BASE}/api/photos`, {
+  const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData,
@@ -34,32 +28,27 @@ async function uploadPhoto(formData) {
 }
 
 export const api = {
-  // Auth
-  register: (body) => request('POST', '/api/auth/register', body),
-  login:    (body) => request('POST', '/api/auth/login',    body),
+  register:        (b) => request('POST', '/api/auth/register', b),
+  login:           (b) => request('POST', '/api/auth/login', b),
+  updateProfile:   (b) => request('PUT',  '/api/auth/profile', b),
+  uploadAvatar:    (fd) => uploadFile('/api/auth/avatar', fd),
 
-  // Workouts
-  logWorkout:    (body) => request('POST',   '/api/workouts',     body),
-  getWorkouts:   ()     => request('GET',    '/api/workouts'),
-  deleteWorkout: (id)   => request('DELETE', `/api/workouts/${id}`),
+  logWorkout:    (b)  => request('POST',   '/api/workouts', b),
+  getWorkouts:   ()   => request('GET',    '/api/workouts'),
+  deleteWorkout: (id) => request('DELETE', `/api/workouts/${id}`),
 
-  // PRs
   getPRs: () => request('GET', '/api/prs'),
 
-  // Photos
-  uploadPhoto,
+  uploadPhoto: (fd) => uploadFile('/api/photos', fd),
   getPhotos:   ()   => request('GET',    '/api/photos'),
   deletePhoto: (id) => request('DELETE', `/api/photos/${id}`),
 
-  // Friends
-  addFriend:     (body)        => request('POST', '/api/friends',                         body),
-  acceptFriend:  (requesterId) => request('PUT',  `/api/friends/${requesterId}/accept`,   {}),
-  getFriends:    ()            => request('GET',  '/api/friends'),
+  addFriend:    (b)   => request('POST', '/api/friends', b),
+  acceptFriend: (rid) => request('PUT',  `/api/friends/${rid}/accept`, {}),
+  getFriends:   ()    => request('GET',  '/api/friends'),
 
-  // Messages
-  sendMessage:     (body)     => request('POST', '/api/messages',            body),
-  getConversation: (friendId) => request('GET',  `/api/messages/${friendId}`),
+  sendMessage:     (b)  => request('POST', '/api/messages', b),
+  getConversation: (fid) => request('GET', `/api/messages/${fid}`),
 
-  // Helpers
-  photoUrl: (filePath) => `${BASE}${filePath}`,
+  fileUrl: (p) => p ? `${BASE}${p}` : null,
 };
