@@ -95,15 +95,43 @@ function ShoppingList({ plan }) {
 
 // ── Plan detail view ──
 function PlanDetail({ planId, profile, onBack, onUpdate }) {
-  const [data,     setData]     = useState(null);
-  const [tab,      setTab]      = useState('plan');
-  const [editing,  setEditing]  = useState(false);
-  const [nameVal,  setNameVal]  = useState('');
-  const [swapping, setSwapping] = useState(null);
-  const [loading,  setLoading]  = useState(true);
+  const [data,       setData]       = useState(null);
+  const [tab,        setTab]        = useState('plan');
+  const [editing,    setEditing]    = useState(false);
+  const [nameVal,    setNameVal]    = useState('');
+  const [swapping,   setSwapping]   = useState(null);
+  const [loading,    setLoading]    = useState(true);
+  const [recipe,     setRecipe]     = useState({});   // keyed by "dayIdx-mealIdx"
+  const [loadingRec, setLoadingRec] = useState({});
 
   useEffect(() => {
-    api.getMealPlan(planId).then(d => { setData(d); setNameVal(d.name); }).finally(() => setLoading(false));
+    if (typeof planId === 'string' && planId.startsWith('tmpl:')) {
+      // Load from template endpoint
+      const templateId = planId.replace('tmpl:', '');
+      api.getMealTemplates().then(d => {
+        const t = (d.templates || []).find(x => x.id === templateId);
+        // We need full plan data — call the full template endpoint
+        fetch(`${window.__FITTRACK_BASE__ || import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/meals/templates`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('fittrack_token')}` }
+        })
+          .then(r => r.json())
+          .catch(() => ({ templates: [] }));
+        // Simplest: use the useTemplate route to get full plan
+        api.getMealTemplates().then(() => {
+          // fetch the full template inline
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/meals/templates/${templateId}`,{
+            method:'GET',
+            headers:{ Authorization:`Bearer ${localStorage.getItem('fittrack_token')}` }
+          })
+            .then(r => r.json())
+            .then(d => { setData({ plan: d.plan, name: d.name || t?.name || 'Plan', is_favorite: 0 }); setNameVal(d.name||t?.name||'Plan'); })
+            .catch(() => setData(null))
+            .finally(() => setLoading(false));
+        });
+      });
+    } else {
+      api.getMealPlan(planId).then(d => { setData(d); setNameVal(d.name); }).finally(() => setLoading(false));
+    }
   }, [planId]);
 
   async function saveName() {
@@ -111,6 +139,17 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
     setData(d => ({...d, name: nameVal}));
     onUpdate();
     setEditing(false);
+  }
+
+  async function fetchRecipe(dayIdx, mealIdx, meal) {
+    const key = `${dayIdx}-${mealIdx}`;
+    if (recipe[key]) return; // already loaded
+    setLoadingRec(l => ({...l, [key]: true}));
+    try {
+      const data = await api.getMealRecipe({ mealName: meal.name, ingredients: meal.ingredients || [] });
+      setRecipe(r => ({...r, [key]: data.recipe}));
+    } catch { setRecipe(r => ({...r, [key]: { steps: ['Could not load recipe. Try again.'], prep_time:'', cook_time:'' }})); }
+    finally { setLoadingRec(l => ({...l, [key]: false})); }
   }
 
   async function swapMeal(dayIdx, mealIdx, meal) {
@@ -188,10 +227,40 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
                     <span>P:{meal.protein}g</span><span>C:{meal.carbs}g</span><span>F:{meal.fat}g</span>
                   </div>
                   {meal.ingredients?.length>0 && (
-                    <div style={{display:'flex',flexWrap:'wrap',gap:'4px'}}>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'10px'}}>
                       {meal.ingredients.map((ing,ii)=><span key={ii} style={{fontSize:'11px',background:'rgba(28,46,48,.6)',border:'1px solid var(--border)',borderRadius:'6px',padding:'2px 8px',color:'var(--muted)'}}>{ing}</span>)}
                     </div>
                   )}
+                  {/* Recipe section */}
+                  {(() => {
+                    const key = `${di}-${mi}`;
+                    const r = recipe[key];
+                    const loading = loadingRec[key];
+                    return (
+                      <div style={{borderTop:'1px solid var(--border)',paddingTop:'10px'}}>
+                        {!r && !loading && (
+                          <button className="btn-ghost-sm" style={{fontSize:'12px',display:'flex',alignItems:'center',gap:'5px'}} onClick={()=>fetchRecipe(di,mi,meal)}>
+                            👨‍🍳 How to Cook
+                          </button>
+                        )}
+                        {loading && <p style={{fontSize:'12px',color:'var(--muted)'}}>Loading recipe…</p>}
+                        {r && (
+                          <div>
+                            <div style={{display:'flex',gap:'12px',fontSize:'11px',color:'var(--teal)',fontWeight:'600',marginBottom:'8px'}}>
+                              {r.prep_time && <span>⏱ Prep: {r.prep_time}</span>}
+                              {r.cook_time && <span>🔥 Cook: {r.cook_time}</span>}
+                            </div>
+                            {r.steps?.map((step, si) => (
+                              <div key={si} style={{display:'flex',gap:'10px',marginBottom:'6px',fontSize:'13px'}}>
+                                <span style={{color:'var(--teal)',fontWeight:'700',flexShrink:0,minWidth:'18px'}}>{si+1}.</span>
+                                <span style={{color:'var(--text)',lineHeight:'1.5'}}>{step.replace(/^Step \d+:\s*/i,'')}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
@@ -205,15 +274,19 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
 
 // ── Main Meals page ──
 export default function Meals() {
-  const [view,       setView]       = useState('list');  // 'list' | 'new' | 'detail'
+  const [view,       setView]       = useState('list');
   const [plans,      setPlans]      = useState([]);
+  const [templates,  setTemplates]  = useState([]);
   const [activePlan, setActivePlan] = useState(null);
   const [loading,    setLoading]    = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error,      setError]      = useState('');
   const [profile,    setProfile]    = useState({ weight:'',goalWeight:'',goal:GOALS[2],timeline:'',restrictions:[],dislikes:'',wantedFoods:'',appliances:[],planName:'My Meal Plan' });
 
-  useEffect(() => { loadPlans(); }, []);
+  useEffect(() => {
+    loadPlans();
+    api.getMealTemplates().then(d => setTemplates(d.templates||[])).catch(()=>{});
+  }, []);
 
   function loadPlans() {
     api.listMealPlans().then(d => setPlans(d.plans||[])).catch(()=>{}).finally(()=>setLoading(false));
@@ -235,6 +308,15 @@ export default function Meals() {
     e.stopPropagation();
     const data = await api.toggleFavorite(id);
     setPlans(ps => ps.map(p => p.id===id ? {...p, is_favorite: data.is_favorite?1:0} : p).sort((a,b)=>b.is_favorite-a.is_favorite||(new Date(b.created_at)-new Date(a.created_at))));
+  }
+
+  async function useTemplate(id, name) {
+    try {
+      const data = await api.useMealTemplate(id, { name });
+      setPlans(ps => [{ id: data.planId, name: data.planName, daily_calories: data.plan.daily_calories, created_at: new Date().toISOString(), is_favorite: 0 }, ...ps]);
+      setActivePlan(data.planId);
+      setView('detail');
+    } catch (err) { setError('Could not load template'); }
   }
 
   async function deletePlan(e, id) {
@@ -308,43 +390,93 @@ export default function Meals() {
   }
 
   // Plan list
+  // Plate+dome SVG for empty states
+  const PlateDome = () => (
+    <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{margin:'0 auto 12px',opacity:.4}}>
+      <ellipse cx="12" cy="19" rx="9" ry="3"/>
+      <path d="M3 16 C3 10 21 10 21 16"/>
+      <line x1="12" y1="10" x2="12" y2="7"/>
+      <circle cx="12" cy="6" r="1.5" fill="var(--muted)"/>
+    </svg>
+  );
+
   return (
     <div className="page">
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'24px'}}>
         <h2 className="page-title" style={{marginBottom:0}}>Meal Plans</h2>
         <button className="btn-primary" style={{width:'auto',padding:'10px 16px',fontSize:'14px'}} onClick={()=>setView('new')}>
-          + New Plan
+          + AI Plan
         </button>
       </div>
 
-      {plans.length === 0 ? (
-        <div className="empty-state">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{margin:'0 auto 12px',opacity:.4}}><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-          <p style={{marginBottom:'20px'}}>No meal plans yet.<br/>Create your first AI-powered plan.</p>
-          <button className="btn-primary" style={{maxWidth:'240px',margin:'0 auto'}} onClick={()=>setView('new')}>Create First Plan</button>
-        </div>
-      ) : (
-        <div className="form-stack">
-          {plans.map(plan => (
-            <div key={plan.id} className="glass-card" style={{cursor:'pointer',position:'relative'}} onClick={()=>{setActivePlan(plan.id);setView('detail');}}>
-              <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:'700',fontSize:'16px',marginBottom:'3px'}}>{plan.name}</div>
-                  <div style={{fontSize:'12px',color:'var(--muted)'}}>
-                    {plan.daily_calories ? `${plan.daily_calories} cal/day · ` : ''}
-                    {new Date(plan.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+      {/* AI-created plans (deletable, shown first) */}
+      {plans.length > 0 && (
+        <div className="section">
+          <div className="section-header"><span className="section-title">My Plans</span></div>
+          <div className="form-stack" style={{marginBottom:'24px'}}>
+            {plans.map(plan => (
+              <div key={plan.id} className="glass-card" style={{cursor:'pointer'}}
+                onClick={()=>{setActivePlan(plan.id);setView('detail');}}>
+                <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:'700',fontSize:'15px',marginBottom:'3px'}}>{plan.name}</div>
+                    <div style={{fontSize:'12px',color:'var(--muted)'}}>
+                      {plan.daily_calories ? `${plan.daily_calories} cal/day · ` : ''}
+                      {new Date(plan.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+                    </div>
                   </div>
+                  <button onClick={e=>toggleFav(e,plan.id)}
+                    style={{fontSize:'18px',background:'none',border:'none',cursor:'pointer',flexShrink:0,lineHeight:1,padding:'4px'}}>
+                    {plan.is_favorite ? '⭐' : '☆'}
+                  </button>
+                  <button onClick={e=>deletePlan(e,plan.id)}
+                    style={{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',flexShrink:0,padding:'4px',fontSize:'16px'}}>
+                    🗑
+                  </button>
                 </div>
-                <button onClick={e=>toggleFav(e,plan.id)} style={{fontSize:'20px',background:'none',border:'none',cursor:'pointer',flexShrink:0,lineHeight:1}}>
-                  {plan.is_favorite ? '⭐' : '☆'}
-                </button>
-                <button onClick={e=>deletePlan(e,plan.id)} style={{fontSize:'16px',background:'none',border:'none',cursor:'pointer',color:'var(--muted)',flexShrink:0,padding:'4px'}}>
-                  🗑
-                </button>
               </div>
-              {plan.is_favorite===1 && <div style={{position:'absolute',top:'10px',right:'10px'}}/>}
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Template plans — always visible, no delete */}
+      {templates.length > 0 && (
+        <div className="section">
+          <div className="section-header">
+            <span className="section-title">Starter Plans</span>
+            <span style={{fontSize:'12px',color:'var(--muted)'}}>Ready to use</span>
+          </div>
+          <div className="form-stack">
+            {templates.map(t => (
+              <div key={t.id} className="glass-card" style={{cursor:'pointer'}}
+                onClick={()=>{setActivePlan('tmpl:'+t.id);setView('detail');}}>
+                <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
+                  <div style={{
+                    width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,
+                    background:'rgba(28,46,48,0.6)',border:'1px solid var(--border)',
+                    display:'flex',alignItems:'center',justifyContent:'center',fontSize:'22px',
+                  }}>{t.icon}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:'700',fontSize:'15px',marginBottom:'2px'}}>{t.name}</div>
+                    <div style={{fontSize:'12px',color:'var(--muted)'}}>
+                      {t.daily_calories} cal/day
+                      <span style={{marginLeft:'8px',color:'var(--teal)',fontWeight:'600',fontSize:'11px',textTransform:'uppercase',letterSpacing:'.04em'}}>{t.category}</span>
+                    </div>
+                  </div>
+                  <span style={{color:'var(--muted)',fontSize:'16px'}}>›</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {plans.length === 0 && templates.length === 0 && (
+        <div className="empty-state">
+          <PlateDome/>
+          <p style={{marginBottom:'20px'}}>No meal plans yet.<br/>Create an AI plan or pick a starter above.</p>
+          <button className="btn-primary" style={{maxWidth:'240px',margin:'0 auto'}} onClick={()=>setView('new')}>Create AI Plan</button>
         </div>
       )}
     </div>

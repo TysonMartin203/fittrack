@@ -16,14 +16,13 @@ export function IconPeople({ className, style }) {
 export function IconMeals({ className, style }) {
   return (
     <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      {/* Fork */}
-      <line x1="8" y1="2" x2="8" y2="22"/>
-      <line x1="6" y1="2" x2="6" y2="7"/>
-      <line x1="10" y1="2" x2="10" y2="7"/>
-      <path d="M6 7 Q8 10 10 7"/>
-      {/* Knife */}
-      <line x1="16" y1="2" x2="16" y2="22"/>
-      <path d="M16 2 Q20 5 19 9 L16 10"/>
+      {/* Plate */}
+      <ellipse cx="12" cy="19" rx="9" ry="3"/>
+      {/* Dome cover */}
+      <path d="M3 16 C3 10 21 10 21 16"/>
+      {/* Handle on top of dome */}
+      <line x1="12" y1="10" x2="12" y2="7"/>
+      <circle cx="12" cy="6" r="1.5" fill="currentColor"/>
     </svg>
   );
 }

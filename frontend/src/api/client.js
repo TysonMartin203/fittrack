@@ -51,5 +51,9 @@ export const api = {
 
   getAchievements: () => request('GET', '/api/achievements'),
 
+  getMealTemplates:  ()      => request('GET',  '/api/meals/templates'),
+  useMealTemplate:   (id, b) => request('POST', `/api/meals/templates/${id}`, b),
+  getMealRecipe:     (b)     => request('POST', '/api/meals/recipe', b),
+
   fileUrl: (p) => p ? `${BASE}${p}` : null,
 };

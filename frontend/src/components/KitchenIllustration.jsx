@@ -1,198 +1,213 @@
-// Clean grid-based kitchen appliance selector — no text in art
 const APPLIANCES = [
-  { id: 'stovetop',    label: 'Stovetop' },
-  { id: 'oven',        label: 'Oven' },
-  { id: 'microwave',   label: 'Microwave' },
-  { id: 'airfryer',    label: 'Air Fryer' },
-  { id: 'instantpot',  label: 'Instant Pot' },
-  { id: 'blender',     label: 'Blender' },
-  { id: 'slowcooker',  label: 'Slow Cooker' },
-  { id: 'grill',       label: 'Grill' },
+  { id: 'stovetop',    label: 'Stovetop'     },
+  { id: 'oven',        label: 'Oven'         },
+  { id: 'microwave',   label: 'Microwave'    },
+  { id: 'airfryer',    label: 'Air Fryer'    },
+  { id: 'instantpot',  label: 'Instant Pot'  },
+  { id: 'blender',     label: 'Blender'      },
+  { id: 'slowcooker',  label: 'Slow Cooker'  },
+  { id: 'grill',       label: 'Grill'        },
   { id: 'toasteroven', label: 'Toaster Oven' },
-  { id: 'ricecooker',  label: 'Rice Cooker' },
+  { id: 'ricecooker',  label: 'Rice Cooker'  },
 ];
-
-// One small SVG icon per appliance — pure shapes, no text
-function ApplianceIcon({ id, active }) {
-  const s = active ? '#7EB09B' : '#476A6F';
-  const d = active ? '#1C2E30' : '#2E4A4E';
-  const h = active ? '#ECBEB4' : '#385759';
-  const w = 56; const c = w / 2;
-
-  switch (id) {
-    case 'stovetop': return (
-      <svg viewBox="0 0 56 56" width={w} height={w}>
-        <rect x="4" y="4" width="48" height="48" rx="6" fill={d}/>
-        <circle cx="18" cy="18" r="9" fill="none" stroke={s} strokeWidth="2"/>
-        <circle cx="18" cy="18" r="4" fill={s}/>
-        <circle cx="38" cy="18" r="9" fill="none" stroke={s} strokeWidth="2"/>
-        <circle cx="38" cy="18" r="4" fill={s}/>
-        <circle cx="18" cy="38" r="7" fill="none" stroke={s} strokeWidth="2"/>
-        <circle cx="18" cy="38" r="3" fill={s}/>
-        <circle cx="38" cy="38" r="11" fill="none" stroke={s} strokeWidth="2"/>
-        <circle cx="38" cy="38" r="5" fill={s}/>
-      </svg>
-    );
-    case 'oven': return (
-      <svg viewBox="0 0 56 56" width={w} height={w}>
-        <rect x="4" y="4" width="48" height="48" rx="6" fill={d}/>
-        <rect x="10" y="10" width="36" height="26" rx="3" fill={d} stroke={s} strokeWidth="1.5"/>
-        <rect x="13" y="13" width="30" height="20" rx="2" fill={active ? '#0D1E1F' : '#1C2E30'}/>
-        {active && <rect x="13" y="13" width="30" height="20" rx="2" fill="rgba(236,190,180,0.06)"/>}
-        <rect x="16" y="8" width="24" height="3" rx="1.5" fill={h}/>
-        <rect x="10" y="39" width="36" height="13" rx="3" fill={active ? '#385759' : '#243A3D'}/>
-        <circle cx="20" cy="45" r="3" fill={s}/>
-        <circle cx="36" cy="45" r="3" fill={s}/>
-        <rect x="23" y="43" width="10" height="4" rx="2" fill={h}/>
-      </svg>
-    );
-    case 'microwave': return (
-      <svg viewBox="0 0 56 56" width={w} height={w}>
-        <rect x="4" y="10" width="48" height="36" rx="6" fill={d}/>
-        <rect x="8" y="14" width="32" height="28" rx="3" fill={active ? '#0D1E1F' : '#1C2E30'}/>
-        {active && <text x="24" y="32" textAnchor="middle" fontSize="14" fill={s}>▶</text>}
-        {!active && <rect x="14" y="26" width="20" height="2" rx="1" fill="#385759"/>}
-        <rect x="42" y="14" width="6" height="28" rx="2" fill={active ? '#385759' : '#243A3D'}/>
-        <circle cx="45" cy="22" r="3" fill={active ? s : '#243A3D'}/>
-        <circle cx="45" cy="32" r="2" fill={active ? h : '#243A3D'}/>
-        <circle cx="45" cy="39" r="2" fill={active ? h : '#243A3D'}/>
-      </svg>
-    );
-    case 'airfryer': return (
-      <svg viewBox="0 0 56 56" width={w} height={w}>
-        <rect x="10" y="6" width="36" height="44" rx="8" fill={d} stroke={s} strokeWidth="1.5"/>
-        <rect x="14" y="10" width="28" height="18" rx="4" fill={active ? '#0D1E1F' : '#1C2E30'}/>
-        {active && <circle cx="28" cy="19" r="7" fill="none" stroke={s} strokeWidth="1.5" strokeDasharray="3 2"/>}
-        <rect x="12" y="30" width="32" height="14" rx="4" fill={active ? '#385759' : '#243A3D'}/>
-        <circle cx="28" cy="37" r="5" fill={d}/>
-        <circle cx="28" cy="37" r="2" fill={active ? s : '#476A6F'}/>
-        <rect x="22" y="48" width="12" height="4" rx="2" fill={active ? '#476A6F' : '#243A3D'}/>
-      </svg>
-    );
-    case 'instantpot': return (
-      <svg viewBox="0 0 56 56" width={w} height={w}>
-        <ellipse cx="28" cy="48" rx="22" ry="5" fill={active ? '#385759' : '#243A3D'}/>
-        <rect x="8" y="18" width="40" height="30" rx="4" fill={d} stroke={s} strokeWidth="1.5"/>
-        <ellipse cx="28" cy="18" rx="20" ry="6" fill={active ? '#385759' : '#243A3D'} stroke={s} strokeWidth="1.5"/>
-        <rect x="25" y="8" width="6" height="10" rx="2" fill={h}/>
-        <ellipse cx="28" cy="33" rx="12" ry="4" fill={active ? '#0D1E1F' : '#1C2E30'}/>
-        <circle cx="28" cy="33" r="3" fill={active ? s : '#385759'}/>
-        <rect x="8" y="14" width="40" height="8" rx="2" fill={active ? '#476A6F' : '#1C2E30'}/>
-        <circle cx="18" cy="18" r="2" fill={active ? h : '#385759'}/>
-        <circle cx="38" cy="18" r="2" fill={active ? s : '#385759'}/>
-      </svg>
-    );
-    case 'blender': return (
-      <svg viewBox="0 0 56 56" width={w} height={w}>
-        <rect x="18" y="42" width="20" height="10" rx="3" fill={active ? '#385759' : '#243A3D'}/>
-        <circle cx="24" cy="47" r="2" fill={active ? s : '#476A6F'}/>
-        <circle cx="32" cy="47" r="2" fill={active ? h : '#476A6F'}/>
-        <polygon points="20,42 16,8 40,8 36,42" fill={d} stroke={s} strokeWidth="1.5"/>
-        <rect x="16" y="6" width="24" height="5" rx="2" fill={active ? '#385759' : '#243A3D'}/>
-        {active && <polygon points="22,38 20,12 36,12 34,38" fill="rgba(126,176,155,0.1)"/>}
-        <circle cx="28" cy="26" r="5" fill="none" stroke={s} strokeWidth="1" opacity="0.5"/>
-      </svg>
-    );
-    case 'slowcooker': return (
-      <svg viewBox="0 0 56 56" width={w} height={w}>
-        <ellipse cx="28" cy="48" rx="24" ry="6" fill={active ? '#385759' : '#243A3D'}/>
-        <rect x="6" y="20" width="44" height="28" rx="6" fill={d} stroke={s} strokeWidth="1.5"/>
-        <ellipse cx="28" cy="20" rx="22" ry="7" fill={active ? '#385759' : '#243A3D'} stroke={s} strokeWidth="1.5"/>
-        <ellipse cx="28" cy="20" rx="14" ry="4" fill={active ? '#0D1E1F' : '#1C2E30'}/>
-        <rect x="6" y="14" width="44" height="8" rx="3" fill={active ? '#476A6F' : '#1C2E30'}/>
-        <circle cx="18" cy="18" r="2" fill={active ? h : '#385759'}/>
-        <circle cx="28" cy="18" r="2" fill={active ? s : '#385759'}/>
-        <circle cx="38" cy="18" r="2" fill={active ? h : '#385759'}/>
-        <rect x="4" y="28" width="4" height="12" rx="2" fill={active ? '#385759' : '#243A3D'}/>
-        <rect x="48" y="28" width="4" height="12" rx="2" fill={active ? '#385759' : '#243A3D'}/>
-      </svg>
-    );
-    case 'grill': return (
-      <svg viewBox="0 0 56 56" width={w} height={w}>
-        <ellipse cx="28" cy="22" rx="22" ry="14" fill={d} stroke={s} strokeWidth="1.5"/>
-        <ellipse cx="28" cy="20" rx="20" ry="12" fill={active ? '#0D1E1F' : '#1C2E30'}/>
-        {[14,20,26,32,38,44].map((x,i) => (
-          <line key={i} x1={x} y1="12" x2={x} y2="28" stroke={active ? s : '#385759'} strokeWidth="1.5"/>
-        ))}
-        {active && [14,20,26,32,38,44].map((x,i) => (
-          <line key={`h${i}`} x1={x} y1="12" x2={x} y2="28" stroke={h} strokeWidth="0.5" opacity="0.4"/>
-        ))}
-        <rect x="22" y="34" width="12" height="4" rx="2" fill={active ? '#476A6F' : '#243A3D'}/>
-        <line x1="18" y1="38" x2="14" y2="52" stroke={active ? '#476A6F' : '#385759'} strokeWidth="2.5" strokeLinecap="round"/>
-        <line x1="38" y1="38" x2="42" y2="52" stroke={active ? '#476A6F' : '#385759'} strokeWidth="2.5" strokeLinecap="round"/>
-        <line x1="28" y1="36" x2="28" y2="50" stroke={active ? '#476A6F' : '#385759'} strokeWidth="2.5" strokeLinecap="round"/>
-      </svg>
-    );
-    case 'toasteroven': return (
-      <svg viewBox="0 0 56 56" width={w} height={w}>
-        <rect x="4" y="12" width="48" height="34" rx="5" fill={d} stroke={s} strokeWidth="1.5"/>
-        <rect x="8" y="16" width="34" height="22" rx="3" fill={active ? '#0D1E1F' : '#1C2E30'}/>
-        {active && <rect x="8" y="16" width="34" height="22" rx="3" fill="rgba(236,190,180,0.06)"/>}
-        {active && [20,26,32].map((y,i) => <line key={i} x1="10" y1={y} x2="40" y2={y} stroke={h} strokeWidth="0.8" opacity="0.5"/>)}
-        <rect x="44" y="16" width="4" height="22" rx="2" fill={active ? '#385759' : '#243A3D'}/>
-        <circle cx="46" cy="22" r="3" fill={active ? s : '#243A3D'}/>
-        <circle cx="46" cy="30" r="2" fill={active ? h : '#243A3D'}/>
-        <circle cx="46" cy="37" r="2" fill={active ? h : '#243A3D'}/>
-        <rect x="4" y="44" width="48" height="4" rx="2" fill={active ? '#385759' : '#243A3D'}/>
-        <rect x="12" y="44" width="32" height="2" rx="1" fill={active ? '#476A6F' : '#1C2E30'}/>
-      </svg>
-    );
-    case 'ricecooker': return (
-      <svg viewBox="0 0 56 56" width={w} height={w}>
-        <ellipse cx="28" cy="48" rx="20" ry="5" fill={active ? '#385759' : '#243A3D'}/>
-        <rect x="10" y="24" width="36" height="24" rx="5" fill={d} stroke={s} strokeWidth="1.5"/>
-        <ellipse cx="28" cy="24" rx="18" ry="8" fill={active ? '#385759' : '#243A3D'} stroke={s} strokeWidth="1.5"/>
-        <ellipse cx="28" cy="22" rx="12" ry="5" fill={active ? '#0D1E1F' : '#1C2E30'}/>
-        <rect x="25" y="12" width="6" height="10" rx="2" fill={h}/>
-        <circle cx="28" cy="36" r="6" fill={active ? '#0D1E1F' : '#1C2E30'}/>
-        <circle cx="28" cy="36" r="3" fill={active ? s : '#385759'}/>
-        <rect x="10" y="20" width="36" height="7" rx="3" fill={active ? '#476A6F' : '#1C2E30'}/>
-      </svg>
-    );
-    default: return null;
-  }
-}
 
 export default function KitchenIllustration({ selected = [], onChange }) {
   function toggle(id) {
-    if (selected.includes(id)) onChange(selected.filter(x => x !== id));
-    else onChange([...selected, id]);
+    onChange(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
   }
+  function isOn(id) { return selected.includes(id); }
+
+  // Color helpers
+  const T  = '#7EB09B'; // teal (active)
+  const TH = '#519E8A'; // teal dark
+  const D  = '#2E4A4E'; // surface (inactive)
+  const BG = '#1C2E30'; // dark bg
+  const R  = '#ECBEB4'; // rose accent
+  const MU = '#385759'; // muted surface
+  const MI = '#1A2A2C'; // muted inactive
+
+  function S(id)  { return isOn(id) ? T  : D;  }
+  function SH(id) { return isOn(id) ? TH : MI; }
+  function SB(id) { return isOn(id) ? MU : MI; }
 
   return (
     <div>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: '10px',
-      }}>
-        {APPLIANCES.map(({ id, label }) => {
-          const active = selected.includes(id);
-          return (
-            <div key={id} onClick={() => toggle(id)} style={{
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
-              padding: '10px 4px 8px',
-              borderRadius: 'var(--r)',
-              border: `1px solid ${active ? 'var(--teal)' : 'var(--border)'}`,
-              background: active ? 'rgba(126,176,155,0.1)' : 'rgba(28,46,48,0.5)',
-              cursor: 'pointer',
-              transition: 'all .15s',
-              WebkitTapHighlightColor: 'transparent',
-            }}>
-              <ApplianceIcon id={id} active={active} />
-              <span style={{
-                fontSize: '10px', fontWeight: '600', textAlign: 'center', lineHeight: '1.2',
-                color: active ? 'var(--teal)' : 'var(--muted)',
-              }}>{label}</span>
+      <svg viewBox="0 0 500 310" xmlns="http://www.w3.org/2000/svg"
+        style={{ width:'100%', maxWidth:'500px', display:'block', margin:'0 auto', borderRadius:'12px' }}>
+
+        {/* ── Backgrounds ── */}
+        <rect width="500" height="310" fill={BG} rx="12"/>
+        {/* Wall */}
+        <rect x="0" y="0" width="500" height="195" fill="#243A3D"/>
+        {/* Floor */}
+        <rect x="0" y="195" width="500" height="115" fill={BG}/>
+        {/* Counter surface */}
+        <rect x="8" y="182" width="484" height="16" fill="#385759" rx="3"/>
+        <rect x="8" y="182" width="484" height="4"  fill="#476A6F" rx="2"/>
+
+        {/* ── MICROWAVE  (x=12..107, y=10..58) ── */}
+        <g onClick={() => toggle('microwave')} style={{cursor:'pointer'}}>
+          <rect x="12" y="10" width="95" height="48" fill={S('microwave')} rx="5" stroke={SH('microwave')} strokeWidth="1.5"/>
+          <rect x="16" y="14" width="64" height="40" fill={SB('microwave')} rx="3"/>
+          {isOn('microwave')
+            ? <text x="48" y="38" textAnchor="middle" fontSize="16" fill={T}>▶</text>
+            : <rect x="24" y="32" width="48" height="3" rx="1.5" fill="#2E4A4E"/>}
+          <rect x="82" y="14" width="21" height="40" fill={isOn('microwave') ? MU : MI} rx="2"/>
+          <circle cx="92" cy="24" r="5" fill={isOn('microwave') ? T : '#243A3D'}/>
+          <circle cx="92" cy="36" r="4" fill={isOn('microwave') ? R : '#243A3D'}/>
+          <circle cx="92" cy="47" r="3" fill={isOn('microwave') ? T : '#243A3D'}/>
+        </g>
+
+        {/* ── STOVE / OVEN  (x=12..107, y=62..180) ── */}
+        <g onClick={() => { toggle('stovetop'); toggle('oven'); }} style={{cursor:'pointer'}}>
+          {/* Oven body */}
+          <rect x="12" y="62" width="95" height="120" fill={isOn('oven') ? MU : '#1E3436'} rx="5" stroke={SH('oven')} strokeWidth="1.5"/>
+          {/* Stovetop strip */}
+          <rect x="12" y="62" width="95" height="26" fill={isOn('stovetop') ? D : '#1E3436'} rx="5"/>
+          {/* Burners */}
+          {[[34,75,9],[64,75,9],[88,75,7]].map(([cx,cy,r],i) => (
+            <g key={i}>
+              <circle cx={cx} cy={cy} r={r} fill={BG} stroke={isOn('stovetop') ? T : MU} strokeWidth="1.5"/>
+              <circle cx={cx} cy={cy} r={r/2} fill={isOn('stovetop') ? T : '#243A3D'}/>
+            </g>
+          ))}
+          {/* Oven window */}
+          <rect x="20" y="96" width="79" height="72" fill={BG} rx="3"/>
+          {isOn('oven') && <rect x="20" y="96" width="79" height="72" fill="rgba(126,176,155,.06)" rx="3"/>}
+          {/* Oven handle */}
+          <rect x="30" y="91" width="57" height="5" fill={isOn('oven') ? R : '#476A6F'} rx="2.5"/>
+          {/* Control knobs */}
+          <rect x="12" y="174" width="95" height="8" fill={isOn('oven') ? D : MI} rx="2"/>
+          {[28,47,66,85].map((x,i) => (
+            <circle key={i} cx={x} cy="178" r="3" fill={isOn('oven') ? (i%2===0 ? T : R) : '#243A3D'}/>
+          ))}
+        </g>
+
+        {/* ── TOASTER OVEN  (x=135..260, y=10..72) ── */}
+        <g onClick={() => toggle('toasteroven')} style={{cursor:'pointer'}}>
+          <rect x="135" y="10" width="125" height="62" fill={S('toasteroven')} rx="5" stroke={SH('toasteroven')} strokeWidth="1.5"/>
+          <rect x="140" y="15" width="90" height="52" fill={SB('toasteroven')} rx="3"/>
+          {isOn('toasteroven') && <rect x="140" y="15" width="90" height="52" fill="rgba(236,190,180,.05)" rx="3"/>}
+          {isOn('toasteroven') && [25,35,45,55].map((y,i) => (
+            <line key={i} x1="142" y1={y} x2="228" y2={y} stroke={R} strokeWidth=".8" opacity=".35"/>
+          ))}
+          <rect x="232" y="15" width="24" height="52" fill={isOn('toasteroven') ? MU : MI} rx="2"/>
+          <circle cx="244" cy="28" r="6" fill={isOn('toasteroven') ? T : '#243A3D'}/>
+          <circle cx="244" cy="42" r="4" fill={isOn('toasteroven') ? R : '#243A3D'}/>
+          <circle cx="244" cy="54" r="4" fill={isOn('toasteroven') ? R : '#243A3D'}/>
+          {/* Tray handle */}
+          <rect x="155" y="65" width="60" height="6" fill={isOn('toasteroven') ? '#476A6F' : MI} rx="2"/>
+        </g>
+
+        {/* ── AIR FRYER  (x=140..200, y=108..182) ── */}
+        <g onClick={() => toggle('airfryer')} style={{cursor:'pointer'}}>
+          <rect x="140" y="108" width="60" height="74" fill={S('airfryer')} rx="10" stroke={SH('airfryer')} strokeWidth="1.5"/>
+          <rect x="148" y="116" width="44" height="30" fill={SB('airfryer')} rx="6"/>
+          {isOn('airfryer') && <circle cx="170" cy="131" r="11" fill="none" stroke={T} strokeWidth="1.5" strokeDasharray="3 2"/>}
+          <circle cx="170" cy="155" r="6" fill={isOn('airfryer') ? T : '#243A3D'}/>
+          <rect x="150" y="164" width="40" height="5" rx="2.5" fill={isOn('airfryer') ? '#476A6F' : MI}/>
+        </g>
+
+        {/* ── INSTANT POT  (x=220..295, y=90..182) ── */}
+        <g onClick={() => toggle('instantpot')} style={{cursor:'pointer'}}>
+          <ellipse cx="257" cy="178" rx="36" ry="9" fill={S('instantpot')} stroke={SH('instantpot')} strokeWidth="1.2"/>
+          <rect x="221" y="108" width="72" height="70" fill={S('instantpot')} rx="5" stroke={SH('instantpot')} strokeWidth="1.5"/>
+          <ellipse cx="257" cy="108" rx="36" ry="10" fill={isOn('instantpot') ? TH : MI} stroke={SH('instantpot')} strokeWidth="1.5"/>
+          <ellipse cx="257" cy="108" rx="22" ry="6"  fill={BG}/>
+          <rect x="253" y="95" width="8" height="14" fill={isOn('instantpot') ? R : MU} rx="3"/>
+          <rect x="221" y="104" width="72" height="10" fill={isOn('instantpot') ? '#476A6F' : MI} rx="2"/>
+          {[236,257,278].map((x,i) => (
+            <circle key={i} cx={x} cy="109" r="2.5" fill={isOn('instantpot') ? (i===1?T:R) : '#243A3D'}/>
+          ))}
+          <ellipse cx="257" cy="143" rx="18" ry="6" fill={BG}/>
+          <circle cx="257" cy="143" r="6" fill={isOn('instantpot') ? T : MU}/>
+        </g>
+
+        {/* ── BLENDER  (x=315..365, y=80..182) ── */}
+        <g onClick={() => toggle('blender')} style={{cursor:'pointer'}}>
+          <rect x="320" y="168" width="36" height="14" rx="5" fill={isOn('blender') ? TH : MI}/>
+          <circle cx="332" cy="175" r="3" fill={isOn('blender') ? T : '#243A3D'}/>
+          <circle cx="344" cy="175" r="3" fill={isOn('blender') ? R : '#243A3D'}/>
+          <polygon points="323,168 318,100 360,100 355,168" fill={S('blender')} stroke={SH('blender')} strokeWidth="1.5"/>
+          <rect x="318" y="97"  width="42" height="7" rx="3.5" fill={isOn('blender') ? MU : MI}/>
+          <rect x="326" y="84"  width="26" height="14" rx="3"  fill={isOn('blender') ? D : MI}/>
+          {isOn('blender') && <polygon points="325,164 322,104 356,104 353,164" fill="rgba(126,176,155,.08)"/>}
+          <ellipse cx="338" cy="130" rx="10" ry="4" fill="none" stroke={isOn('blender') ? T : MU} strokeWidth="1" opacity=".5"/>
+        </g>
+
+        {/* ── RICE COOKER  (x=385..455, y=110..182) ── */}
+        <g onClick={() => toggle('ricecooker')} style={{cursor:'pointer'}}>
+          <ellipse cx="420" cy="178" rx="32" ry="8" fill={S('ricecooker')} stroke={SH('ricecooker')} strokeWidth="1.2"/>
+          <rect x="388" y="128" width="64" height="50" fill={S('ricecooker')} rx="6" stroke={SH('ricecooker')} strokeWidth="1.5"/>
+          <ellipse cx="420" cy="128" rx="32" ry="9" fill={isOn('ricecooker') ? TH : MI} stroke={SH('ricecooker')} strokeWidth="1.5"/>
+          <ellipse cx="420" cy="126" rx="18" ry="5" fill={BG}/>
+          <rect x="416" y="112" width="8"  height="17" fill={isOn('ricecooker') ? R : MU} rx="3"/>
+          <rect x="388" y="124" width="64" height="10" fill={isOn('ricecooker') ? '#476A6F' : MI} rx="2"/>
+          <circle cx="420" cy="153" r="9" fill={BG}/>
+          <circle cx="420" cy="153" r="4" fill={isOn('ricecooker') ? T : MU}/>
+        </g>
+
+        {/* ── SLOW COOKER  (x=12..165, y=206..295) ── */}
+        <g onClick={() => toggle('slowcooker')} style={{cursor:'pointer'}}>
+          <ellipse cx="88" cy="290" rx="68" ry="12" fill={S('slowcooker')} stroke={SH('slowcooker')} strokeWidth="1.2"/>
+          <rect x="20" y="230" width="136" height="60" fill={S('slowcooker')} rx="7" stroke={SH('slowcooker')} strokeWidth="1.5"/>
+          <ellipse cx="88" cy="230" rx="68" ry="14" fill={isOn('slowcooker') ? TH : MI} stroke={SH('slowcooker')} strokeWidth="1.5"/>
+          <ellipse cx="88" cy="228" rx="46" ry="9"  fill={BG}/>
+          <rect x="20" y="222" width="136" height="14" fill={isOn('slowcooker') ? '#476A6F' : MI} rx="4"/>
+          {[45,88,131].map((x,i) => (
+            <circle key={i} cx={x} cy="229" r="3.5" fill={isOn('slowcooker') ? (i===1?T:R) : '#243A3D'}/>
+          ))}
+          {/* Handles */}
+          <rect x="10" y="245" width="10" height="22" rx="4" fill={isOn('slowcooker') ? MU : MI}/>
+          <rect x="156" y="245" width="10" height="22" rx="4" fill={isOn('slowcooker') ? MU : MI}/>
+        </g>
+
+        {/* ── GRILL  (x=200..490, y=205..305) ── */}
+        <g onClick={() => toggle('grill')} style={{cursor:'pointer'}}>
+          {/* Bowl */}
+          <ellipse cx="345" cy="240" rx="130" ry="28" fill={S('grill')} stroke={SH('grill')} strokeWidth="1.5"/>
+          <ellipse cx="345" cy="232" rx="122" ry="20" fill={BG}/>
+          {/* Grill grates */}
+          {[225,245,265,285,305,325,345,365,385,405,425,445,465].map((x,i) => (
+            <line key={i} x1={x} y1="214" x2={x} y2="252" stroke={isOn('grill') ? T : MU} strokeWidth="2.2"/>
+          ))}
+          {/* Rim overlay */}
+          <ellipse cx="345" cy="240" rx="130" ry="28" fill="none" stroke={SH('grill')} strokeWidth="1.5"/>
+          {/* Base/pedestal */}
+          <rect x="315" y="265" width="60" height="10" rx="4" fill={isOn('grill') ? '#476A6F' : MI}/>
+          {/* Legs */}
+          <line x1="325" y1="275" x2="310" y2="302" stroke={isOn('grill') ? MU : MI} strokeWidth="3.5" strokeLinecap="round"/>
+          <line x1="345" y1="275" x2="345" y2="304" stroke={isOn('grill') ? MU : MI} strokeWidth="3.5" strokeLinecap="round"/>
+          <line x1="365" y1="275" x2="380" y2="302" stroke={isOn('grill') ? MU : MI} strokeWidth="3.5" strokeLinecap="round"/>
+        </g>
+
+      </svg>
+
+      {/* Chips below — text only shows here */}
+      <div style={{ marginTop: '12px', minHeight: '32px' }}>
+        {selected.length === 0
+          ? <p style={{ fontSize:'12px', color:'var(--muted)', textAlign:'center' }}>
+              Tap appliances above to select what you have
+            </p>
+          : (
+            <div style={{ display:'flex', flexWrap:'wrap', gap:'6px', justifyContent:'center' }}>
+              {selected.map(id => {
+                const a = APPLIANCES.find(x => x.id === id);
+                return a ? (
+                  <span key={id} onClick={() => toggle(id)} style={{
+                    padding:'4px 12px', fontSize:'12px', fontWeight:'500', cursor:'pointer',
+                    background:'rgba(126,176,155,0.15)', border:'1px solid var(--teal)',
+                    borderRadius:'999px', color:'var(--teal)',
+                    transition: 'all .15s',
+                  }}>
+                    {a.label} ✕
+                  </span>
+                ) : null;
+              })}
             </div>
-          );
-        })}
+          )
+        }
       </div>
-      {selected.length === 0 && (
-        <p style={{fontSize:'12px',color:'var(--muted)',textAlign:'center',marginTop:'10px'}}>
-          Tap to select what you have
-        </p>
-      )}
     </div>
   );
 }
