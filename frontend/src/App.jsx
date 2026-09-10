@@ -16,22 +16,41 @@ function Private({ children }) {
   return user ? children : <Navigate to="/" replace />;
 }
 
+function AppRoutes() {
+  return (
+    <Routes>
+      <Route path="/"          element={<Navigate to="/dashboard" replace />} />
+      <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
+      <Route path="/log"       element={<Private><LogWorkout /></Private>} />
+      <Route path="/prs"       element={<Private><PRTracker /></Private>} />
+      <Route path="/photos"    element={<Private><Photos /></Private>} />
+      <Route path="/friends"   element={<Private><Friends /></Private>} />
+      <Route path="/settings"  element={<Private><Settings /></Private>} />
+      <Route path="/meals"     element={<Private><Meals /></Private>} />
+    </Routes>
+  );
+}
+
 export default function App() {
   const { user } = useAuth();
-  return (
-    <>
-      {user && <Header />}
-      {user && <Nav />}
+
+  if (!user) {
+    return (
       <Routes>
-        <Route path="/"          element={user ? <Navigate to="/dashboard" replace /> : <Home />} />
-        <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
-        <Route path="/log"       element={<Private><LogWorkout /></Private>} />
-        <Route path="/prs"       element={<Private><PRTracker /></Private>} />
-        <Route path="/photos"    element={<Private><Photos /></Private>} />
-        <Route path="/friends"   element={<Private><Friends /></Private>} />
-        <Route path="/settings"  element={<Private><Settings /></Private>} />
-        <Route path="/meals"     element={<Private><Meals /></Private>} />
+        <Route path="*" element={<Home />} />
       </Routes>
-    </>
+    );
+  }
+
+  return (
+    <div className="app-shell">
+      <Nav />
+      <div className="desktop-main">
+        <Header />
+        <div className="app-content">
+          <AppRoutes />
+        </div>
+      </div>
+    </div>
   );
 }
