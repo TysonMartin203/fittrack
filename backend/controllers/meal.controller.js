@@ -25,7 +25,10 @@ async function ensureTable() {
   await pool.query(`ALTER TABLE MealPlans ADD COLUMN IF NOT EXISTS name VARCHAR(100) NOT NULL DEFAULT 'My Meal Plan'`).catch(()=>{});
   await pool.query(`ALTER TABLE MealPlans ADD COLUMN IF NOT EXISTS is_favorite TINYINT(1) NOT NULL DEFAULT 0`).catch(()=>{});
   await pool.query(`ALTER TABLE MealPlans ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(()=>{});
-  // Remove unique constraint if it exists (allow multiple plans per user)
+  // Remove unique constraint if it exists (allow multiple plans per user).
+  // Add a plain (non-unique) index first so the foreign key has something
+  // else to rely on, then drop the old unique index.
+  await pool.query(`ALTER TABLE MealPlans ADD INDEX idx_meal_user (user_id)`).catch(()=>{});
   await pool.query(`ALTER TABLE MealPlans DROP INDEX user_id`).catch(()=>{});
 }
 
