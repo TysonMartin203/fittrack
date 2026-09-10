@@ -5,10 +5,7 @@ const path    = require('path');
 
 const app = express();
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  process.env.CLIENT_URL,
-].filter(Boolean);
+const allowedOrigins = ['http://localhost:5173', process.env.CLIENT_URL].filter(Boolean);
 
 app.use(cors({
   origin: (origin, cb) => {
@@ -27,6 +24,7 @@ app.use('/api/prs',      require('./routes/pr.routes'));
 app.use('/api/photos',   require('./routes/photo.routes'));
 app.use('/api/friends',  require('./routes/friend.routes'));
 app.use('/api/messages', require('./routes/message.routes'));
+app.use('/api/meals',    require('./routes/meal.routes'));
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 

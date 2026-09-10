@@ -1,14 +1,15 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import Header   from './components/Header';
-import Nav      from './components/Nav';
-import Home     from './pages/Home';
-import Dashboard from './pages/Dashboard';
+import Header     from './components/Header';
+import Nav        from './components/Nav';
+import Home       from './pages/Home';
+import Dashboard  from './pages/Dashboard';
 import LogWorkout from './pages/LogWorkout';
-import PRTracker from './pages/PRTracker';
-import Photos    from './pages/ProgressPhotos';
-import Friends   from './pages/Friends';
-import Settings  from './pages/Settings';
+import PRTracker  from './pages/PRTracker';
+import Photos     from './pages/ProgressPhotos';
+import Friends    from './pages/Friends';
+import Settings   from './pages/Settings';
+import Meals      from './pages/Meals';
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/photos"    element={<Private><Photos /></Private>} />
         <Route path="/friends"   element={<Private><Friends /></Private>} />
         <Route path="/settings"  element={<Private><Settings /></Private>} />
+        <Route path="/meals"     element={<Private><Meals /></Private>} />
       </Routes>
     </>
   );

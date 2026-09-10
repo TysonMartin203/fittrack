@@ -1,6 +1,5 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { IconHome, IconBarbell, IconTrophy, IconCamera, IconPeople, IconLogout } from './Icons';
+import { NavLink } from 'react-router-dom';
+import { IconHome, IconBarbell, IconTrophy, IconCamera, IconPeople, IconMeals } from './Icons';
 
 const links = [
   { to: '/dashboard', label: 'Home',    Icon: IconHome },
@@ -8,12 +7,10 @@ const links = [
   { to: '/prs',       label: 'PRs',     Icon: IconTrophy },
   { to: '/photos',    label: 'Photos',  Icon: IconCamera },
   { to: '/friends',   label: 'Friends', Icon: IconPeople },
+  { to: '/meals',     label: 'Meals',   Icon: IconMeals },
 ];
 
 export default function Nav() {
-  const { logout } = useAuth();
-  const navigate   = useNavigate();
-
   return (
     <nav className="bottom-nav">
       {links.map(({ to, label, Icon }) => (
@@ -24,12 +21,6 @@ export default function Nav() {
           <span className="nav-label">{label}</span>
         </NavLink>
       ))}
-      <button className="nav-item nav-logout" onClick={() => { logout(); navigate('/'); }}>
-        <div className="nav-icon-wrap">
-          <IconLogout className="nav-icon" />
-        </div>
-        <span className="nav-label">Out</span>
-      </button>
     </nav>
   );
 }

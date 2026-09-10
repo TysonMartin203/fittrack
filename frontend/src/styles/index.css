@@ -186,3 +186,46 @@ img{display:block;max-width:100%;}
   .photo-grid{grid-template-columns:repeat(3,1fr);}
   .stat-row{grid-template-columns:repeat(3,1fr);}
 }
+
+/* ── iOS PWA safe area + nav lock fixes ── */
+
+/* Lock nav in place on all platforms including iOS PWA */
+.bottom-nav {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 9999 !important;
+  /* Force GPU layer so iOS doesn't scroll it away */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
+  /* Cap safe area so iPhone doesn't add too much space on PWA */
+  padding-bottom: max(4px, env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* Body padding matches the actual nav height + capped safe area */
+body {
+  padding-bottom: calc(var(--nav-h) + max(4px, env(safe-area-inset-bottom, 0px))) !important;
+}
+
+/* 6 tabs need slightly smaller text/padding on narrow phones */
+@media (max-width: 390px) {
+  .nav-label { font-size: 9px; }
+  .nav-item  { padding: 7px 2px 5px; }
+  .nav-icon  { width: 20px; height: 20px; }
+}
+
+/* Desktop sidebar — nav stays on left regardless */
+@media (min-width: 680px) {
+  body { padding-bottom: 0 !important; }
+  .bottom-nav {
+    position: fixed !important;
+    top: 0 !important; left: 0 !important;
+    bottom: 0 !important; right: auto !important;
+    width: 240px !important;
+    padding-bottom: 0 !important;
+    -webkit-transform: none;
+    transform: none;
+  }
+}
