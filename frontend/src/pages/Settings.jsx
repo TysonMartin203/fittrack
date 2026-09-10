@@ -3,17 +3,41 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { IconEdit, IconChevron } from '../components/Icons';
+import AchievementIcon from '../components/AchievementIcon';
+
+// How-to descriptions for each achievement
+const HOW_TO = {
+  first_workout:   'Log your very first workout in the Log tab.',
+  five_workouts:   'Log 5 workouts total. Keep showing up!',
+  ten_workouts:    'Log 10 workouts. You\'re building a real habit.',
+  twenty_workouts: 'Log 20 workouts. Consistency is everything.',
+  fifty_workouts:  'Log 50 workouts. You\'re fully dedicated.',
+  hundred_workouts:'Log 100 workouts. The century club — elite status.',
+  first_pr:        'Set a personal record on any exercise by logging a heavier weight than before.',
+  five_prs:        'Set 5 personal records across any combination of exercises.',
+  ten_prs:         'Set 10 personal records. You are breaking limits.',
+  first_photo:     'Upload your first progress photo in the Photos tab.',
+  five_photos:     'Upload 5 progress photos to track your transformation.',
+  first_friend:    'Add your first friend in the Friends tab.',
+  three_friends:   'Add 3 friends. The more the merrier.',
+  five_friends:    'Add 5 friends and build your fitness squad.',
+  first_message:   'Send a message to one of your friends.',
+  first_meal:      'Generate your first meal plan in the Meals tab.',
+  three_meals:     'Generate 3 meal plans. Healthy eating is a lifestyle.',
+  has_avatar:      'Upload a profile photo by tapping your avatar at the top of this page.',
+};
 
 export default function Settings() {
   const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const fileRef  = useRef();
-  const [uploading,     setUploading]     = useState(false);
-  const [success,       setSuccess]       = useState('');
-  const [error,         setError]         = useState('');
-  const [achievements,  setAchievements]  = useState([]);
-  const [loadingAch,    setLoadingAch]    = useState(true);
-  const [showAllAch,    setShowAllAch]    = useState(false);
+  const [uploading,    setUploading]    = useState(false);
+  const [success,      setSuccess]      = useState('');
+  const [error,        setError]        = useState('');
+  const [achievements, setAchievements] = useState([]);
+  const [loadingAch,   setLoadingAch]   = useState(true);
+  const [showAll,      setShowAll]      = useState(false);
+  const [expanded,     setExpanded]     = useState(null); // which achievement is expanded
 
   const initials  = user?.username?.slice(0,2).toUpperCase() || 'FT';
   const avatarUrl = user?.avatarUrl ? api.fileUrl(user.avatarUrl) : null;
@@ -40,8 +64,7 @@ export default function Settings() {
   }
 
   const unlocked = achievements.filter(a => a.unlocked);
-  const locked   = achievements.filter(a => !a.unlocked);
-  const displayed = showAllAch ? achievements : achievements.slice(0, 8);
+  const displayed = showAll ? achievements : achievements.slice(0, 9);
 
   return (
     <div className="page">
@@ -71,30 +94,75 @@ export default function Settings() {
       <div className="section">
         <div className="section-header">
           <span className="section-title">Achievements</span>
-          <span style={{fontSize:'13px',color:'var(--teal)',fontWeight:'600'}}>{unlocked.length}/{achievements.length}</span>
+          <span style={{fontSize:'13px',color:'var(--teal)',fontWeight:'600'}}>
+            {unlocked.length}/{achievements.length} unlocked
+          </span>
         </div>
 
         {loadingAch ? <div className="spinner" style={{margin:'20px auto'}}/> : (
           <>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(80px,1fr))',gap:'10px',marginBottom:'12px'}}>
-              {(showAllAch ? achievements : achievements.slice(0,8)).map(a => (
-                <div key={a.id} style={{
-                  display:'flex',flexDirection:'column',alignItems:'center',gap:'4px',
-                  padding:'12px 8px',borderRadius:'var(--r)',textAlign:'center',
-                  background: a.unlocked ? 'rgba(126,176,155,0.12)' : 'rgba(46,74,78,.3)',
-                  border: `1px solid ${a.unlocked ? 'rgba(126,176,155,0.3)' : 'var(--border)'}`,
-                  opacity: a.unlocked ? 1 : 0.4,
-                  transition:'all .2s',
-                }}>
-                  <span style={{fontSize:'24px'}}>{a.icon}</span>
-                  <span style={{fontSize:'10px',fontWeight:'600',color: a.unlocked ? 'var(--text)' : 'var(--muted)',lineHeight:'1.2'}}>{a.title}</span>
-                  {a.unlocked && <span style={{fontSize:'9px',color:'var(--teal)',fontWeight:'700'}}>✓ Done</span>}
+            <div style={{display:'flex',flexDirection:'column',gap:'8px',marginBottom:'12px'}}>
+              {displayed.map(a => (
+                <div key={a.id}
+                  onClick={() => setExpanded(expanded === a.id ? null : a.id)}
+                  style={{
+                    display:'flex', alignItems:'center', gap:'14px',
+                    padding:'14px 16px',
+                    borderRadius:'var(--r)',
+                    border: `1px solid ${a.unlocked ? 'rgba(126,176,155,0.3)' : 'var(--border)'}`,
+                    background: a.unlocked ? 'rgba(126,176,155,0.08)' : 'rgba(46,74,78,.3)',
+                    cursor:'pointer',
+                    transition:'all .15s',
+                    WebkitTapHighlightColor:'transparent',
+                  }}>
+                  {/* Icon */}
+                  <div style={{
+                    width:'48px', height:'48px', borderRadius:'12px', flexShrink:0,
+                    background: a.unlocked ? 'rgba(28,46,48,0.6)' : 'rgba(28,46,48,0.4)',
+                    border: `1px solid ${a.unlocked ? 'rgba(126,176,155,0.25)' : 'var(--border)'}`,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                  }}>
+                    <AchievementIcon id={a.id} active={a.unlocked} size={32}/>
+                  </div>
+
+                  {/* Text */}
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{
+                      fontWeight:'700', fontSize:'14px',
+                      color: a.unlocked ? 'var(--text)' : 'var(--muted)',
+                      marginBottom:'2px',
+                    }}>
+                      {a.title}
+                      {a.unlocked && <span style={{marginLeft:'8px',fontSize:'11px',color:'var(--teal)',fontWeight:'700'}}>✓ UNLOCKED</span>}
+                    </div>
+                    <div style={{fontSize:'12px',color:'var(--muted)',lineHeight:'1.4'}}>
+                      {a.unlocked ? a.desc : HOW_TO[a.id] || a.desc}
+                    </div>
+                    {/* Expanded how-to when locked */}
+                    {!a.unlocked && expanded === a.id && (
+                      <div style={{
+                        marginTop:'8px', padding:'8px 10px',
+                        background:'rgba(28,46,48,0.5)', borderRadius:'8px',
+                        fontSize:'12px', color:'var(--text)', lineHeight:'1.5',
+                        border:'1px solid var(--border)',
+                      }}>
+                        <span style={{color:'var(--teal)',fontWeight:'700'}}>How to unlock: </span>
+                        {HOW_TO[a.id] || a.desc}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Chevron */}
+                  {!a.unlocked && (
+                    <div style={{color:'var(--muted)',fontSize:'14px',flexShrink:0,transition:'transform .2s',transform: expanded===a.id ? 'rotate(90deg)' : 'none'}}>›</div>
+                  )}
                 </div>
               ))}
             </div>
-            {achievements.length > 8 && (
-              <button className="btn-ghost" style={{width:'100%',fontSize:'13px'}} onClick={() => setShowAllAch(!showAllAch)}>
-                {showAllAch ? 'Show Less' : `Show All ${achievements.length}`}
+
+            {achievements.length > 9 && (
+              <button className="btn-ghost" style={{width:'100%',fontSize:'13px'}} onClick={() => setShowAll(!showAll)}>
+                {showAll ? 'Show Less' : `Show All ${achievements.length} Achievements`}
               </button>
             )}
           </>
@@ -104,15 +172,12 @@ export default function Settings() {
       {/* Nav shortcuts */}
       <div className="settings-group" style={{marginBottom:'16px'}}>
         {[
-          { label:'Dashboard',  path:'/dashboard', color:'var(--teal)' },
-          { label:'My PRs',     path:'/prs',       color:'var(--rose)' },
-          { label:'Meal Plans', path:'/meals',     color:'var(--sage)' },
-          { label:'Friends',    path:'/friends',   color:'var(--teal)' },
-        ].map(({label,path,color}) => (
+          { label:'Dashboard',  path:'/dashboard' },
+          { label:'My PRs',     path:'/prs'       },
+          { label:'Meal Plans', path:'/meals'      },
+          { label:'Friends',    path:'/friends'    },
+        ].map(({label,path}) => (
           <div key={path} className="settings-item" onClick={() => navigate(path)}>
-            <div className="settings-icon">
-              <div style={{width:'10px',height:'10px',borderRadius:'50%',background:color}}/>
-            </div>
             <span className="settings-label">{label}</span>
             <IconChevron style={{width:'18px',height:'18px',color:'var(--muted)'}}/>
           </div>
@@ -121,13 +186,6 @@ export default function Settings() {
 
       <div className="settings-group">
         <div className="settings-item" onClick={() => { logout(); navigate('/'); }}>
-          <div className="settings-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--danger)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{width:'18px',height:'18px'}}>
-              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-          </div>
           <span className="settings-label" style={{color:'var(--danger)'}}>Log Out</span>
         </div>
       </div>
