@@ -41,10 +41,13 @@ export const api = {
   sendMessage:     (b)   => request('POST', '/api/messages', b),
   getConversation: (fid) => request('GET',  `/api/messages/${fid}`),
 
-  getMealPlan:      ()  => request('GET',  '/api/meals'),
-  saveMealProfile:  (b) => request('PUT',  '/api/meals/profile', b),
-  generateMealPlan: (b) => request('POST', '/api/meals/generate', b),
-  swapMeal:         (b) => request('POST', '/api/meals/swap', b),
+  listMealPlans:    ()     => request('GET',    '/api/meals'),
+  getMealPlan:      (id)   => request('GET',    `/api/meals/${id}`),
+  renameMealPlan:   (id,b) => request('PUT',    `/api/meals/${id}/name`, b),
+  toggleFavorite:   (id)   => request('PUT',    `/api/meals/${id}/favorite`, {}),
+  deleteMealPlan:   (id)   => request('DELETE', `/api/meals/${id}`),
+  generateMealPlan: (b)    => request('POST',   '/api/meals/generate', b),
+  swapMeal:         (b)    => request('POST',   '/api/meals/swap', b),
 
   getAchievements: () => request('GET', '/api/achievements'),
 

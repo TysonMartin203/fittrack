@@ -10,55 +10,91 @@ async function ensureTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS MealPlans (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NOT NULL UNIQUE,
+      user_id INT NOT NULL,
+      name VARCHAR(100) NOT NULL DEFAULT 'My Meal Plan',
       profile JSON,
       plan JSON,
+      is_favorite TINYINT(1) NOT NULL DEFAULT 0,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+      FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+      INDEX idx_meal_user (user_id)
     ) ENGINE=InnoDB
   `);
+  // Migrate old single-plan table if needed (add missing columns)
+  await pool.query(`ALTER TABLE MealPlans ADD COLUMN IF NOT EXISTS name VARCHAR(100) NOT NULL DEFAULT 'My Meal Plan'`).catch(()=>{});
+  await pool.query(`ALTER TABLE MealPlans ADD COLUMN IF NOT EXISTS is_favorite TINYINT(1) NOT NULL DEFAULT 0`).catch(()=>{});
+  await pool.query(`ALTER TABLE MealPlans ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`).catch(()=>{});
+  // Remove unique constraint if it exists (allow multiple plans per user)
+  await pool.query(`ALTER TABLE MealPlans DROP INDEX user_id`).catch(()=>{});
 }
 
-async function getPlan(req, res) {
+// List all plans for user
+async function listPlans(req, res) {
   try {
     await ensureTable();
-    const [rows] = await pool.query('SELECT profile, plan FROM MealPlans WHERE user_id = ?', [req.userId]);
-    if (!rows[0]) return res.json({ profile: null, plan: null });
-    res.json({ profile: rows[0].profile, plan: rows[0].plan });
+    const [rows] = await pool.query(
+      'SELECT id, name, is_favorite, created_at, JSON_EXTRACT(plan, "$.daily_calories") as daily_calories FROM MealPlans WHERE user_id = ? ORDER BY is_favorite DESC, created_at DESC',
+      [req.userId]
+    );
+    res.json({ plans: rows });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Server error' }); }
 }
 
-async function saveProfile(req, res) {
+// Get a single plan
+async function getPlan(req, res) {
   try {
     await ensureTable();
-    await pool.query(
-      `INSERT INTO MealPlans (user_id, profile) VALUES (?, ?)
-       ON DUPLICATE KEY UPDATE profile = VALUES(profile)`,
-      [req.userId, JSON.stringify(req.body)]
-    );
+    const [rows] = await pool.query('SELECT * FROM MealPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+    res.json({ plan: rows[0].plan, profile: rows[0].profile, name: rows[0].name, is_favorite: rows[0].is_favorite });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error' }); }
+}
+
+// Rename a plan
+async function renamePlan(req, res) {
+  try {
+    await pool.query('UPDATE MealPlans SET name = ? WHERE id = ? AND user_id = ?', [req.body.name, req.params.id, req.userId]);
     res.json({ success: true });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Server error' }); }
 }
 
+// Toggle favorite
+async function toggleFavorite(req, res) {
+  try {
+    await pool.query('UPDATE MealPlans SET is_favorite = NOT is_favorite WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    const [[row]] = await pool.query('SELECT is_favorite FROM MealPlans WHERE id = ?', [req.params.id]);
+    res.json({ is_favorite: !!row?.is_favorite });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error' }); }
+}
+
+// Delete a plan
+async function deletePlan(req, res) {
+  try {
+    await pool.query('DELETE FROM MealPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    res.json({ success: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error' }); }
+}
+
+// Generate a new plan
 async function generate(req, res) {
   try {
     await ensureTable();
     const client = getClient();
-    const { weight, goalWeight, goal, timeline, restrictions = [], dislikes = '', wantedFoods = '', appliances = [] } = req.body;
+    const { weight, goalWeight, goal, timeline, restrictions = [], dislikes = '', wantedFoods = '', appliances = [], planName = 'My Meal Plan' } = req.body;
 
     const [prs] = await pool.query('SELECT exercise, max_weight FROM PRs WHERE user_id = ? LIMIT 5', [req.userId]);
     const prText = prs.length > 0 ? prs.map(p => `${p.exercise}: ${p.max_weight}lbs`).join(', ') : 'Not provided';
-
     const applianceText = appliances.length > 0 ? appliances.join(', ') : 'stovetop, oven, microwave (assume basic)';
 
     const prompt = `You are a certified nutritionist and personal trainer. Create a budget-friendly 7-day meal plan as JSON.
 
 CRITICAL BUDGET RULES:
-- Reuse proteins across multiple days (e.g. buy a whole chicken breast pack and use across 3 days)
+- Reuse proteins across multiple days (buy a whole chicken breast pack and use across 3 days)
 - Use the same base ingredients in different ways throughout the week
 - Prioritize affordable proteins: eggs, canned tuna, chicken thighs, ground turkey, beans, lentils
 - Use seasonal/affordable produce: carrots, cabbage, bananas, apples, frozen vegetables
-- Staple grains: oats, rice, pasta, bread — use repeatedly across the week
+- Staple grains: oats, rice, pasta, bread — use repeatedly
 - Keep weekly grocery cost under $75-100 for one person
 
 User stats:
@@ -69,16 +105,16 @@ User stats:
 - Lifting PRs: ${prText}
 - Dietary restrictions: ${restrictions.length > 0 ? restrictions.join(', ') : 'none'}
 - Foods to avoid: ${dislikes || 'none'}
-- Foods to include: ${wantedFoods || 'none specified'}
-- Available kitchen appliances: ${applianceText}
+- Foods to include: ${wantedFoods || 'none'}
+- Available appliances: ${applianceText}
 
-IMPORTANT: Only suggest recipes that can be made with the available appliances listed above.
+Only suggest recipes makeable with the listed appliances.
 
 Return ONLY valid JSON, no markdown. Structure:
 {
   "daily_calories": number,
   "macros": { "protein": number, "carbs": number, "fat": number },
-  "budget_tip": "one sentence tip about saving money this week",
+  "budget_tip": "one sentence money-saving tip for this week",
   "days": [
     {
       "day": "Monday",
@@ -90,15 +126,14 @@ Return ONLY valid JSON, no markdown. Structure:
           "protein": number,
           "carbs": number,
           "fat": number,
-          "ingredients": ["item with amount e.g. 2 eggs", "1 cup oats"],
+          "ingredients": ["2 eggs", "1 cup oats"],
           "can_substitute": true
         }
       ]
     }
   ]
 }
-
-Include Breakfast, Lunch, Dinner, and one Snack per day for all 7 days (Monday through Sunday).`;
+Include Breakfast, Lunch, Dinner, and one Snack per day for all 7 days.`;
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -107,30 +142,28 @@ Include Breakfast, Lunch, Dinner, and one Snack per day for all 7 days (Monday t
     });
 
     let text = message.content[0].text.trim();
-    // Strip any markdown code fences if present
     text = text.replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
-
     const plan = JSON.parse(text);
 
-    await pool.query(
-      `INSERT INTO MealPlans (user_id, profile, plan) VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE profile = VALUES(profile), plan = VALUES(plan)`,
-      [req.userId, JSON.stringify(req.body), JSON.stringify(plan)]
+    const [result] = await pool.query(
+      'INSERT INTO MealPlans (user_id, name, profile, plan) VALUES (?, ?, ?, ?)',
+      [req.userId, planName, JSON.stringify(req.body), JSON.stringify(plan)]
     );
 
-    res.json({ plan });
+    res.json({ plan, planId: result.insertId, planName });
   } catch (err) {
     console.error(err);
     if (err.message === 'ANTHROPIC_API_KEY not set')
       return res.status(503).json({ error: 'AI meal planning not configured yet.' });
-    res.status(500).json({ error: 'Failed to generate meal plan: ' + err.message });
+    res.status(500).json({ error: 'Failed to generate: ' + err.message });
   }
 }
 
+// Swap a single meal
 async function swap(req, res) {
   try {
     const client = getClient();
-    const { mealName, restrictions = [], macroTarget, appliances = [] } = req.body;
+    const { mealName, restrictions = [], macroTarget, appliances = [], planId, dayIdx, mealIdx } = req.body;
     const applianceText = appliances.length > 0 ? appliances.join(', ') : 'stovetop, oven, microwave';
 
     const prompt = `Suggest one budget-friendly alternative meal to replace "${mealName}".
@@ -149,6 +182,17 @@ Use affordable, common ingredients. Return ONLY JSON:
     let text = message.content[0].text.trim();
     text = text.replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
     const meal = JSON.parse(text);
+
+    // Update the plan in the database
+    if (planId) {
+      const [[row]] = await pool.query('SELECT plan FROM MealPlans WHERE id = ? AND user_id = ?', [planId, req.userId]);
+      if (row) {
+        const planData = row.plan;
+        planData.days[dayIdx].meals[mealIdx] = { ...planData.days[dayIdx].meals[mealIdx], ...meal };
+        await pool.query('UPDATE MealPlans SET plan = ? WHERE id = ?', [JSON.stringify(planData), planId]);
+      }
+    }
+
     res.json({ meal });
   } catch (err) {
     console.error(err);
@@ -156,4 +200,4 @@ Use affordable, common ingredients. Return ONLY JSON:
   }
 }
 
-module.exports = { getPlan, saveProfile, generate, swap };
+module.exports = { listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, generate, swap };

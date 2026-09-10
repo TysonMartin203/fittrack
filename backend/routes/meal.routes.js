@@ -1,9 +1,12 @@
 const router = require('express').Router();
 const auth   = require('../middleware/auth');
-const { getPlan, saveProfile, generate, swap } = require('../controllers/meal.controller');
+const { listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, generate, swap } = require('../controllers/meal.controller');
 router.use(auth);
-router.get('/',           getPlan);
-router.put('/profile',    saveProfile);
-router.post('/generate',  generate);
-router.post('/swap',      swap);
+router.get('/',              listPlans);
+router.get('/:id',           getPlan);
+router.put('/:id/name',      renamePlan);
+router.put('/:id/favorite',  toggleFavorite);
+router.delete('/:id',        deletePlan);
+router.post('/generate',     generate);
+router.post('/swap',         swap);
 module.exports = router;
