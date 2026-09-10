@@ -33,7 +33,7 @@ export default function Friends() {
     e.preventDefault();
     if (!msgText.trim() || !convo) return;
     await api.sendMessage({ receiverId: convo.friend.id, message: msgText });
-    setConvo(c => ({ ...c, messages: await api.getConversation(c.friend.id) }));
+    const msgs = await api.getConversation(convo.friend.id); setConvo(c => ({ ...c, messages: msgs }));
     setMsgText('');
   }
 
