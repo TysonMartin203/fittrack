@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
+import { compressImage } from '../compressImage';
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -10,6 +11,7 @@ export default function ProgressPhotos() {
   const [preview,   setPreview]   = useState(null);
   const [loading,   setLoading]   = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [error,     setError]     = useState('');
   const fileRef = useRef();
 
@@ -17,11 +19,14 @@ export default function ProgressPhotos() {
     api.getPhotos().then(setPhotos).catch(console.error).finally(() => setLoading(false));
   }, []);
 
-  function onFile(e) {
+  async function onFile(e) {
     const f = e.target.files[0];
     if (!f) return;
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+    setCompressing(true);
+    const compressed = await compressImage(f);
+    setFile(compressed);
+    setPreview(URL.createObjectURL(compressed));
+    setCompressing(false);
   }
 
   async function upload(e) {
@@ -57,11 +62,12 @@ export default function ProgressPhotos() {
           </div>
           <div className="field">
             <label className="label">Photo</label>
-            <input className="input" type="file" accept="image/jpeg,image/png,image/webp" ref={fileRef} onChange={onFile} />
+            <input className="input" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" ref={fileRef} onChange={onFile} />
           </div>
-          {preview && <img src={preview} alt="preview" className="photo-preview" />}
+          {compressing && <p className="muted" style={{fontSize:'12px'}}>Optimizing photo…</p>}
+          {preview && !compressing && <img src={preview} alt="preview" className="photo-preview" />}
           {error && <p className="form-error">{error}</p>}
-          <button className="btn-primary" type="submit" disabled={uploading}>
+          <button className="btn-primary" type="submit" disabled={uploading || compressing}>
             {uploading ? 'Uploading…' : 'Upload Photo'}
           </button>
         </form>

@@ -352,6 +352,7 @@ export default function Meals() {
   useEffect(() => {
     loadPlans();
     api.getMealTemplates().then(d => setTemplates(d.templates||[])).catch(()=>{});
+    api.getProfile().then(d => { if (d.profile) setProfile(p => ({...p, ...d.profile})); }).catch(()=>{});
   }, []);
 
   function loadPlans() {
@@ -363,6 +364,8 @@ export default function Meals() {
     setError(''); setGenerating(true);
     try {
       const data = await api.generateMealPlan(profile);
+      const { planName, ...profileToSave } = profile;
+      api.saveProfile(profileToSave).catch(()=>{});
       loadPlans();
       setActivePlan(data.planId);
       setView('detail');

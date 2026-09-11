@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { IconEdit, IconChevron } from '../components/Icons';
 import AchievementIcon from '../components/AchievementIcon';
+import { compressImage } from '../compressImage';
 
 // How-to descriptions for each achievement
 const HOW_TO = {
@@ -54,13 +55,19 @@ export default function Settings() {
     if (!file) return;
     setUploading(true); setError(''); setSuccess('');
     try {
+      const compressed = await compressImage(file, { maxDimension: 800, quality: 0.85 });
       const fd = new FormData();
-      fd.append('avatar', file);
+      fd.append('avatar', compressed);
       const data = await api.uploadAvatar(fd);
       updateUser({ avatarUrl: data.avatarUrl });
       setSuccess('Profile photo updated!');
     } catch (err) { setError(err.message); }
     finally { setUploading(false); }
+  }
+
+  async function setTheme(theme) {
+    updateUser({ theme }); // apply instantly
+    try { await api.updateTheme(theme); } catch {} // persisted best-effort
   }
 
   const unlocked = achievements.filter(a => a.unlocked);
@@ -81,13 +88,24 @@ export default function Settings() {
             <IconEdit style={{width:'11px',height:'11px',color:'#fff'}}/>
           </div>
         </div>
-        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{display:'none'}} onChange={onAvatarChange}/>
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" style={{display:'none'}} onChange={onAvatarChange}/>
         <div className="profile-name">{user?.username}</div>
         <div className="profile-email">{user?.email}</div>
         {uploading && <p className="muted" style={{fontSize:'12px'}}>Uploading…</p>}
         {success   && <p className="form-success">{success}</p>}
         {error     && <p className="form-error">{error}</p>}
         <p className="muted" style={{fontSize:'12px',marginTop:'4px'}}>Tap photo to change</p>
+      </div>
+
+      {/* Appearance */}
+      <div className="section">
+        <div className="section-header">
+          <span className="section-title">Appearance</span>
+        </div>
+        <div className="tab-row">
+          <button className={user?.theme !== 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('light')}>☀️ Light</button>
+          <button className={user?.theme === 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('dark')}>🌙 Dark</button>
+        </div>
       </div>
 
       {/* Achievements */}

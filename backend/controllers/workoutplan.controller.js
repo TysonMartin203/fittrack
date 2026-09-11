@@ -1,0 +1,241 @@
+const pool = require('../config/db');
+const Anthropic = require('@anthropic-ai/sdk');
+const TEMPLATES = require('../data/workout-plan-templates');
+const { addFeedEvent } = require('../models/feed.model');
+const { createNotification } = require('../models/notification.model');
+const { sendPushToUser } = require('../models/push.model');
+const { findById } = require('../models/user.model');
+const { areFriends } = require('../models/friend.model');
+
+function getClient() {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
+
+// ── Templates (read-only source material) ──
+async function getTemplates(req, res) {
+  res.json(TEMPLATES.map(t => ({ id: t.id, name: t.name, description: t.description, category: t.category, icon: t.icon, format: t.format })));
+}
+
+async function getTemplateById(req, res) {
+  const t = TEMPLATES.find(x => x.id === req.params.id);
+  if (!t) return res.status(404).json({ error: 'Not found' });
+  res.json({ plan: t.plan, name: t.name, format: t.format });
+}
+
+async function useTemplate(req, res) {
+  try {
+    const t = TEMPLATES.find(x => x.id === req.params.id);
+    if (!t) return res.status(404).json({ error: 'Not found' });
+    const name = req.body?.name || t.name;
+
+    const [result] = await pool.query(
+      'INSERT INTO WorkoutPlans (user_id, name, plan) VALUES (?, ?, ?)',
+      [req.userId, name, JSON.stringify({ ...t.plan, format: t.format })]
+    );
+    addFeedEvent({
+      userId: req.userId, type: 'template_pick', refId: result.insertId,
+      headline: `started the ${t.name} workout plan`,
+      detail: t.category,
+    }).catch(err => console.error('Feed event failed:', err));
+    res.json({ planId: result.insertId, plan: t.plan, planName: name, format: t.format });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+// ── Saved plans CRUD ──
+async function listPlans(req, res) {
+  try {
+    const [rows] = await pool.query(
+      'SELECT id, name, is_favorite, shared_from_username, created_at FROM WorkoutPlans WHERE user_id = ? ORDER BY created_at DESC',
+      [req.userId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function getPlan(req, res) {
+  try {
+    const [[row]] = await pool.query('SELECT * FROM WorkoutPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    res.json({ plan: row.plan, name: row.name, is_favorite: row.is_favorite, shared_from_username: row.shared_from_username });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function renamePlan(req, res) {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Name required' });
+    await pool.query('UPDATE WorkoutPlans SET name = ? WHERE id = ? AND user_id = ?', [name.trim(), req.params.id, req.userId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function toggleFavorite(req, res) {
+  try {
+    const [[row]] = await pool.query('SELECT is_favorite FROM WorkoutPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    const next = row.is_favorite ? 0 : 1;
+    await pool.query('UPDATE WorkoutPlans SET is_favorite = ? WHERE id = ?', [next, req.params.id]);
+    res.json({ is_favorite: next });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function deletePlan(req, res) {
+  try {
+    const [result] = await pool.query('DELETE FROM WorkoutPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function sharePlan(req, res) {
+  try {
+    const { friendId } = req.body;
+    if (!friendId) return res.status(400).json({ error: 'friendId required' });
+
+    const friends = await areFriends(req.userId, friendId);
+    if (!friends) return res.status(403).json({ error: 'Not friends' });
+
+    const [[plan]] = await pool.query('SELECT * FROM WorkoutPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    if (!plan) return res.status(404).json({ error: 'Plan not found' });
+
+    const sender = await findById(req.userId);
+    const [result] = await pool.query(
+      `INSERT INTO WorkoutPlans (user_id, name, plan, shared_from_user_id, shared_from_username)
+       VALUES (?, ?, ?, ?, ?)`,
+      [friendId, plan.name, JSON.stringify(plan.plan), req.userId, sender?.username || null]
+    );
+
+    await createNotification({
+      userId: friendId, type: 'workout_plan_share',
+      title: `${sender?.username || 'A friend'} shared a workout plan with you`,
+      body: plan.name,
+      data: { planId: result.insertId },
+    });
+    await sendPushToUser(friendId, {
+      title: 'New shared workout plan',
+      body: `${sender?.username || 'A friend'} sent you "${plan.name}"`,
+      data: { type: 'workout_plan_share', planId: result.insertId },
+    });
+
+    res.status(201).json({ success: true, planId: result.insertId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+// ── AI generation, built from the shared profile ──
+async function generate(req, res) {
+  try {
+    const client = getClient();
+    const { weight, goalWeight, goal, timeline, planName = 'My Workout Plan' } = req.body;
+
+    const [prs] = await pool.query('SELECT exercise, max_weight FROM PRs WHERE user_id = ? LIMIT 8', [req.userId]);
+    const prText = prs.length > 0 ? prs.map(p => `${p.exercise}: ${p.max_weight}lbs`).join(', ') : 'Not provided';
+
+    const prompt = `You are a certified strength coach. Build a 7-day weekly workout split as JSON, tailored to this person.
+
+User stats:
+- Current weight: ${weight || 'not provided'} lbs
+- Goal weight: ${goalWeight || 'not provided'} lbs
+- Goal: ${goal || 'general fitness'}
+- Timeline: ${timeline || 'not provided'} weeks
+- Current lifting PRs: ${prText}
+
+Choose a sensible split (e.g. Push/Pull/Legs, Upper/Lower, Full Body, or a bro split) based on their goal. Include rest days appropriately — this is a full week, so not every day should be a training day. For each exercise give sets and a rep range as a string (e.g. "8-10"). Use common gym exercise names.
+
+Return ONLY valid JSON, no markdown. Structure:
+{
+  "split_type": "e.g. Push Pull Legs",
+  "days_per_week": number,
+  "days": [
+    { "day": "Monday", "type": "workout", "focus": "Push", "exercises": [
+      { "category": "lifting", "exerciseName": "Bench Press", "sets": 4, "reps": "6-8", "notes": "" }
+    ]},
+    { "day": "Sunday", "type": "rest" }
+  ]
+}`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 8000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    let text = message.content[0].text.trim();
+    text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+    const plan = JSON.parse(text);
+
+    const [result] = await pool.query(
+      'INSERT INTO WorkoutPlans (user_id, name, plan) VALUES (?, ?, ?)',
+      [req.userId, planName, JSON.stringify({ ...plan, format: 'week' })]
+    );
+
+    res.json({ planId: result.insertId, plan, planName });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Server error' });
+  }
+}
+
+// ── Swap a single exercise, with a reason (mirrors the meal-swap flow) ──
+async function swapExercise(req, res) {
+  try {
+    const client = getClient();
+    const { exerciseName, category = 'lifting', sets, reps, reason, detail } = req.body;
+
+    let reasonText = '';
+    if (reason === 'restriction' && detail) {
+      reasonText = `The replacement must avoid: ${detail} (e.g. an injury or lack of equipment) — do not suggest anything involving that.`;
+    } else if (reason === 'dislike') {
+      reasonText = detail
+        ? `They don't want this exercise because: ${detail}. Pick something meaningfully different that targets the same area.`
+        : `They just don't want this specific exercise — pick something meaningfully different that targets the same muscles.`;
+    }
+
+    const prompt = `Suggest one alternative ${category} exercise to replace "${exerciseName}" that trains the same muscle group(s) or purpose.
+${reasonText}
+Keep the same rough sets/rep range: ${sets || '?'} sets of ${reps || '?'}.
+Return ONLY JSON: { "exerciseName": "...", "sets": ${sets || 3}, "reps": "${reps || '8-12'}", "notes": "" }`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 500,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    let text = message.content[0].text.trim();
+    text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+    const suggestion = JSON.parse(text);
+
+    res.json({ exercise: { category, ...suggestion } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Server error' });
+  }
+}
+
+module.exports = {
+  getTemplates, getTemplateById, useTemplate,
+  listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, sharePlan,
+  generate, swapExercise,
+};

@@ -32,6 +32,8 @@ app.use('/api/social',       require('./routes/social.routes'));
 app.use('/api/crews',        require('./routes/crew.routes'));
 app.use('/api/challenges',   require('./routes/challenge.routes'));
 app.use('/api/invites',      require('./routes/invite.routes'));
+app.use('/api/profile',      require('./routes/profile.routes'));
+app.use('/api/workout-plans', require('./routes/workoutplan.routes'));
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 

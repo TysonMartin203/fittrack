@@ -30,6 +30,7 @@ export const api = {
   register:      (b) => request('POST', '/api/auth/register', b),
   login:         (b) => request('POST', '/api/auth/login', b),
   uploadAvatar:  (fd) => uploadFile('/api/auth/avatar', fd),
+  updateTheme:   (theme) => request('PUT', '/api/auth/theme', { theme }),
 
   logWorkout:    (payload, photoFile) => uploadFile('/api/workouts', workoutFormData(payload, photoFile)),
   updateWorkout: (id, payload, photoFile) => uploadFile(`/api/workouts/${id}`, workoutFormData(payload, photoFile), 'PUT'),
@@ -96,6 +97,21 @@ export const api = {
   getInvites:   ()    => request('GET',  '/api/invites'),
   acceptInvite: (id)  => request('PUT',  `/api/invites/${id}/accept`, {}),
   declineInvite:(id)  => request('PUT',  `/api/invites/${id}/decline`, {}),
+
+  getProfile:  ()    => request('GET', '/api/profile'),
+  saveProfile: (p)   => request('PUT', '/api/profile', p),
+
+  getWorkoutPlanTemplates: ()      => request('GET',  '/api/workout-plans/templates'),
+  getWorkoutPlanTemplate:  (id)    => request('GET',  `/api/workout-plans/templates/${id}`),
+  useWorkoutPlanTemplate:  (id,b)  => request('POST', `/api/workout-plans/templates/${id}`, b),
+  getWorkoutPlans:  ()             => request('GET',  '/api/workout-plans'),
+  getWorkoutPlan:   (id)           => request('GET',  `/api/workout-plans/${id}`),
+  renameWorkoutPlan:(id,b)         => request('PUT',  `/api/workout-plans/${id}/name`, b),
+  favoriteWorkoutPlan: (id)        => request('PUT',  `/api/workout-plans/${id}/favorite`, {}),
+  deleteWorkoutPlan:(id)           => request('DELETE',`/api/workout-plans/${id}`),
+  shareWorkoutPlan: (id,b)         => request('POST', `/api/workout-plans/${id}/share`, b),
+  generateWorkoutPlan: (b)         => request('POST', '/api/workout-plans/generate', b),
+  swapPlanExercise: (b)            => request('POST', '/api/workout-plans/swap-exercise', b),
 
   fileUrl: (p) => {
     if (!p) return null;

@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap');
 :root{--slate:#7D4F50;--seagrass:#CC8B86;--teal:#CC8B86;--sage:#D1BE9C;--rose:#CC8B86;--rose-dark:#7D4F50;--bg:#F9EAE1;--bg-2:#F3E3D3;--surface:#FFFFFF;--surface-2:#F6ECE1;--surface-3:#EBD9C4;--text:#5A3634;--text-2:#8B6560;--muted:#AA998F;--border:rgba(125,79,80,0.14);--border-hi:rgba(125,79,80,0.3);--accent:#CC8B86;--accent-hi:#7D4F50;--cta:#CC8B86;--cta-dark:#7D4F50;--danger:#C47B7B;--r-sm:8px;--r:14px;--r-lg:20px;--r-xl:28px;--nav-h:68px;--header-h:56px;--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);--shadow-sm:0 2px 8px rgba(125,79,80,.1);--shadow:0 4px 20px rgba(125,79,80,.14);--shadow-lg:0 8px 40px rgba(125,79,80,.18);--font-body:"DM Sans",-apple-system,system-ui,sans-serif;--font-display:"DM Serif Display",Georgia,serif;}
+:root[data-theme="dark"]{--slate:#7D4F50;--seagrass:#CC8B86;--teal:#CC8B86;--sage:#D1BE9C;--rose:#CC8B86;--rose-dark:#E3ADA7;--bg:#241416;--bg-2:#2E1A1C;--surface:#3A2225;--surface-2:#452A2D;--surface-3:#54383B;--text:#F9EAE1;--text-2:#D1BE9C;--muted:#AA998F;--border:rgba(249,234,225,0.10);--border-hi:rgba(249,234,225,0.22);--accent:#CC8B86;--accent-hi:#E3ADA7;--cta:#CC8B86;--cta-dark:#E3ADA7;--danger:#E08585;--shadow-sm:0 2px 8px rgba(0,0,0,.25);--shadow:0 4px 20px rgba(0,0,0,.35);--shadow-lg:0 8px 40px rgba(0,0,0,.45);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{height:100%;-webkit-text-size-adjust:100%;}
 body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;padding-top:var(--header-h);padding-bottom:calc(var(--nav-h) + var(--safe-b));overflow-x:hidden;}
@@ -161,7 +162,7 @@ img{display:block;max-width:100%;}
 .message.mine{align-self:flex-end;align-items:flex-end;}
 .message.theirs{align-self:flex-start;}
 .msg-text{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:10px 15px;font-size:15px;line-height:1.45;color:var(--text);}
-.message.mine .msg-text{background:var(--slate);border-color:var(--slate);border-bottom-right-radius:4px;}
+.message.mine .msg-text{background:var(--slate);border-color:var(--slate);border-bottom-right-radius:4px;color:#F9EAE1;}
 .message.theirs .msg-text{border-bottom-left-radius:4px;}
 .msg-time{font-size:10px;color:var(--muted);padding:0 4px;}
 .msg-form{display:flex;gap:10px;padding-top:14px;border-top:1px solid var(--border);}

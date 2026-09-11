@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
   });
 
   function login(data) {
-    const u = { id: data.userId, username: data.username, email: data.email, avatarUrl: data.avatarUrl || null };
+    const u = { id: data.userId, username: data.username, email: data.email, avatarUrl: data.avatarUrl || null, theme: data.theme || 'light' };
     localStorage.setItem('fittrack_token', data.token);
     localStorage.setItem('fittrack_user', JSON.stringify(u));
     setUser(u);

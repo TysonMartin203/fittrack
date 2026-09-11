@@ -132,3 +132,6 @@ ALTER TABLE ProgressPhotos ADD COLUMN workout_id INT NULL;
 
 -- 14.
 ALTER TABLE ProgressPhotos ADD FOREIGN KEY (workout_id) REFERENCES Workouts(id) ON DELETE SET NULL;
+
+-- 15. Dark mode preference, saved per account
+ALTER TABLE Users ADD COLUMN theme VARCHAR(10) NOT NULL DEFAULT 'light';

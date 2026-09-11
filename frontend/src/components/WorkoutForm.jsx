@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { LIFTING_EXERCISES, CARDIO_ACTIVITIES, DISTANCE_UNITS } from '../data/exercises';
+import { compressImage } from '../compressImage';
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -224,6 +225,7 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
   const [notesAfter,   setNotesAfter]   = useState(initial?.notesAfter || '');
   const [exercises,    setExercises]    = useState(initial?.exercises?.length ? initial.exercises : [blankLiftingExercise()]);
   const [photoFile,    setPhotoFile]    = useState(null);
+  const [compressingPhoto, setCompressingPhoto] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(initial?.photoUrl || null);
   const [error,        setError]        = useState('');
   const [result,       setResult]       = useState(null);
@@ -239,11 +241,14 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
   function addExercise() {
     setExercises(prev => [...prev, blankLiftingExercise()]);
   }
-  function onPhoto(e) {
+  async function onPhoto(e) {
     const f = e.target.files[0];
     if (!f) return;
-    setPhotoFile(f);
-    setPhotoPreview(URL.createObjectURL(f));
+    setCompressingPhoto(true);
+    const compressed = await compressImage(f);
+    setPhotoFile(compressed);
+    setPhotoPreview(URL.createObjectURL(compressed));
+    setCompressingPhoto(false);
   }
 
   async function submit(e) {
@@ -334,9 +339,10 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
 
       <div className="field">
         <label className="label">Progress photo (optional)</label>
-        <input className="input" type="file" accept="image/jpeg,image/png,image/webp" ref={fileRef} onChange={onPhoto} />
+        <input className="input" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" ref={fileRef} onChange={onPhoto} />
       </div>
-      {photoPreview && <img src={photoPreview} alt="preview" className="photo-preview" />}
+      {compressingPhoto && <p className="muted" style={{fontSize:'12px'}}>Optimizing photo…</p>}
+      {photoPreview && !compressingPhoto && <img src={photoPreview} alt="preview" className="photo-preview" />}
 
       {error && <p className="form-error">{error}</p>}
       {result && (
@@ -349,7 +355,7 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
         </div>
       )}
 
-      <button className="btn-primary" type="submit" disabled={loading}>
+      <button className="btn-primary" type="submit" disabled={loading || compressingPhoto}>
         {loading ? 'Saving…' : mode === 'edit' ? 'Save Changes' : 'Log Workout'}
       </button>
 
