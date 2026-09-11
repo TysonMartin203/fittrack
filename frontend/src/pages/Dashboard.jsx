@@ -15,18 +15,21 @@ function Skeleton() {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [workouts, setWorkouts] = useState([]);
-  const [prs,      setPRs]      = useState([]);
-  const [loading,  setLoading]  = useState(true);
+  const [workouts,   setWorkouts]   = useState([]);
+  const [prs,        setPRs]        = useState([]);
+  const [streak,     setStreak]     = useState(0);
+  const [showAllPRs, setShowAllPRs] = useState(false);
+  const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
-    Promise.all([api.getWorkouts(), api.getPRs()])
-      .then(([w, p]) => { setWorkouts(w); setPRs(p); })
+    Promise.all([api.getWorkouts(), api.getPRs(), api.getStreak().catch(() => ({ streak: 0 }))])
+      .then(([w, p, s]) => { setWorkouts(w); setPRs(p); setStreak(s.streak || 0); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
   const recent = workouts.slice(0, 5);
+  const visiblePRs = showAllPRs ? prs : prs.slice(0, 5);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -43,6 +46,13 @@ export default function Dashboard() {
         <div className="stat-card" style={{animationDelay:'.1s'}}>
           <span className="stat-num">{prs.length}</span>
           <span className="stat-label">PRs Set</span>
+        </div>
+        <div className="stat-card" style={{animationDelay:'.15s'}}>
+          <span className="stat-num" style={{display:'flex',alignItems:'center',gap:'4px',justifyContent:'center'}}>
+            {streak}
+            {streak > 0 && <span style={{fontSize: Math.min(22, 14 + streak)}}>🔥</span>}
+          </span>
+          <span className="stat-label">Day Streak</span>
         </div>
       </div>
 
@@ -71,15 +81,23 @@ export default function Dashboard() {
 
       <section className="section">
         <div className="section-header">
-          <span className="section-title">Top PRs</span>
-          <Link to="/prs" className="link-small">View all</Link>
+          <span className="section-title">Personal Records</span>
+          {prs.length > 5 && (
+            <button className="link-small" style={{background:'none',border:'none',cursor:'pointer'}} onClick={() => setShowAllPRs(s => !s)}>
+              {showAllPRs ? 'Show less' : `View all (${prs.length})`}
+            </button>
+          )}
         </div>
-        {loading ? <Skeleton /> : prs.slice(0, 3).map((pr, i) => (
-          <div key={pr.id} className="list-item" style={{animationDelay:`${i*.05}s`,animation:'fadeInUp .3s ease both'}}>
-            <span className="item-main">{pr.exercise}</span>
-            <span className="item-accent">{pr.max_weight} lbs</span>
-          </div>
-        ))}
+        {loading ? <Skeleton /> : visiblePRs.map((pr, i) => {
+          const Card = pr.workout_id ? Link : 'div';
+          const cardProps = pr.workout_id ? { to: `/workouts/${pr.workout_id}` } : {};
+          return (
+            <Card key={pr.id} className="list-item clickable" style={{animationDelay:`${i*.05}s`,animation:'fadeInUp .3s ease both'}} {...cardProps}>
+              <span className="item-main">{pr.exercise}</span>
+              <span className="item-accent">{pr.max_weight} lbs</span>
+            </Card>
+          );
+        })}
         {!loading && prs.length === 0 && <p className="muted">Log a workout to set your first PR.</p>}
       </section>
     </div>

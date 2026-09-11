@@ -1,13 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { IconHome, IconBarbell, IconTrophy, IconCamera, IconPeople, IconMeals } from './Icons';
+import { IconBarbell, IconCamera, IconFeed, IconPeople, IconMeals } from './Icons';
 
 const links = [
-  { to: '/dashboard', label: 'Home',    Icon: IconHome },
-  { to: '/log',       label: 'Log',     Icon: IconBarbell },
-  { to: '/prs',       label: 'PRs',     Icon: IconTrophy },
-  { to: '/photos',    label: 'Photos',  Icon: IconCamera },
-  { to: '/friends',   label: 'Friends', Icon: IconPeople },
-  { to: '/meals',     label: 'Meals',   Icon: IconMeals },
+  { to: '/log',     label: 'Log',    Icon: IconBarbell },
+  { to: '/photos',  label: 'Photos', Icon: IconCamera },
+  { to: '/feed',    label: 'Feed',   Icon: IconFeed },
+  { to: '/social',  label: 'Social', Icon: IconPeople },
+  { to: '/meals',   label: 'Meals',  Icon: IconMeals },
 ];
 
 export default function Nav() {

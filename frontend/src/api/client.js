@@ -63,6 +63,39 @@ export const api = {
   getMealTemplates:  ()      => request('GET',  '/api/meals/templates'),
   useMealTemplate:   (id, b) => request('POST', `/api/meals/templates/${id}`, b),
   getMealRecipe:     (b)     => request('POST', '/api/meals/recipe', b),
+  shareMealPlan:     (id,b)  => request('POST', `/api/meals/${id}/share`, b),
+
+  getVapidPublicKey: ()    => request('GET',  '/api/push/vapid-public-key'),
+  subscribePush:     (sub) => request('POST', '/api/push/subscribe', { subscription: sub }),
+  unsubscribePush:   (b)   => request('POST', '/api/push/unsubscribe', b),
+  getNotifications:  ()    => request('GET',  '/api/push/notifications'),
+  markNotificationRead: (id) => request('PUT', `/api/push/notifications/${id}/read`, {}),
+  markAllNotificationsRead: () => request('PUT', '/api/push/notifications/read-all', {}),
+
+  getFeed:    ()        => request('GET',    '/api/feed'),
+  react:      (id, r)   => request('POST',   `/api/feed/${id}/react`, { reaction: r }),
+  unreact:    (id)      => request('DELETE', `/api/feed/${id}/react`),
+
+  buzzFriend:     (friendId) => request('POST', `/api/social/buzz/${friendId}`, {}),
+  getLeaderboard: ()         => request('GET',  '/api/social/leaderboard'),
+  getStreak:      ()         => request('GET',  '/api/social/streak'),
+
+  createCrew:   (b)      => request('POST', '/api/crews', b),
+  getCrews:     ()       => request('GET',  '/api/crews'),
+  getCrew:      (id)     => request('GET',  `/api/crews/${id}`),
+  addCrewMember:(id, b)  => request('POST', `/api/crews/${id}/members`, b),
+  getCrewMessages: (id)  => request('GET',  `/api/crews/${id}/messages`),
+  sendCrewMessage: (id,b)=> request('POST', `/api/crews/${id}/messages`, b),
+
+  createChallenge: (b)   => request('POST', '/api/challenges', b),
+  getChallenges:   ()    => request('GET',  '/api/challenges'),
+  getChallenge:    (id)  => request('GET',  `/api/challenges/${id}`),
+  joinChallenge:   (id)  => request('POST', `/api/challenges/${id}/join`, {}),
+
+  sendInvite:   (b)   => request('POST', '/api/invites', b),
+  getInvites:   ()    => request('GET',  '/api/invites'),
+  acceptInvite: (id)  => request('PUT',  `/api/invites/${id}/accept`, {}),
+  declineInvite:(id)  => request('PUT',  `/api/invites/${id}/decline`, {}),
 
   fileUrl: (p) => p ? `${BASE}${p}` : null,
 };

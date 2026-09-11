@@ -173,9 +173,9 @@ export default function Settings() {
       <div className="settings-group" style={{marginBottom:'16px'}}>
         {[
           { label:'Dashboard',  path:'/dashboard' },
-          { label:'My PRs',     path:'/prs'       },
+          { label:'Feed',       path:'/feed'       },
           { label:'Meal Plans', path:'/meals'      },
-          { label:'Friends',    path:'/friends'    },
+          { label:'Social',     path:'/social'     },
         ].map(({label,path}) => (
           <div key={path} className="settings-item" onClick={() => navigate(path)}>
             <span className="settings-label">{label}</span>

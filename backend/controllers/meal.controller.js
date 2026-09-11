@@ -1,5 +1,10 @@
 const pool = require('../config/db');
 const Anthropic = require('@anthropic-ai/sdk');
+const { addFeedEvent } = require('../models/feed.model');
+const { createNotification } = require('../models/notification.model');
+const { sendPushToUser } = require('../models/push.model');
+const { findById } = require('../models/user.model');
+const { areFriends } = require('../models/friend.model');
 
 function getClient() {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
@@ -50,7 +55,7 @@ async function getPlan(req, res) {
     await ensureTable();
     const [rows] = await pool.query('SELECT * FROM MealPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
     if (!rows[0]) return res.status(404).json({ error: 'Not found' });
-    res.json({ plan: rows[0].plan, profile: rows[0].profile, name: rows[0].name, is_favorite: rows[0].is_favorite });
+    res.json({ plan: rows[0].plan, profile: rows[0].profile, name: rows[0].name, is_favorite: rows[0].is_favorite, shared_from_username: rows[0].shared_from_username });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Server error' }); }
 }
 
@@ -265,6 +270,11 @@ async function useTemplate(req, res) {
       'INSERT INTO MealPlans (user_id, name, plan) VALUES (?, ?, ?)',
       [req.userId, name, JSON.stringify(template.plan)]
     );
+    addFeedEvent({
+      userId: req.userId, type: 'template_pick', refId: result.insertId,
+      headline: `started the ${template.name} plan`,
+      detail: template.category,
+    }).catch(err => console.error('Feed event failed:', err));
     res.json({ planId: result.insertId, plan: template.plan, planName: name });
   } catch (err) {
     console.error(err);
@@ -280,4 +290,46 @@ async function getTemplateById(req, res) {
   res.json({ plan: t.plan, name: t.name });
 }
 
-module.exports = { listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, generate, swap, getRecipe, getTemplates, getTemplateById, useTemplate };
+// ── Share a saved plan with a friend (copies it into their plans) ──
+async function sharePlan(req, res) {
+  try {
+    await ensureTable();
+    const { friendId } = req.body;
+    if (!friendId) return res.status(400).json({ error: 'friendId required' });
+
+    const friends = await areFriends(req.userId, friendId);
+    if (!friends) return res.status(403).json({ error: 'Not friends' });
+
+    const [[plan]] = await pool.query('SELECT * FROM MealPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    if (!plan) return res.status(404).json({ error: 'Plan not found' });
+
+    const sender = await findById(req.userId);
+    const [result] = await pool.query(
+      `INSERT INTO MealPlans (user_id, name, plan, shared_from_user_id, shared_from_username)
+       VALUES (?, ?, ?, ?, ?)`,
+      [friendId, plan.name, JSON.stringify(plan.plan), req.userId, sender?.username || null]
+    );
+
+    await createNotification({
+      userId: friendId, type: 'meal_share',
+      title: `${sender?.username || 'A friend'} shared a meal plan with you`,
+      body: plan.name,
+      data: { planId: result.insertId },
+    });
+    await sendPushToUser(friendId, {
+      title: 'New shared meal plan',
+      body: `${sender?.username || 'A friend'} sent you "${plan.name}"`,
+      data: { type: 'meal_share', planId: result.insertId },
+    });
+
+    res.status(201).json({ success: true, planId: result.insertId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+module.exports = {
+  listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, generate, swap,
+  getRecipe, getTemplates, getTemplateById, useTemplate, sharePlan,
+};

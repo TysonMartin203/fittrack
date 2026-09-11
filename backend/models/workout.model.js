@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { maybeUpdatePR } = require('./pr.model');
+const { addFeedEvent } = require('./feed.model');
 
 function effectiveMaxWeight(ex) {
   if (ex.perSetWeights && Array.isArray(ex.setsData) && ex.setsData.length > 0) {
@@ -71,6 +72,15 @@ async function createWorkout({ userId, date, notesBefore, notesAfter, photoPath,
     const workoutId = wResult.insertId;
     const prResults = await insertExercises(conn, workoutId, exercises || [], userId, date);
     await conn.commit();
+
+    const exCount = (exercises || []).length;
+    const names = (exercises || []).slice(0, 2).map(e => e.exerciseName).join(', ');
+    addFeedEvent({
+      userId, type: 'workout', refId: workoutId,
+      headline: `logged a workout — ${exCount} exercise${exCount === 1 ? '' : 's'}`,
+      detail: names,
+    }).catch(err => console.error('Feed event failed:', err));
+
     return { workoutId, prResults };
   } catch (err) {
     await conn.rollback();

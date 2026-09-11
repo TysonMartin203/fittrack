@@ -6,9 +6,9 @@ import Home       from './pages/Home';
 import Dashboard  from './pages/Dashboard';
 import LogWorkout from './pages/LogWorkout';
 import EditWorkout from './pages/EditWorkout';
-import PRTracker  from './pages/PRTracker';
 import Photos     from './pages/ProgressPhotos';
-import Friends    from './pages/Friends';
+import Feed       from './pages/Feed';
+import Social     from './pages/Social';
 import Settings   from './pages/Settings';
 import Meals      from './pages/Meals';
 
@@ -24,9 +24,9 @@ function AppRoutes() {
       <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
       <Route path="/log"       element={<Private><LogWorkout /></Private>} />
       <Route path="/workouts/:id" element={<Private><EditWorkout /></Private>} />
-      <Route path="/prs"       element={<Private><PRTracker /></Private>} />
       <Route path="/photos"    element={<Private><Photos /></Private>} />
-      <Route path="/friends"   element={<Private><Friends /></Private>} />
+      <Route path="/feed"      element={<Private><Feed /></Private>} />
+      <Route path="/social"    element={<Private><Social /></Private>} />
       <Route path="/settings"  element={<Private><Settings /></Private>} />
       <Route path="/meals"     element={<Private><Meals /></Private>} />
     </Routes>

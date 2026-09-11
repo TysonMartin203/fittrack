@@ -11,10 +11,10 @@ export default function Header() {
 
   return (
     <header className="top-header">
-      <div className="header-logo">
+      <button className="header-logo" onClick={() => navigate('/dashboard')} aria-label="Go to home">
         <IconLogo />
         <span className="header-logo-text">FitTrack</span>
-      </div>
+      </button>
       <button className="header-avatar-btn" onClick={() => navigate('/settings')} aria-label="Profile">
         {avatarUrl
           ? <img src={avatarUrl} alt="avatar" />

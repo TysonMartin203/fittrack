@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { addFeedEvent } = require('./feed.model');
 
 async function getPRForExercise(userId, exercise) {
   const [rows] = await pool.query(
@@ -24,6 +25,11 @@ async function maybeUpdatePR({ userId, exercise, weight, date, workoutId = null,
       'INSERT INTO PRs (user_id, exercise, max_weight, achieved_on, workout_id, workout_exercise_id) VALUES (?, ?, ?, ?, ?, ?)',
       [userId, exercise, weight, date, workoutId, workoutExerciseId]
     );
+    addFeedEvent({
+      userId, type: 'pr', refId: workoutId,
+      headline: `hit a new PR — ${exercise}`,
+      detail: `${weight} lbs`,
+    }).catch(err => console.error('Feed event failed:', err));
     return { isNewPR: true, previousMax: null, newMax: weight };
   }
 
@@ -32,6 +38,11 @@ async function maybeUpdatePR({ userId, exercise, weight, date, workoutId = null,
       'UPDATE PRs SET max_weight = ?, achieved_on = ?, workout_id = ?, workout_exercise_id = ? WHERE id = ?',
       [weight, date, workoutId, workoutExerciseId, existing.id]
     );
+    addFeedEvent({
+      userId, type: 'pr', refId: workoutId,
+      headline: `hit a new PR — ${exercise}`,
+      detail: `${existing.max_weight} → ${weight} lbs`,
+    }).catch(err => console.error('Feed event failed:', err));
     return { isNewPR: true, previousMax: existing.max_weight, newMax: weight };
   }
 

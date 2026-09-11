@@ -55,3 +55,34 @@ self.addEventListener('fetch', e => {
     })
   );
 });
+
+// Push: show a notification for buzzes, invites, shared plans, etc.
+self.addEventListener('push', e => {
+  let payload = { title: 'FitTrack', body: 'You have a new notification' };
+  try { payload = e.data.json(); } catch {}
+  e.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: payload.data || {},
+    })
+  );
+});
+
+// Notification click: focus/open the app
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const targetUrl = e.notification.data?.type === 'buzz' ? '/dashboard'
+    : e.notification.data?.type === 'meal_share' ? '/meals'
+    : e.notification.data?.type === 'train_invite' ? '/social'
+    : '/dashboard';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if ('focus' in client) { client.navigate(targetUrl); return client.focus(); }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    })
+  );
+});

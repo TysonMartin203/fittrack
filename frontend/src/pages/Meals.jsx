@@ -106,6 +106,9 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
   const [loading,    setLoading]    = useState(true);
   const [recipe,     setRecipe]     = useState({});   // keyed by "dayIdx-mealIdx"
   const [loadingRec, setLoadingRec] = useState({});
+  const [showShare,  setShowShare]  = useState(false);
+  const [friends,    setFriends]    = useState([]);
+  const [shareMsg,   setShareMsg]   = useState('');
 
   useEffect(() => {
     if (typeof planId === 'string' && planId.startsWith('tmpl:')) {
@@ -169,13 +172,30 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
   if (loading) return <div className="page"><div className="spinner"/></div>;
   if (!data) return null;
   const plan = data.plan;
+  const isOwnPlan = !(typeof planId === 'string' && planId.startsWith('tmpl:'));
+
+  async function openShare() {
+    if (friends.length === 0) {
+      try { setFriends((await api.getFriends()).filter(f => f.status === 'accepted')); } catch {}
+    }
+    setShowShare(s => !s);
+  }
+
+  async function shareWith(friendId) {
+    setShareMsg('');
+    try {
+      await api.shareMealPlan(planId, { friendId });
+      setShareMsg('Shared!');
+      setTimeout(() => { setShowShare(false); setShareMsg(''); }, 1200);
+    } catch (err) { setShareMsg(err.message); }
+  }
 
   return (
     <div className="page">
       <button className="btn-ghost" onClick={onBack} style={{marginBottom:'12px'}}>← All Plans</button>
 
       {/* Name + favorite */}
-      <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'20px'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:isOwnPlan && showShare ? '10px' : '20px'}}>
         {editing ? (
           <>
             <input className="input" value={nameVal} onChange={e=>setNameVal(e.target.value)} style={{flex:1,fontSize:'20px'}} autoFocus/>
@@ -185,10 +205,30 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
         ) : (
           <>
             <h2 className="page-title" style={{marginBottom:0,flex:1}}>{data.name}</h2>
+            {isOwnPlan && <button className="btn-ghost-sm" onClick={openShare}>Share</button>}
             <button onClick={()=>setEditing(true)} style={{color:'var(--muted)',fontSize:'14px',background:'none',border:'none',cursor:'pointer'}}>✏️</button>
           </>
         )}
       </div>
+
+      {isOwnPlan && data.shared_from_username && (
+        <p className="muted" style={{fontSize:'12px',marginTop:'-14px',marginBottom:'16px'}}>Shared by {data.shared_from_username}</p>
+      )}
+
+      {isOwnPlan && showShare && (
+        <div className="glass-card" style={{marginBottom:'20px'}}>
+          <div style={{fontSize:'13px',fontWeight:'600',marginBottom:'8px'}}>Send this plan to a friend</div>
+          {friends.length === 0
+            ? <p className="muted" style={{fontSize:'13px'}}>Add a friend first to share plans.</p>
+            : (
+              <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+                {friends.map(f => <button key={f.id} className="btn-ghost-sm" onClick={()=>shareWith(f.id)}>{f.username}</button>)}
+              </div>
+            )
+          }
+          {shareMsg && <p style={{fontSize:'12px',color:'var(--teal)',marginTop:'8px'}}>{shareMsg}</p>}
+        </div>
+      )}
 
       <div className="tab-row" style={{marginBottom:'16px'}}>
         {[['plan','Plan'],['shop','Shop']].map(([id,label]) => (
