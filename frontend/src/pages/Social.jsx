@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { enablePush, disablePush, getPushStatus } from '../push';
+import { today, formatDateStr } from '../dateUtils';
 
-const today = () => new Date().toISOString().split('T')[0];
 
 // ── Friends sub-tab (add, accept, list, DM, buzz) ──
 function FriendsTab() {
@@ -260,7 +260,7 @@ function CompeteTab() {
               <div>
                 <div style={{fontWeight:'700',fontSize:'14px'}}>{c.title}</div>
                 <div style={{fontSize:'12px',color:'var(--muted)'}}>
-                  by {c.creator_username} · {new Date(c.start_date).toLocaleDateString('en-US',{month:'short',day:'numeric'})} – {new Date(c.end_date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+                  by {c.creator_username} · {formatDateStr(c.start_date)} – {formatDateStr(c.end_date)}
                 </div>
               </div>
               {!c.joined && <button className="btn-accent-sm" onClick={()=>join(c.id)}>Join</button>}

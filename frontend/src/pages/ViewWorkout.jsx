@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
+import { formatDateStr } from '../dateUtils';
 
 export default function ViewWorkout() {
   const { id } = useParams();
@@ -28,7 +29,7 @@ export default function ViewWorkout() {
       <button className="btn-ghost" onClick={() => navigate(-1)} style={{marginBottom:'12px'}}>← Back</button>
       <h2 className="page-title">{workout.name || `${workout.username}'s workout`}</h2>
       <p className="muted" style={{fontSize:'13px',marginBottom:'20px'}}>
-        {workout.username} · {new Date(workout.date).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}
+        {workout.username} · {formatDateStr(workout.date, {month:'long',day:'numeric',year:'numeric'})}
       </p>
 
       {workout.notes_before && (

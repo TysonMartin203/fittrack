@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
+import { formatDateStr } from '../dateUtils';
 
 function Skeleton() {
   return (
@@ -87,7 +88,7 @@ export default function Dashboard() {
                   <div className="item-main">{w.name || `${w.first_exercise}${extra > 0 ? ` +${extra} more` : ''}`}</div>
                   <div className="item-meta">{w.exercise_count} exercise{w.exercise_count === 1 ? '' : 's'} · {mixed ? 'mixed' : w.categories}</div>
                 </div>
-                <span className="item-date">{new Date(w.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+                <span className="item-date">{formatDateStr(w.date)}</span>
               </Link>
             );
           })

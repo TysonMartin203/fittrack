@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import { compressImage } from '../compressImage';
-
-const today = () => new Date().toISOString().split('T')[0];
+import { today, formatDateStr } from '../dateUtils';
 
 export default function ProgressPhotos() {
   const [photos,    setPhotos]    = useState([]);
@@ -81,7 +80,7 @@ export default function ProgressPhotos() {
               <div key={ph.id} className="photo-card" style={{animationDelay:`${i*.05}s`}}>
                 <img src={api.fileUrl(ph.file_path)} alt={ph.photo_date} className="photo-img" />
                 <div className="photo-footer">
-                  <span>{new Date(ph.photo_date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+                  <span>{formatDateStr(ph.photo_date)}</span>
                   <button className="btn-ghost-sm" onClick={() => {
                     api.deletePhoto(ph.id);
                     setPhotos(p => p.filter(x => x.id !== ph.id));

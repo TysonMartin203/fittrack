@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react';
 import { LIFTING_EXERCISES, CARDIO_ACTIVITIES, DISTANCE_UNITS } from '../data/exercises';
 import { compressImage } from '../compressImage';
-
-const today = () => new Date().toISOString().split('T')[0];
+import { today } from '../dateUtils';
 
 function blankLiftingExercise() {
   return {

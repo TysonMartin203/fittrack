@@ -227,6 +227,150 @@ function PlanDetail({ planId, onBack, onUpdate }) {
 }
 
 // ── List / generator view ──
+const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+function CustomWorkoutPlanBuilder({ onBack, onCreated }) {
+  const [format, setFormat] = useState('week'); // 'week' | 'single'
+  const [planName, setPlanName] = useState('My Custom Plan');
+  const [dayIdx, setDayIdx] = useState(0);
+  const [days, setDays] = useState(DAY_NAMES.map(d => ({ day: d, type: 'rest', focus: '', exercises: [] })));
+  const [singleExercises, setSingleExercises] = useState([]);
+  const [singleFocus, setSingleFocus] = useState('');
+  const [form, setForm] = useState({ category:'lifting', exerciseName:'', sets:'3', reps:'8-10', durationMinutes:'' });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  function addExercise() {
+    if (!form.exerciseName.trim()) { setError('Exercise name required'); return; }
+    setError('');
+    const ex = form.category === 'lifting'
+      ? { category:'lifting', exerciseName: form.exerciseName.trim(), sets: Number(form.sets)||3, reps: form.reps || '8-10', notes: '' }
+      : { category:'cardio', exerciseName: form.exerciseName.trim(), durationMinutes: Number(form.durationMinutes)||undefined, notes: '' };
+
+    if (format === 'week') {
+      setDays(ds => ds.map((d,i) => i!==dayIdx ? d : { ...d, type:'workout', exercises:[...d.exercises, ex] }));
+    } else {
+      setSingleExercises(es => [...es, ex]);
+    }
+    setForm(f => ({ ...f, exerciseName:'' }));
+  }
+  function removeExercise(ei) {
+    if (format === 'week') {
+      setDays(ds => ds.map((d,i) => i!==dayIdx ? d : { ...d, exercises: d.exercises.filter((_,j)=>j!==ei) }));
+    } else {
+      setSingleExercises(es => es.filter((_,j)=>j!==ei));
+    }
+  }
+  function toggleRestDay() {
+    setDays(ds => ds.map((d,i) => i!==dayIdx ? d : (d.type === 'rest' ? { ...d, type:'workout' } : { ...d, type:'rest', exercises:[] })));
+  }
+
+  async function save() {
+    if (!planName.trim()) { setError('Plan name required'); return; }
+    let plan;
+    if (format === 'week') {
+      if (!days.some(d => d.type === 'workout' && d.exercises.length)) { setError('Add at least one exercise to at least one day'); return; }
+      plan = { format:'week', split_type:'Custom', days_per_week: days.filter(d=>d.type==='workout').length, days };
+    } else {
+      if (singleExercises.length === 0) { setError('Add at least one exercise'); return; }
+      plan = { format:'single', focus: singleFocus || planName, exercises: singleExercises };
+    }
+    setSaving(true); setError('');
+    try {
+      const data = await api.createCustomWorkoutPlan({ name: planName.trim(), plan });
+      onCreated(data.planId);
+    } catch (err) { setError(err.message); }
+    finally { setSaving(false); }
+  }
+
+  const currentExercises = format === 'week' ? days[dayIdx].exercises : singleExercises;
+
+  return (
+    <div className="page">
+      <button className="btn-ghost" onClick={onBack} style={{marginBottom:'16px'}}>← Back</button>
+      <h2 className="page-title">Build Your Own Plan</h2>
+
+      <div className="card-form" style={{marginBottom:'16px'}}>
+        <div className="field" style={{marginBottom:'12px'}}>
+          <label className="label">Plan Name</label>
+          <input className="input" value={planName} onChange={e=>setPlanName(e.target.value)} />
+        </div>
+        <div className="tab-row">
+          <button type="button" className={format==='week'?'tab active':'tab'} onClick={()=>setFormat('week')}>Full Week</button>
+          <button type="button" className={format==='single'?'tab active':'tab'} onClick={()=>setFormat('single')}>Single Workout</button>
+        </div>
+      </div>
+
+      {format === 'week' ? (
+        <>
+          <div className="tab-row" style={{marginBottom:'12px',flexWrap:'wrap'}}>
+            {days.map((d,i) => (
+              <button key={i} className={dayIdx===i?'tab active':'tab'} onClick={()=>setDayIdx(i)}>
+                {d.day.slice(0,3)}{d.type==='workout' && d.exercises.length>0 ? ` (${d.exercises.length})` : ''}
+              </button>
+            ))}
+          </div>
+          <button type="button" className="btn-ghost-sm" style={{marginBottom:'12px'}} onClick={toggleRestDay}>
+            {days[dayIdx].type === 'rest' ? '+ Make this a training day' : 'Mark as Rest Day'}
+          </button>
+        </>
+      ) : (
+        <div className="card-form" style={{marginBottom:'16px'}}>
+          <div className="field">
+            <label className="label">Session Focus (optional)</label>
+            <input className="input" placeholder="e.g. Push Day" value={singleFocus} onChange={e=>setSingleFocus(e.target.value)} />
+          </div>
+        </div>
+      )}
+
+      {(format === 'single' || days[dayIdx].type === 'workout') && (
+        <>
+          {currentExercises.map((ex,i) => (
+            <div key={i} className="list-item">
+              <div style={{flex:1}}>
+                <div className="item-main">{ex.exerciseName}</div>
+                <div className="item-meta">{ex.category==='cardio' ? (ex.durationMinutes?`${ex.durationMinutes} min`:'Cardio') : `${ex.sets} sets × ${ex.reps}`}</div>
+              </div>
+              <button className="btn-ghost-sm" onClick={()=>removeExercise(i)}>Remove</button>
+            </div>
+          ))}
+          {currentExercises.length === 0 && <p className="muted" style={{marginBottom:'12px'}}>No exercises added yet.</p>}
+
+          <div className="card-form" style={{marginTop:'12px'}}>
+            <div className="form-stack">
+              <div className="tab-row">
+                <button type="button" className={form.category==='lifting'?'tab active':'tab'} onClick={()=>setForm(f=>({...f,category:'lifting'}))}>Lifting</button>
+                <button type="button" className={form.category==='cardio'?'tab active':'tab'} onClick={()=>setForm(f=>({...f,category:'cardio'}))}>Cardio</button>
+              </div>
+              <div className="field">
+                <label className="label">Exercise Name</label>
+                <input className="input" placeholder="e.g. Bench Press" value={form.exerciseName} onChange={e=>setForm(f=>({...f,exerciseName:e.target.value}))} />
+              </div>
+              {form.category === 'lifting' ? (
+                <div className="input-row">
+                  <div className="input-group"><label className="label">Sets</label><input className="input" type="number" value={form.sets} onChange={e=>setForm(f=>({...f,sets:e.target.value}))} /></div>
+                  <div className="input-group"><label className="label">Reps</label><input className="input" placeholder="8-10" value={form.reps} onChange={e=>setForm(f=>({...f,reps:e.target.value}))} /></div>
+                </div>
+              ) : (
+                <div className="field">
+                  <label className="label">Duration (min, optional)</label>
+                  <input className="input" type="number" value={form.durationMinutes} onChange={e=>setForm(f=>({...f,durationMinutes:e.target.value}))} />
+                </div>
+              )}
+              <button type="button" className="btn-secondary" onClick={addExercise}>+ Add Exercise</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {error && <p className="form-error" style={{marginTop:'12px'}}>{error}</p>}
+      <button className="btn-primary" style={{marginTop:'16px'}} onClick={save} disabled={saving}>
+        {saving ? 'Saving…' : 'Save Plan'}
+      </button>
+    </div>
+  );
+}
+
 export default function WorkoutPlans() {
   const [view, setView] = useState('list');
   const [plans, setPlans] = useState([]);
@@ -289,6 +433,10 @@ export default function WorkoutPlans() {
     return <PlanDetail planId={activePlan} onBack={()=>{loadPlans();setView('list');}} onUpdate={loadPlans}/>;
   }
 
+  if (view === 'custom') {
+    return <CustomWorkoutPlanBuilder onBack={()=>setView('list')} onCreated={(id)=>{loadPlans();setActivePlan(id);setView('detail');}} />;
+  }
+
   if (view === 'new') {
     return (
       <div className="page">
@@ -335,9 +483,14 @@ export default function WorkoutPlans() {
     <div className="page">
       <h2 className="page-title">Workout Plans</h2>
 
-      <button className="btn-primary" onClick={()=>setView('new')} style={{marginBottom:'24px'}}>
-        <IconSparkle style={{width:'16px',height:'16px',marginRight:'6px'}}/>Generate an AI Plan
-      </button>
+      <div style={{display:'flex',gap:'8px',marginBottom:'24px'}}>
+        <button className="btn-ghost-sm" onClick={()=>setView('custom')}>
+          + Build Your Own
+        </button>
+        <button className="btn-primary" onClick={()=>setView('new')}>
+          <IconSparkle style={{width:'16px',height:'16px',marginRight:'6px'}}/>Generate an AI Plan
+        </button>
+      </div>
 
       {plans.length > 0 && (
         <section className="section">

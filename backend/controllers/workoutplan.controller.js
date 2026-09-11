@@ -264,8 +264,31 @@ async function exerciseInfo(req, res) {
   }
 }
 
+// ── Build a plan entirely by hand, no AI ──
+async function createCustom(req, res) {
+  try {
+    const { name, plan } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Plan name required' });
+    if (plan?.format === 'week') {
+      if (!Array.isArray(plan.days) || !plan.days.some(d => d.type === 'workout' && d.exercises?.length))
+        return res.status(400).json({ error: 'Add at least one exercise to at least one day' });
+    } else {
+      if (!Array.isArray(plan?.exercises) || plan.exercises.length === 0)
+        return res.status(400).json({ error: 'Add at least one exercise' });
+    }
+    const [result] = await pool.query(
+      'INSERT INTO WorkoutPlans (user_id, name, plan) VALUES (?, ?, ?)',
+      [req.userId, name.trim(), JSON.stringify(plan)]
+    );
+    res.status(201).json({ planId: result.insertId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
 module.exports = {
   getTemplates, getTemplateById, useTemplate,
   listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, sharePlan,
-  generate, swapExercise, exerciseInfo,
+  generate, swapExercise, exerciseInfo, createCustom,
 };
