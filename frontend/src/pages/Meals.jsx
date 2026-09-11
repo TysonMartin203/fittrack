@@ -81,7 +81,7 @@ function ShoppingList({ plan }) {
             <span style={{fontSize:'12px',color:'var(--muted)'}}>{list[section].filter(x=>x.checked).length}/{list[section].length}</span>
           </div>
           {list[section].map((item,idx) => (
-            <div key={idx} onClick={()=>toggle(section,idx)} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 14px',background:'rgba(243,227,211,.4)',border:'1px solid var(--border)',borderRadius:'var(--r)',marginBottom:'6px',cursor:'pointer',opacity:item.checked?.5:1,transition:'opacity .15s'}}>
+            <div key={idx} onClick={()=>toggle(section,idx)} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 14px',background:'var(--surface-tint)',border:'1px solid var(--border)',borderRadius:'var(--r)',marginBottom:'6px',cursor:'pointer',opacity:item.checked?.5:1,transition:'opacity .15s'}}>
               <div style={{width:'20px',height:'20px',borderRadius:'50%',flexShrink:0,border:item.checked?'none':'2px solid var(--border)',background:item.checked?'var(--teal)':'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>
                 {item.checked&&<span style={{color:'#fff',fontSize:'12px',fontWeight:'700'}}>✓</span>}
               </div>
@@ -109,6 +109,10 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
   const [showShare,  setShowShare]  = useState(false);
   const [friends,    setFriends]    = useState([]);
   const [shareMsg,   setShareMsg]   = useState('');
+  const [showRegen,  setShowRegen]  = useState(false);
+  const [regenProfile, setRegenProfile] = useState({ weight:'', goalWeight:'', goal:GOALS[2], timeline:'', notes:'' });
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenError, setRegenError] = useState('');
 
   useEffect(() => {
     if (typeof planId === 'string' && planId.startsWith('tmpl:')) {
@@ -130,7 +134,7 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
             headers:{ Authorization:`Bearer ${localStorage.getItem('fittrack_token')}` }
           })
             .then(r => r.json())
-            .then(d => { setData({ plan: d.plan, name: d.name || t?.name || 'Plan', is_favorite: 0 }); setNameVal(d.name||t?.name||'Plan'); })
+            .then(d => { setData({ plan: d.plan, name: d.name || t?.name || 'Plan', is_favorite: 0, source: 'template' }); setNameVal(d.name||t?.name||'Plan'); })
             .catch(() => setData(null))
             .finally(() => setLoading(false));
         });
@@ -151,9 +155,10 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
     const key = `${dayIdx}-${mealIdx}`;
     if (recipe[key]) return; // already loaded
     setLoadingRec(l => ({...l, [key]: true}));
+    const useCache = data?.source === 'template' && !meal.swapped;
     try {
-      const data = await api.getMealRecipe({ mealName: meal.name, ingredients: meal.ingredients || [] });
-      setRecipe(r => ({...r, [key]: data.recipe}));
+      const data2 = await api.getMealRecipe({ mealName: meal.name, ingredients: meal.ingredients || [], useCache });
+      setRecipe(r => ({...r, [key]: data2.recipe}));
     } catch { setRecipe(r => ({...r, [key]: { steps: ['Could not load recipe. Try again.'], prep_time:'', cook_time:'' }})); }
     finally { setLoadingRec(l => ({...l, [key]: false})); }
   }
@@ -190,6 +195,29 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
     } catch (err) { setShareMsg(err.message); }
   }
 
+  async function openRegenerate() {
+    if (!showRegen) {
+      try {
+        const d = await api.getProfile();
+        if (d.profile) setRegenProfile(p => ({ ...p, ...d.profile }));
+      } catch {}
+    }
+    setShowRegen(s => !s);
+  }
+
+  async function doRegenerate(e) {
+    e.preventDefault();
+    setRegenerating(true); setRegenError('');
+    try {
+      await api.regenerateMealPlan(planId, regenProfile);
+      api.saveProfile(regenProfile).catch(()=>{});
+      setShowRegen(false);
+      const refreshed = await api.getMealPlan(planId);
+      setData(refreshed);
+    } catch (err) { setRegenError(err.message); }
+    finally { setRegenerating(false); }
+  }
+
   return (
     <div className="page">
       <button className="btn-ghost" onClick={onBack} style={{marginBottom:'12px'}}>← All Plans</button>
@@ -205,6 +233,7 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
         ) : (
           <>
             <h2 className="page-title" style={{marginBottom:0,flex:1}}>{data.name}</h2>
+            {isOwnPlan && <button className="btn-ghost-sm" onClick={openRegenerate}>Regenerate</button>}
             {isOwnPlan && <button className="btn-ghost-sm" onClick={openShare}>Share</button>}
             <button onClick={()=>setEditing(true)} style={{color:'var(--muted)',fontSize:'14px',background:'none',border:'none',cursor:'pointer'}}>✏️</button>
           </>
@@ -213,6 +242,33 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
 
       {isOwnPlan && data.shared_from_username && (
         <p className="muted" style={{fontSize:'12px',marginTop:'-14px',marginBottom:'16px'}}>Shared by {data.shared_from_username}</p>
+      )}
+
+      {isOwnPlan && showRegen && (
+        <form onSubmit={doRegenerate} className="card-form" style={{marginBottom:'20px'}}>
+          <div style={{fontSize:'13px',fontWeight:'600',marginBottom:'10px'}}>Rebuild this plan with updated info</div>
+          <div className="form-stack">
+            <div className="input-row">
+              <div className="input-group"><label className="label">Current Weight</label><input className="input" type="number" value={regenProfile.weight} onChange={e=>setRegenProfile(p=>({...p,weight:e.target.value}))}/></div>
+              <div className="input-group"><label className="label">Goal Weight</label><input className="input" type="number" value={regenProfile.goalWeight} onChange={e=>setRegenProfile(p=>({...p,goalWeight:e.target.value}))}/></div>
+            </div>
+            <div className="input-row">
+              <div className="input-group">
+                <label className="label">Goal</label>
+                <select className="input" value={regenProfile.goal} onChange={e=>setRegenProfile(p=>({...p,goal:e.target.value}))}>
+                  {GOALS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div className="input-group"><label className="label">Timeline (weeks)</label><input className="input" type="number" value={regenProfile.timeline} onChange={e=>setRegenProfile(p=>({...p,timeline:e.target.value}))}/></div>
+            </div>
+            <div className="field">
+              <label className="label">Notes for the AI</label>
+              <textarea className="input" rows={2} value={regenProfile.notes} onChange={e=>setRegenProfile(p=>({...p,notes:e.target.value}))} />
+            </div>
+            {regenError && <p className="form-error">{regenError}</p>}
+            <button className="btn-primary" type="submit" disabled={regenerating}>{regenerating ? 'Rebuilding…' : 'Rebuild Plan'}</button>
+          </div>
+        </form>
       )}
 
       {isOwnPlan && showShare && (
@@ -243,7 +299,7 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
             {plan.budget_tip && <div style={{fontSize:'12px',color:'var(--teal)',marginBottom:'10px'}}>💰 {plan.budget_tip}</div>}
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'8px',textAlign:'center'}}>
               {[['Cal',plan.daily_calories],['Protein',`${plan.macros?.protein}g`],['Carbs',`${plan.macros?.carbs}g`],['Fat',`${plan.macros?.fat}g`]].map(([l,v])=>(
-                <div key={l} style={{background:'rgba(249,234,225,.5)',borderRadius:'10px',padding:'8px 4px'}}>
+                <div key={l} style={{background:'var(--surface-tint)',borderRadius:'10px',padding:'8px 4px'}}>
                   <div style={{fontWeight:'700',fontSize:'14px',color:'var(--text)'}}>{v}</div>
                   <div style={{fontSize:'10px',color:'var(--muted)'}}>{l}</div>
                 </div>
@@ -273,11 +329,11 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
                   </div>
                   {meal.ingredients?.length>0 && (
                     <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'10px'}}>
-                      {meal.ingredients.map((ing,ii)=><span key={ii} style={{fontSize:'11px',background:'rgba(249,234,225,.6)',border:'1px solid var(--border)',borderRadius:'6px',padding:'2px 8px',color:'var(--muted)'}}>{ing}</span>)}
+                      {meal.ingredients.map((ing,ii)=><span key={ii} style={{fontSize:'11px',background:'var(--surface-tint)',border:'1px solid var(--border)',borderRadius:'6px',padding:'2px 8px',color:'var(--muted)'}}>{ing}</span>)}
                     </div>
                   )}
                   {swapPanel?.dayIdx===di && swapPanel?.mealIdx===mi && (
-                    <div style={{background:'rgba(249,234,225,.6)',border:'1px solid var(--border)',borderRadius:'10px',padding:'12px',marginBottom:'10px'}}>
+                    <div style={{background:'var(--surface-tint)',border:'1px solid var(--border)',borderRadius:'10px',padding:'12px',marginBottom:'10px'}}>
                       <div style={{fontSize:'12px',fontWeight:'600',marginBottom:'8px'}}>Why swap this meal?</div>
                       <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
                         <button className="btn-ghost-sm" style={{flex:1}} onClick={()=>swapMeal(di,mi,meal,'dislike',null)}>Don't want it</button>
@@ -654,7 +710,7 @@ export default function Meals() {
                 <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
                   <div style={{
                     width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,
-                    background:'rgba(249,234,225,0.6)',border:'1px solid var(--border)',
+                    background:'var(--surface-tint)',border:'1px solid var(--border)',
                     display:'flex',alignItems:'center',justifyContent:'center',color:'var(--teal)',
                   }}><MealPlanIcon id={t.icon} size={22} /></div>
                   <div style={{flex:1}}>

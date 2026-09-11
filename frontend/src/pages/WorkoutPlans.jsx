@@ -76,7 +76,7 @@ function ExerciseRow({ ex, planId, dayIdx, exIdx, onSwap }) {
         </p>
       )}
       {showPanel && (
-        <div style={{background:'rgba(243,227,211,.6)',border:'1px solid var(--border)',borderRadius:'10px',padding:'10px'}}>
+        <div style={{background:'var(--surface-tint)',border:'1px solid var(--border)',borderRadius:'10px',padding:'10px'}}>
           <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
             <button className="btn-ghost-sm" style={{flex:1}} onClick={()=>doSwap('dislike',null)}>Don't want it</button>
             <button className="btn-ghost-sm" style={{flex:1}} onClick={()=>document.getElementById(`ex-detail-${ex.exerciseName}`)?.focus()}>Can't do it</button>
@@ -104,6 +104,10 @@ function PlanDetail({ planId, onBack, onUpdate }) {
   const [showShare, setShowShare] = useState(false);
   const [friends, setFriends] = useState([]);
   const [shareMsg, setShareMsg] = useState('');
+  const [showRegen, setShowRegen] = useState(false);
+  const [regenProfile, setRegenProfile] = useState({ weight:'', goalWeight:'', goal:GOALS[2], timeline:'', notes:'' });
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenError, setRegenError] = useState('');
 
   useEffect(() => {
     api.getWorkoutPlan(planId).then(d => { setData(d); setNameVal(d.name); }).finally(()=>setLoading(false));
@@ -130,7 +134,7 @@ function PlanDetail({ planId, onBack, onUpdate }) {
   }
 
   function logThisWorkout(exercises, dayLabel) {
-    navigate('/log', { state: { initialExercises: exercises.map(toFormExercise), planLabel: dayLabel } });
+    navigate('/log/new', { state: { initialExercises: exercises.map(toFormExercise), planLabel: dayLabel } });
   }
 
   async function openShare() {
@@ -146,6 +150,29 @@ function PlanDetail({ planId, onBack, onUpdate }) {
       setShareMsg('Shared!');
       setTimeout(() => { setShowShare(false); setShareMsg(''); }, 1200);
     } catch (err) { setShareMsg(err.message); }
+  }
+
+  async function openRegenerate() {
+    if (!showRegen) {
+      try {
+        const d = await api.getProfile();
+        if (d.profile) setRegenProfile(p => ({ ...p, ...d.profile }));
+      } catch {}
+    }
+    setShowRegen(s => !s);
+  }
+
+  async function doRegenerate(e) {
+    e.preventDefault();
+    setRegenerating(true); setRegenError('');
+    try {
+      await api.regenerateWorkoutPlan(planId, regenProfile);
+      api.saveProfile(regenProfile).catch(()=>{});
+      setShowRegen(false);
+      const refreshed = await api.getWorkoutPlan(planId);
+      setData(refreshed);
+    } catch (err) { setRegenError(err.message); }
+    finally { setRegenerating(false); }
   }
 
   if (loading) return <div className="page"><div className="spinner"/></div>;
@@ -167,12 +194,40 @@ function PlanDetail({ planId, onBack, onUpdate }) {
         ) : (
           <>
             <h2 className="page-title" style={{marginBottom:0,flex:1}}>{data.name}</h2>
+            <button className="btn-ghost-sm" onClick={openRegenerate}>Regenerate</button>
             <button className="btn-ghost-sm" onClick={openShare}>Share</button>
             <button onClick={()=>setEditing(true)} style={{color:'var(--muted)',fontSize:'14px',background:'none',border:'none',cursor:'pointer'}}>✏️</button>
           </>
         )}
       </div>
       {data.shared_from_username && <p className="muted" style={{fontSize:'12px',marginBottom:'16px'}}>Shared by {data.shared_from_username}</p>}
+
+      {showRegen && (
+        <form onSubmit={doRegenerate} className="card-form" style={{marginBottom:'20px'}}>
+          <div style={{fontSize:'13px',fontWeight:'600',marginBottom:'10px'}}>Rebuild this plan with updated info</div>
+          <div className="form-stack">
+            <div className="input-row">
+              <div className="input-group"><label className="label">Current Weight</label><input className="input" type="number" value={regenProfile.weight} onChange={e=>setRegenProfile(p=>({...p,weight:e.target.value}))}/></div>
+              <div className="input-group"><label className="label">Goal Weight</label><input className="input" type="number" value={regenProfile.goalWeight} onChange={e=>setRegenProfile(p=>({...p,goalWeight:e.target.value}))}/></div>
+            </div>
+            <div className="input-row">
+              <div className="input-group">
+                <label className="label">Goal</label>
+                <select className="input" value={regenProfile.goal} onChange={e=>setRegenProfile(p=>({...p,goal:e.target.value}))}>
+                  {GOALS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+              <div className="input-group"><label className="label">Timeline (weeks)</label><input className="input" type="number" value={regenProfile.timeline} onChange={e=>setRegenProfile(p=>({...p,timeline:e.target.value}))}/></div>
+            </div>
+            <div className="field">
+              <label className="label">Notes for the AI</label>
+              <textarea className="input" rows={2} value={regenProfile.notes} onChange={e=>setRegenProfile(p=>({...p,notes:e.target.value}))} />
+            </div>
+            {regenError && <p className="form-error">{regenError}</p>}
+            <button className="btn-primary" type="submit" disabled={regenerating}>{regenerating ? 'Rebuilding…' : 'Rebuild Plan'}</button>
+          </div>
+        </form>
+      )}
 
       {showShare && (
         <div className="glass-card" style={{marginBottom:'20px'}}>
@@ -513,7 +568,7 @@ export default function WorkoutPlans() {
         <p className="muted" style={{fontSize:'12px',marginTop:'-6px',marginBottom:'12px'}}>Full weekly splits, rest days included.</p>
         {weekTemplates.map(t => (
           <div key={t.id} className="list-item clickable" onClick={()=>useTemplate(t.id, t.name)}>
-            <div style={{width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,background:'rgba(243,227,211,0.6)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--teal)',marginRight:'12px'}}>
+            <div style={{width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,background:'var(--surface-tint)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--teal)',marginRight:'12px'}}>
               <WorkoutPlanIcon id={t.icon} size={22} />
             </div>
             <div style={{flex:1}}>
@@ -529,7 +584,7 @@ export default function WorkoutPlans() {
         <p className="muted" style={{fontSize:'12px',marginTop:'-6px',marginBottom:'12px'}}>Single sessions you can log right now.</p>
         {singleTemplates.map(t => (
           <div key={t.id} className="list-item clickable" onClick={()=>useTemplate(t.id, t.name)}>
-            <div style={{width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,background:'rgba(243,227,211,0.6)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--teal)',marginRight:'12px'}}>
+            <div style={{width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,background:'var(--surface-tint)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--teal)',marginRight:'12px'}}>
               <WorkoutPlanIcon id={t.icon} size={22} />
             </div>
             <div style={{flex:1}}>

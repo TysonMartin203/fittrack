@@ -389,7 +389,7 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
         <div className={`result-banner ${newPRs.length ? 'pr-banner' : ''}`}>
           {newPRs.length
             ? newPRs.map(p => (
-              <div key={p.exercise}>🏆 New PR — {p.exercise}: {p.previousMax != null ? `${p.previousMax} → ` : ''}{p.newMax}{p.unit === 'lbs' ? ' lbs' : ''}</div>
+              <div key={p.exercise}>🏆 New PR — {p.exercise}: {p.previousMax != null ? `${p.previousMax} → ` : ''}{p.newMax}{p.unit === 'lbs' ? ' lbs' : p.unit === 'reps' ? ' reps' : ''}</div>
             ))
             : `✅ Workout ${mode === 'edit' ? 'updated' : 'logged'}!`}
         </div>

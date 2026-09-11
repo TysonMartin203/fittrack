@@ -5,6 +5,7 @@ const { createNotification } = require('../models/notification.model');
 const { sendPushToUser } = require('../models/push.model');
 const { findById } = require('../models/user.model');
 const { areFriends } = require('../models/friend.model');
+const { EXERCISE_DESCRIPTIONS } = require('../data/exercise-descriptions');
 
 function getClient() {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
@@ -192,6 +193,61 @@ Return ONLY valid JSON, no markdown. Structure:
   }
 }
 
+// Rebuild an existing saved plan from updated weight/goal/notes.
+async function regenerate(req, res) {
+  try {
+    const client = getClient();
+    const { weight, goalWeight, goal, timeline, notes = '' } = req.body;
+
+    const [[existing]] = await pool.query('SELECT * FROM WorkoutPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    if (!existing) return res.status(404).json({ error: 'Plan not found' });
+
+    const [prs] = await pool.query('SELECT exercise, max_weight FROM PRs WHERE user_id = ? LIMIT 8', [req.userId]);
+    const prText = prs.length > 0 ? prs.map(p => `${p.exercise}: ${p.max_weight}lbs`).join(', ') : 'Not provided';
+
+    const prompt = `You are a certified strength coach. The user already has a workout plan called "${existing.name}" but wants it rebuilt based on updated info. Build a fresh 7-day weekly workout split as JSON.
+
+Updated user stats:
+- Current weight: ${weight || 'not provided'} lbs
+- Goal weight: ${goalWeight || 'not provided'} lbs
+- Goal: ${goal || 'general fitness'}
+- Timeline: ${timeline || 'not provided'} weeks
+- Current lifting PRs: ${prText}
+- Additional notes from the user (goals, injuries, preferences): ${notes || 'none'}
+
+Choose a sensible split based on their goal. If the notes mention an injury or limitation, avoid exercises that would aggravate it. Include rest days appropriately. For each exercise give sets and a rep range as a string (e.g. "8-10"). Use common gym exercise names.
+
+Return ONLY valid JSON, no markdown. Same structure as before:
+{
+  "split_type": "e.g. Push Pull Legs",
+  "days_per_week": number,
+  "days": [
+    { "day": "Monday", "type": "workout", "focus": "Push", "exercises": [
+      { "category": "lifting", "exerciseName": "Bench Press", "sets": 4, "reps": "6-8", "notes": "" }
+    ]},
+    { "day": "Sunday", "type": "rest" }
+  ]
+}`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 8000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    let text = message.content[0].text.trim();
+    text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+    const plan = JSON.parse(text);
+
+    await pool.query('UPDATE WorkoutPlans SET plan = ? WHERE id = ?', [JSON.stringify({ ...plan, format: 'week' }), req.params.id]);
+
+    res.json({ planId: Number(req.params.id), plan });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Server error' });
+  }
+}
+
 // ── Swap a single exercise, with a reason (mirrors the meal-swap flow) ──
 async function swapExercise(req, res) {
   try {
@@ -247,10 +303,14 @@ Return ONLY JSON with just these fields, nothing else: { "exerciseName": "...", 
 // ── Short AI explanation of a single exercise (how to perform, what it targets) ──
 async function exerciseInfo(req, res) {
   try {
-    const client = getClient();
     const { exerciseName, category = 'lifting' } = req.body;
     if (!exerciseName) return res.status(400).json({ error: 'exerciseName required' });
 
+    if (EXERCISE_DESCRIPTIONS[exerciseName]) {
+      return res.json({ info: EXERCISE_DESCRIPTIONS[exerciseName] });
+    }
+
+    const client = getClient();
     const prompt = `In 2-3 short sentences, explain the ${category} exercise "${exerciseName}": what it targets and a quick form cue. No markdown, no headers, plain text only.`;
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -290,5 +350,5 @@ async function createCustom(req, res) {
 module.exports = {
   getTemplates, getTemplateById, useTemplate,
   listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, sharePlan,
-  generate, swapExercise, exerciseInfo, createCustom,
+  generate, regenerate, swapExercise, exerciseInfo, createCustom,
 };

@@ -9,7 +9,12 @@ export function AuthProvider({ children }) {
   });
 
   function login(data) {
-    const u = { id: data.userId, username: data.username, email: data.email, avatarUrl: data.avatarUrl || null, theme: data.theme || 'light' };
+    const u = {
+      id: data.userId, username: data.username, email: data.email,
+      avatarUrl: data.avatarUrl || null, theme: data.theme || 'light',
+      bio: data.bio || null,
+      notifyBuzz: data.notifyBuzz !== false, notifyMessages: data.notifyMessages !== false,
+    };
     localStorage.setItem('fittrack_token', data.token);
     localStorage.setItem('fittrack_user', JSON.stringify(u));
     setUser(u);

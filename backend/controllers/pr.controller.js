@@ -7,7 +7,7 @@ async function list(req, res) {
       getAllPRs(req.userId),
       getCardioPRs(req.userId),
     ]);
-    const liftingNorm = lifting.map(p => ({ ...p, unit: 'lbs', display_value: `${p.max_weight} lbs` }));
+    const liftingNorm = lifting.map(p => ({ ...p, display_value: `${p.max_weight} ${p.unit || 'lbs'}` }));
     const cardioNorm = cardio.map(p => ({
       id: `cardio-${p.id}`, exercise: p.milestone, unit: 'time',
       display_value: p.formatted, achieved_on: p.achieved_on, workout_id: p.workout_id,

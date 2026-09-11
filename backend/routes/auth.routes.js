@@ -2,7 +2,7 @@ const router  = require('express').Router();
 const multer  = require('multer');
 const path    = require('path');
 const auth    = require('../middleware/auth');
-const { register, login, uploadAvatar, updateTheme } = require('../controllers/auth.controller');
+const { register, login, uploadAvatar, updateTheme, updateSettings } = require('../controllers/auth.controller');
 
 const storage = multer.diskStorage({
   destination: path.join(__dirname, '../public/uploads'),
@@ -14,4 +14,5 @@ router.post('/register', register);
 router.post('/login',    login);
 router.post('/avatar',   auth, uploader.single('avatar'), uploadAvatar);
 router.put('/theme',     auth, updateTheme);
+router.put('/settings',  auth, updateSettings);
 module.exports = router;

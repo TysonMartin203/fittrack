@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { IconBarbell, IconCamera, IconFeed, IconPeople, IconMeals } from './Icons';
 
 const links = [
-  { to: '/log',     label: 'Log',    Icon: IconBarbell },
+  { to: '/log',     label: 'Workouts', Icon: IconBarbell },
   { to: '/photos',  label: 'Photos', Icon: IconCamera },
   { to: '/feed',    label: 'Feed',   Icon: IconFeed },
   { to: '/social',  label: 'Social', Icon: IconPeople },

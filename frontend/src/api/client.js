@@ -31,6 +31,8 @@ export const api = {
   login:         (b) => request('POST', '/api/auth/login', b),
   uploadAvatar:  (fd) => uploadFile('/api/auth/avatar', fd),
   updateTheme:   (theme) => request('PUT', '/api/auth/theme', { theme }),
+  updateAccountSettings: (b) => request('PUT', '/api/auth/settings', b),
+  getUserProfile: (id) => request('GET', `/api/users/${id}/profile`),
 
   logWorkout:    (payload, photoFile) => uploadFile('/api/workouts', workoutFormData(payload, photoFile)),
   updateWorkout: (id, payload, photoFile) => uploadFile(`/api/workouts/${id}`, workoutFormData(payload, photoFile), 'PUT'),
@@ -67,6 +69,7 @@ export const api = {
   useMealTemplate:   (id, b) => request('POST', `/api/meals/templates/${id}`, b),
   getMealRecipe:     (b)     => request('POST', '/api/meals/recipe', b),
   shareMealPlan:     (id,b)  => request('POST', `/api/meals/${id}/share`, b),
+  regenerateMealPlan: (id,b) => request('POST', `/api/meals/${id}/regenerate`, b),
   createCustomMealPlan: (b)  => request('POST', '/api/meals/custom', b),
 
   getVapidPublicKey: ()    => request('GET',  '/api/push/vapid-public-key'),
@@ -113,6 +116,7 @@ export const api = {
   favoriteWorkoutPlan: (id)        => request('PUT',  `/api/workout-plans/${id}/favorite`, {}),
   deleteWorkoutPlan:(id)           => request('DELETE',`/api/workout-plans/${id}`),
   shareWorkoutPlan: (id,b)         => request('POST', `/api/workout-plans/${id}/share`, b),
+  regenerateWorkoutPlan: (id,b)    => request('POST', `/api/workout-plans/${id}/regenerate`, b),
   generateWorkoutPlan: (b)         => request('POST', '/api/workout-plans/generate', b),
   createCustomWorkoutPlan: (b)     => request('POST', '/api/workout-plans/custom', b),
   swapPlanExercise: (b)            => request('POST', '/api/workout-plans/swap-exercise', b),

@@ -6,12 +6,14 @@ import Nav        from './components/Nav';
 import Home       from './pages/Home';
 import Dashboard  from './pages/Dashboard';
 import LogWorkout from './pages/LogWorkout';
+import WorkoutsHub from './pages/WorkoutsHub';
 import EditWorkout from './pages/EditWorkout';
 import ViewWorkout from './pages/ViewWorkout';
 import WorkoutPlans from './pages/WorkoutPlans';
 import Photos     from './pages/ProgressPhotos';
 import Feed       from './pages/Feed';
 import Social     from './pages/Social';
+import ProfileView from './pages/ProfileView';
 import Settings   from './pages/Settings';
 import Meals      from './pages/Meals';
 
@@ -25,13 +27,15 @@ function AppRoutes() {
     <Routes>
       <Route path="/"          element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
-      <Route path="/log"       element={<Private><LogWorkout /></Private>} />
+      <Route path="/log"       element={<Private><WorkoutsHub /></Private>} />
+      <Route path="/log/new"   element={<Private><LogWorkout /></Private>} />
       <Route path="/workout-plans" element={<Private><WorkoutPlans /></Private>} />
       <Route path="/workouts/:id" element={<Private><EditWorkout /></Private>} />
       <Route path="/workouts/:id/view" element={<Private><ViewWorkout /></Private>} />
       <Route path="/photos"    element={<Private><Photos /></Private>} />
       <Route path="/feed"      element={<Private><Feed /></Private>} />
       <Route path="/social"    element={<Private><Social /></Private>} />
+      <Route path="/profile/:id" element={<Private><ProfileView /></Private>} />
       <Route path="/settings"  element={<Private><Settings /></Private>} />
       <Route path="/meals"     element={<Private><Meals /></Private>} />
     </Routes>

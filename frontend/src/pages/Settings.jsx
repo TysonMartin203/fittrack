@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { IconEdit, IconChevron } from '../components/Icons';
 import AchievementIcon from '../components/AchievementIcon';
 import { compressImage } from '../compressImage';
+import { enablePush, disablePush, getPushStatus } from '../push';
 
 // How-to descriptions for each achievement
 const HOW_TO = {
@@ -39,6 +40,9 @@ export default function Settings() {
   const [loadingAch,   setLoadingAch]   = useState(true);
   const [showAll,      setShowAll]      = useState(false);
   const [expanded,     setExpanded]     = useState(null); // which achievement is expanded
+  const [bio,          setBio]          = useState(user?.bio || '');
+  const [savingBio,    setSavingBio]    = useState(false);
+  const [pushStatus,   setPushStatus]   = useState('unknown');
 
   const initials  = user?.username?.slice(0,2).toUpperCase() || 'FT';
   const avatarUrl = user?.avatarUrl ? api.fileUrl(user.avatarUrl) : null;
@@ -48,6 +52,7 @@ export default function Settings() {
       .then(d => setAchievements(d.achievements || []))
       .catch(() => {})
       .finally(() => setLoadingAch(false));
+    getPushStatus().then(setPushStatus).catch(() => setPushStatus('unsupported'));
   }, []);
 
   async function onAvatarChange(e) {
@@ -68,6 +73,33 @@ export default function Settings() {
   async function setTheme(theme) {
     updateUser({ theme }); // apply instantly
     try { await api.updateTheme(theme); } catch {} // persisted best-effort
+  }
+
+  async function saveBio() {
+    setSavingBio(true);
+    try {
+      await api.updateAccountSettings({ bio });
+      updateUser({ bio });
+      setSuccess('Bio updated!');
+    } catch (err) { setError(err.message); }
+    finally { setSavingBio(false); }
+  }
+
+  async function toggleNotifyBuzz() {
+    const next = !user.notifyBuzz;
+    updateUser({ notifyBuzz: next });
+    try { await api.updateAccountSettings({ notifyBuzz: next }); } catch {}
+  }
+  async function toggleNotifyMessages() {
+    const next = !user.notifyMessages;
+    updateUser({ notifyMessages: next });
+    try { await api.updateAccountSettings({ notifyMessages: next }); } catch {}
+  }
+  async function togglePush() {
+    try {
+      if (pushStatus === 'subscribed') { await disablePush(); setPushStatus('not-subscribed'); }
+      else { await enablePush(); setPushStatus('subscribed'); }
+    } catch (err) { setError(err.message); }
   }
 
   const unlocked = achievements.filter(a => a.unlocked);
@@ -95,6 +127,51 @@ export default function Settings() {
         {success   && <p className="form-success">{success}</p>}
         {error     && <p className="form-error">{error}</p>}
         <p className="muted" style={{fontSize:'12px',marginTop:'4px'}}>Tap photo to change</p>
+      </div>
+
+      {/* Bio */}
+      <div className="section">
+        <div className="section-header">
+          <span className="section-title">About You</span>
+        </div>
+        <textarea className="input" rows={3} placeholder="Tell friends a bit about yourself…" maxLength={280}
+          value={bio} onChange={e => setBio(e.target.value)} />
+        <button className="btn-ghost-sm" style={{marginTop:'8px'}} onClick={saveBio} disabled={savingBio}>
+          {savingBio ? 'Saving…' : 'Save Bio'}
+        </button>
+      </div>
+
+      {/* Notifications */}
+      <div className="section">
+        <div className="section-header">
+          <span className="section-title">Notifications</span>
+        </div>
+        {pushStatus !== 'unsupported' && pushStatus !== 'denied' && (
+          <div className="list-item">
+            <div style={{flex:1}}>
+              <div className="item-main">Push notifications</div>
+              <div className="item-meta">{pushStatus === 'subscribed' ? 'Enabled on this device' : 'Off on this device'}</div>
+            </div>
+            <button className="btn-ghost-sm" onClick={togglePush}>{pushStatus === 'subscribed' ? 'Turn off' : 'Enable'}</button>
+          </div>
+        )}
+        {pushStatus === 'denied' && (
+          <p className="muted" style={{fontSize:'12px',marginBottom:'10px'}}>Notifications are blocked in your browser settings — enable them there first.</p>
+        )}
+        <label className="list-item" style={{cursor:'pointer'}}>
+          <div style={{flex:1}}>
+            <div className="item-main">Buzz from friends</div>
+            <div className="item-meta">A friend nudging you to work out</div>
+          </div>
+          <input type="checkbox" checked={user?.notifyBuzz !== false} onChange={toggleNotifyBuzz} style={{width:'18px',height:'18px',accentColor:'var(--accent)'}} />
+        </label>
+        <label className="list-item" style={{cursor:'pointer'}}>
+          <div style={{flex:1}}>
+            <div className="item-main">Messages</div>
+            <div className="item-meta">New direct messages from friends</div>
+          </div>
+          <input type="checkbox" checked={user?.notifyMessages !== false} onChange={toggleNotifyMessages} style={{width:'18px',height:'18px',accentColor:'var(--accent)'}} />
+        </label>
       </div>
 
       {/* Appearance */}
@@ -128,7 +205,7 @@ export default function Settings() {
                     padding:'14px 16px',
                     borderRadius:'var(--r)',
                     border: `1px solid ${a.unlocked ? 'rgba(204,139,134,0.3)' : 'var(--border)'}`,
-                    background: a.unlocked ? 'rgba(204,139,134,0.08)' : 'rgba(243,227,211,.3)',
+                    background: a.unlocked ? 'rgba(204,139,134,0.08)' : 'var(--surface-tint)',
                     cursor:'pointer',
                     transition:'all .15s',
                     WebkitTapHighlightColor:'transparent',
@@ -136,7 +213,7 @@ export default function Settings() {
                   {/* Icon */}
                   <div style={{
                     width:'48px', height:'48px', borderRadius:'12px', flexShrink:0,
-                    background: a.unlocked ? 'rgba(249,234,225,0.6)' : 'rgba(249,234,225,0.4)',
+                    background: a.unlocked ? 'var(--surface-tint)' : 'var(--surface-tint)',
                     border: `1px solid ${a.unlocked ? 'rgba(204,139,134,0.25)' : 'var(--border)'}`,
                     display:'flex', alignItems:'center', justifyContent:'center',
                   }}>
@@ -160,7 +237,7 @@ export default function Settings() {
                     {!a.unlocked && expanded === a.id && (
                       <div style={{
                         marginTop:'8px', padding:'8px 10px',
-                        background:'rgba(249,234,225,0.5)', borderRadius:'8px',
+                        background:'var(--surface-tint)', borderRadius:'8px',
                         fontSize:'12px', color:'var(--text)', lineHeight:'1.5',
                         border:'1px solid var(--border)',
                       }}>

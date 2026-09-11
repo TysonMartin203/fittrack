@@ -2,6 +2,7 @@ const { areFriends } = require('../models/friend.model');
 const { createNotification } = require('../models/notification.model');
 const { sendPushToUser } = require('../models/push.model');
 const { findById } = require('../models/user.model');
+const pool = require('../config/db');
 
 // Simple cooldown so someone can't spam-buzz a friend — one buzz per pair every 30 min
 const lastBuzz = new Map();
@@ -28,11 +29,14 @@ async function buzz(req, res) {
       body: 'Time to go workout 💪',
       data: { from: req.userId },
     });
-    await sendPushToUser(friendId, {
-      title: `${sender?.username || 'A friend'} buzzed you!`,
-      body: 'Time to go workout 💪',
-      data: { type: 'buzz', from: req.userId },
-    });
+    const [[receiver]] = await pool.query('SELECT notify_buzz FROM Users WHERE id = ?', [friendId]);
+    if (receiver?.notify_buzz !== 0) {
+      await sendPushToUser(friendId, {
+        title: `${sender?.username || 'A friend'} buzzed you!`,
+        body: 'Time to go workout 💪',
+        data: { type: 'buzz', from: req.userId },
+      });
+    }
 
     res.json({ success: true });
   } catch (err) {

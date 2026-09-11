@@ -10,7 +10,7 @@ export default function LogWorkout() {
     <div className="page">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
         <h2 className="page-title" style={{marginBottom:0}}>Log Workout</h2>
-        <Link to="/workout-plans" className="link-small">Browse Plans</Link>
+        <Link to="/log" className="link-small">← Workouts</Link>
       </div>
       {prefill?.planLabel && (
         <p className="muted" style={{fontSize:'13px',marginTop:'-12px',marginBottom:'16px'}}>From plan: {prefill.planLabel}</p>

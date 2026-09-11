@@ -26,6 +26,8 @@ export const LIFTING_EXERCISES = [
   'Cable Crunch','Ab Wheel','Mountain Climber','Hanging Leg Raise','Torso Rotation Machine',
   // Olympic / Power
   'Clean and Jerk','Snatch','Power Clean','Power Snatch','Box Jump',
+  // Bodyweight
+  'Burpee','Bodyweight Squat','Jump Squat','Pistol Squat','Walking Lunge',
   // Machines
   'Smith Machine Squat','Smith Machine Bench','Cable Crossover',
   'Assisted Pull-Up','Leg Press Machine','Hack Squat Machine',

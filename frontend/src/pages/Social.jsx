@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { enablePush, disablePush, getPushStatus } from '../push';
 import { today, formatDateStr } from '../dateUtils';
 
 
@@ -93,17 +93,9 @@ function FriendsTab() {
 
   return (
     <div>
-      {pushStatus !== 'unsupported' && pushStatus !== 'denied' && (
-        <div className="glass-card" style={{marginBottom:'16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px'}}>
-          <div style={{fontSize:'13px'}}>
-            {pushStatus === 'subscribed' ? 'Buzzes will reach your phone' : 'Turn on notifications to get buzzed'}
-          </div>
-          <button className="btn-ghost-sm" onClick={togglePush}>{pushStatus === 'subscribed' ? 'Turn off' : 'Enable'}</button>
-        </div>
-      )}
-      {pushStatus === 'denied' && (
-        <p className="muted" style={{marginBottom:'16px',fontSize:'12px'}}>Notifications are blocked in your browser settings — enable them there to receive buzzes.</p>
-      )}
+      <p className="muted" style={{fontSize:'12px',marginBottom:'16px'}}>
+        Manage notifications (buzz, messages, push) in your <Link to="/settings" style={{color:'var(--accent)'}}>Profile settings</Link>.
+      </p>
 
       <div className="card-form">
         <form onSubmit={addFriend} className="form-stack">
@@ -146,7 +138,7 @@ function FriendsTab() {
           ? <p className="muted">No friends yet — add one above.</p>
           : accepted.map(f => (
             <div key={f.id} className="list-item">
-              <span className="item-main" style={{flex:1,cursor:'pointer'}} onClick={()=>openConvo(f)}>{f.username}</span>
+              <Link to={`/profile/${f.id}`} className="item-main" style={{flex:1,color:'inherit',textDecoration:'none'}}>{f.username}</Link>
               <button className="btn-ghost-sm" style={{marginRight:'6px'}} onClick={()=>buzz(f.id)} disabled={buzzed[f.id]==='sending'}>
                 {buzzed[f.id]==='sent' ? 'Buzzed! ⚡' : buzzed[f.id]==='sending' ? '…' : '⚡ Buzz'}
               </button>
@@ -203,7 +195,7 @@ function CompeteTab() {
         {!board ? <div className="spinner"/> : rows.map((r, i) => (
           <div key={r.id} className="list-item">
             <span style={{width:'22px',color:'var(--muted)',fontWeight:'700',fontSize:'13px'}}>{i+1}</span>
-            <span className="item-main" style={{flex:1}}>{r.username}</span>
+            <Link to={`/profile/${r.id}`} className="item-main" style={{flex:1,color:'inherit',textDecoration:'none'}}>{r.username}</Link>
             <span className="item-accent">
               {metric==='byWorkouts' ? `${r.workoutsThisWeek}` : metric==='byVolume' ? `${r.volumeThisWeek.toLocaleString()} lbs` : `${r.streak} 🔥`}
             </span>
@@ -338,7 +330,7 @@ function CrewsTab() {
         <div className="messages">
           {active.messages.map(m => (
             <div key={m.id} className={`message ${m.user_id === user.id ? 'mine' : 'theirs'}`}>
-              {m.user_id !== user.id && <div style={{fontSize:'11px',color:'var(--muted)',marginBottom:'2px'}}>{m.username}</div>}
+              {m.user_id !== user.id && <Link to={`/profile/${m.user_id}`} style={{fontSize:'11px',color:'var(--muted)',marginBottom:'2px',display:'block'}}>{m.username}</Link>}
               <span className="msg-text">{m.message}</span>
               <span className="msg-time">{new Date(m.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span>
             </div>

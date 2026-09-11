@@ -75,10 +75,10 @@ export default function Dashboard() {
       <section className="section">
         <div className="section-header">
           <span className="section-title">Recent Workouts</span>
-          <Link to="/log" className="link-small">+ Log one</Link>
+          <Link to="/log/new" className="link-small">+ Log one</Link>
         </div>
         {loading ? <Skeleton /> : recent.length === 0
-          ? <p className="muted">No workouts yet. <Link to="/log">Log your first!</Link></p>
+          ? <p className="muted">No workouts yet. <Link to="/log/new">Log your first!</Link></p>
           : recent.map((w, i) => {
             const extra = Math.max(0, (w.exercise_count || 1) - 1);
             const mixed = w.categories?.includes(',');

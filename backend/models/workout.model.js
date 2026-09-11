@@ -3,6 +3,7 @@ const { maybeUpdatePR } = require('./pr.model');
 const { maybeUpdateCardioPR } = require('./cardiopr.model');
 const { addFeedEvent } = require('./feed.model');
 const { areFriends } = require('./friend.model');
+const { BODYWEIGHT_EXERCISES } = require('../data/bodyweight-exercises');
 
 function effectiveMaxWeight(ex) {
   if (ex.perSetWeights && Array.isArray(ex.setsData) && ex.setsData.length > 0) {
@@ -10,6 +11,14 @@ function effectiveMaxWeight(ex) {
     return weights.length ? Math.max(...weights) : null;
   }
   return ex.weight != null && ex.weight !== '' ? Number(ex.weight) : null;
+}
+
+function effectiveMaxReps(ex) {
+  if (ex.perSetWeights && Array.isArray(ex.setsData) && ex.setsData.length > 0) {
+    const reps = ex.setsData.map(s => Number(s.reps)).filter(r => !isNaN(r));
+    return reps.length ? Math.max(...reps) : null;
+  }
+  return ex.reps != null && ex.reps !== '' ? Number(ex.reps) : null;
 }
 
 async function insertExercises(conn, workoutId, exercises, userId, date) {
@@ -51,12 +60,22 @@ async function insertExercises(conn, workoutId, exercises, userId, date) {
 
     if (isLifting) {
       const maxWeight = effectiveMaxWeight(ex);
+      const isBodyweight = BODYWEIGHT_EXERCISES.has(ex.exerciseName);
       if (maxWeight != null) {
         const prResult = await maybeUpdatePR({
           userId, exercise: ex.exerciseName, weight: maxWeight, date,
-          workoutId, workoutExerciseId, conn,
+          workoutId, workoutExerciseId, conn, unit: 'lbs',
         });
         prResults.push({ exercise: ex.exerciseName, unit: 'lbs', ...prResult });
+      } else if (isBodyweight) {
+        const maxReps = effectiveMaxReps(ex);
+        if (maxReps != null) {
+          const prResult = await maybeUpdatePR({
+            userId, exercise: ex.exerciseName, weight: maxReps, date,
+            workoutId, workoutExerciseId, conn, unit: 'reps',
+          });
+          prResults.push({ exercise: ex.exerciseName, unit: 'reps', ...prResult });
+        }
       }
     } else {
       const cardioResult = await maybeUpdateCardioPR({

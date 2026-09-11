@@ -4,6 +4,7 @@ const { createNotification } = require('../models/notification.model');
 const { sendPushToUser } = require('../models/push.model');
 const { findById } = require('../models/user.model');
 const { areFriends } = require('../models/friend.model');
+const { buildDeterministicRecipe } = require('../models/deterministic-recipe');
 
 function getClient() {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
@@ -54,7 +55,7 @@ async function getPlan(req, res) {
     await ensureTable();
     const [rows] = await pool.query('SELECT * FROM MealPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
     if (!rows[0]) return res.status(404).json({ error: 'Not found' });
-    res.json({ plan: rows[0].plan, profile: rows[0].profile, name: rows[0].name, is_favorite: rows[0].is_favorite, shared_from_username: rows[0].shared_from_username });
+    res.json({ plan: rows[0].plan, profile: rows[0].profile, name: rows[0].name, is_favorite: rows[0].is_favorite, shared_from_username: rows[0].shared_from_username, source: rows[0].source });
   } catch (err) { console.error(err); res.status(500).json({ error: 'Server error' }); }
 }
 
@@ -167,6 +168,71 @@ Include Breakfast, Lunch, Dinner, and one Snack per day for all 7 days.`;
   }
 }
 
+// Rebuild an existing saved plan from updated weight/goal/notes — replaces its
+// content in place rather than creating a new plan.
+async function regenerate(req, res) {
+  try {
+    await ensureTable();
+    const client = getClient();
+    const { weight, goalWeight, goal, timeline, restrictions = [], dislikes = '', wantedFoods = '', appliances = [], notes = '' } = req.body;
+
+    const [[existing]] = await pool.query('SELECT * FROM MealPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
+    if (!existing) return res.status(404).json({ error: 'Plan not found' });
+
+    const [prs] = await pool.query('SELECT exercise, max_weight FROM PRs WHERE user_id = ? LIMIT 5', [req.userId]);
+    const prText = prs.length > 0 ? prs.map(p => `${p.exercise}: ${p.max_weight}lbs`).join(', ') : 'Not provided';
+    const applianceText = appliances.length > 0 ? appliances.join(', ') : 'stovetop, oven, microwave (assume basic)';
+
+    const prompt = `You are a certified nutritionist and personal trainer. The user already has a meal plan called "${existing.name}" but wants it rebuilt based on updated info. Create a fresh budget-friendly 7-day meal plan as JSON.
+
+CRITICAL BUDGET RULES:
+- Reuse proteins across multiple days
+- Prioritize affordable proteins: eggs, canned tuna, chicken thighs, ground turkey, beans, lentils
+- Keep weekly grocery cost under $75-100 for one person
+
+Updated user stats:
+- Current weight: ${weight || 'not provided'} lbs
+- Goal weight: ${goalWeight || 'not provided'} lbs
+- Goal: ${goal || 'not provided'}
+- Timeline: ${timeline || 'not provided'} weeks
+- Lifting PRs: ${prText}
+- Dietary restrictions: ${restrictions.length > 0 ? restrictions.join(', ') : 'none'}
+- Foods to avoid: ${dislikes || 'none'}
+- Foods to include: ${wantedFoods || 'none'}
+- Available appliances: ${applianceText}
+- Additional notes from the user: ${notes || 'none'}
+
+Return ONLY valid JSON, no markdown. Same structure as before:
+{
+  "daily_calories": number,
+  "macros": { "protein": number, "carbs": number, "fat": number },
+  "budget_tip": "one sentence money-saving tip for this week",
+  "days": [{ "day": "Monday", "meals": [{ "type": "Breakfast", "name": "...", "calories": number, "protein": number, "carbs": number, "fat": number, "ingredients": ["..."], "can_substitute": true }] }]
+}
+Include Breakfast, Lunch, Dinner, and one Snack per day for all 7 days.`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 8000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    let text = message.content[0].text.trim();
+    text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+    const plan = JSON.parse(text);
+
+    await pool.query(
+      'UPDATE MealPlans SET plan = ?, profile = ?, source = ? WHERE id = ?',
+      [JSON.stringify(plan), JSON.stringify(req.body), 'ai', req.params.id]
+    );
+
+    res.json({ plan, planId: Number(req.params.id) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to regenerate: ' + err.message });
+  }
+}
+
 // Swap a single meal
 async function swap(req, res) {
   try {
@@ -206,7 +272,7 @@ Use affordable, common ingredients. Return ONLY JSON:
       const [[row]] = await pool.query('SELECT plan FROM MealPlans WHERE id = ? AND user_id = ?', [planId, req.userId]);
       if (row) {
         const planData = row.plan;
-        planData.days[dayIdx].meals[mealIdx] = { ...planData.days[dayIdx].meals[mealIdx], ...meal };
+        planData.days[dayIdx].meals[mealIdx] = { ...planData.days[dayIdx].meals[mealIdx], ...meal, swapped: true };
         await pool.query('UPDATE MealPlans SET plan = ? WHERE id = ?', [JSON.stringify(planData), planId]);
       }
     }
@@ -223,8 +289,13 @@ Use affordable, common ingredients. Return ONLY JSON:
 // ── Get recipe steps for a specific meal ──
 async function getRecipe(req, res) {
   try {
+    const { mealName, ingredients = [], useCache } = req.body;
+
+    if (useCache) {
+      return res.json({ recipe: buildDeterministicRecipe(mealName, ingredients) });
+    }
+
     const client = getClient();
-    const { mealName, ingredients = [] } = req.body;
 
     const prompt = `Give me a simple step-by-step recipe for "${mealName}".
 Ingredients: ${ingredients.join(', ')}.
@@ -267,8 +338,8 @@ async function useTemplate(req, res) {
     if (!template) return res.status(404).json({ error: 'Template not found' });
     const name = req.body.name || template.name;
     const [result] = await pool.query(
-      'INSERT INTO MealPlans (user_id, name, plan) VALUES (?, ?, ?)',
-      [req.userId, name, JSON.stringify(template.plan)]
+      'INSERT INTO MealPlans (user_id, name, plan, source) VALUES (?, ?, ?, ?)',
+      [req.userId, name, JSON.stringify(template.plan), 'template']
     );
     res.json({ planId: result.insertId, plan: template.plan, planName: name });
   } catch (err) {
@@ -285,8 +356,8 @@ async function createCustom(req, res) {
     if (!name?.trim()) return res.status(400).json({ error: 'Plan name required' });
     if (!plan?.days?.length) return res.status(400).json({ error: 'At least one day with a meal is required' });
     const [result] = await pool.query(
-      'INSERT INTO MealPlans (user_id, name, plan) VALUES (?, ?, ?)',
-      [req.userId, name.trim(), JSON.stringify(plan)]
+      'INSERT INTO MealPlans (user_id, name, plan, source) VALUES (?, ?, ?, ?)',
+      [req.userId, name.trim(), JSON.stringify(plan), 'custom']
     );
     res.status(201).json({ planId: result.insertId });
   } catch (err) {
@@ -318,9 +389,9 @@ async function sharePlan(req, res) {
 
     const sender = await findById(req.userId);
     const [result] = await pool.query(
-      `INSERT INTO MealPlans (user_id, name, plan, shared_from_user_id, shared_from_username)
-       VALUES (?, ?, ?, ?, ?)`,
-      [friendId, plan.name, JSON.stringify(plan.plan), req.userId, sender?.username || null]
+      `INSERT INTO MealPlans (user_id, name, plan, source, shared_from_user_id, shared_from_username)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [friendId, plan.name, JSON.stringify(plan.plan), plan.source || 'ai', req.userId, sender?.username || null]
     );
 
     await createNotification({
@@ -343,6 +414,6 @@ async function sharePlan(req, res) {
 }
 
 module.exports = {
-  listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, generate, swap,
+  listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, generate, regenerate, swap,
   getRecipe, getTemplates, getTemplateById, useTemplate, sharePlan, createCustom,
 };
