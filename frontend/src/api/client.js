@@ -11,12 +11,19 @@ async function request(method, path, body) {
   return data;
 }
 
-async function uploadFile(path, formData) {
+async function uploadFile(path, formData, method = 'POST') {
   const token = getToken();
-  const res = await fetch(`${BASE}${path}`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
+  const res = await fetch(`${BASE}${path}`, { method, headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || 'Upload failed');
   return data;
+}
+
+function workoutFormData(payload, photoFile) {
+  const fd = new FormData();
+  fd.append('data', JSON.stringify(payload));
+  if (photoFile) fd.append('photo', photoFile);
+  return fd;
 }
 
 export const api = {
@@ -24,8 +31,10 @@ export const api = {
   login:         (b) => request('POST', '/api/auth/login', b),
   uploadAvatar:  (fd) => uploadFile('/api/auth/avatar', fd),
 
-  logWorkout:    (b)  => request('POST',   '/api/workouts', b),
+  logWorkout:    (payload, photoFile) => uploadFile('/api/workouts', workoutFormData(payload, photoFile)),
+  updateWorkout: (id, payload, photoFile) => uploadFile(`/api/workouts/${id}`, workoutFormData(payload, photoFile), 'PUT'),
   getWorkouts:   ()   => request('GET',    '/api/workouts'),
+  getWorkout:    (id) => request('GET',    `/api/workouts/${id}`),
   deleteWorkout: (id) => request('DELETE', `/api/workouts/${id}`),
 
   getPRs: () => request('GET', '/api/prs'),

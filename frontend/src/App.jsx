@@ -5,6 +5,7 @@ import Nav        from './components/Nav';
 import Home       from './pages/Home';
 import Dashboard  from './pages/Dashboard';
 import LogWorkout from './pages/LogWorkout';
+import EditWorkout from './pages/EditWorkout';
 import PRTracker  from './pages/PRTracker';
 import Photos     from './pages/ProgressPhotos';
 import Friends    from './pages/Friends';
@@ -22,6 +23,7 @@ function AppRoutes() {
       <Route path="/"          element={<Navigate to="/dashboard" replace />} />
       <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
       <Route path="/log"       element={<Private><LogWorkout /></Private>} />
+      <Route path="/workouts/:id" element={<Private><EditWorkout /></Private>} />
       <Route path="/prs"       element={<Private><PRTracker /></Private>} />
       <Route path="/photos"    element={<Private><Photos /></Private>} />
       <Route path="/friends"   element={<Private><Friends /></Private>} />

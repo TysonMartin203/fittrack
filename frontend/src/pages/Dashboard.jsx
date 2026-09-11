@@ -53,15 +53,19 @@ export default function Dashboard() {
         </div>
         {loading ? <Skeleton /> : recent.length === 0
           ? <p className="muted">No workouts yet. <Link to="/log">Log your first!</Link></p>
-          : recent.map((w, i) => (
-            <div key={w.id} className="list-item" style={{animationDelay:`${i*.05}s`,animation:'fadeInUp .3s ease both'}}>
-              <div style={{flex:1}}>
-                <div className="item-main">{w.exercise}</div>
-                <div className="item-meta">{w.sets}×{w.reps} @ {w.weight} lbs</div>
-              </div>
-              <span className="item-date">{new Date(w.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
-            </div>
-          ))
+          : recent.map((w, i) => {
+            const extra = Math.max(0, (w.exercise_count || 1) - 1);
+            const mixed = w.categories?.includes(',');
+            return (
+              <Link to={`/workouts/${w.id}`} key={w.id} className="list-item clickable" style={{animationDelay:`${i*.05}s`,animation:'fadeInUp .3s ease both'}}>
+                <div style={{flex:1}}>
+                  <div className="item-main">{w.first_exercise}{extra > 0 ? ` +${extra} more` : ''}</div>
+                  <div className="item-meta">{w.exercise_count} exercise{w.exercise_count === 1 ? '' : 's'} · {mixed ? 'mixed' : w.categories}</div>
+                </div>
+                <span className="item-date">{new Date(w.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
+              </Link>
+            );
+          })
         }
       </section>
 
