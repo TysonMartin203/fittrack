@@ -72,8 +72,10 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
     if (turningOn) {
       const n = parseInt(ex.sets, 10);
       if (!n || n < 1) { update({ perSetWeights: true, setsData: [] }); return; }
-      const setsData = Array.from({ length: n }, (_, i) => ex.setsData[i] || { reps: ex.reps || '', weight: '' });
-      update({ perSetWeights: true, setsData });
+      const setsData = Array.from({ length: n }, (_, i) => ex.setsData[i] || { reps: ex.reps || '', weight: ex.weight || '' });
+      // Clear the uniform weight now that each set carries its own — avoids a stale
+      // value lingering on a disabled field and causing confusion (or bugs) later.
+      update({ perSetWeights: true, setsData, weight: '' });
     } else {
       update({ perSetWeights: false, setsData: [] });
     }
@@ -131,7 +133,7 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
 
           <label className="checkbox-row">
             <input type="checkbox" checked={ex.perSetWeights} onChange={togglePerSet} />
-            <span>Different weight per set</span>
+            <span>Split sets</span>
           </label>
 
           {ex.perSetWeights && (!ex.sets || parseInt(ex.sets, 10) < 1) && (
@@ -310,6 +312,11 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
         <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} required />
       </div>
 
+      <div className="field">
+        <label className="label">Notes before workout (optional)</label>
+        <textarea className="input" rows={2} placeholder="How are you feeling going in?" value={notesBefore} onChange={e => setNotesBefore(e.target.value)} />
+      </div>
+
       {exercises.map((ex, i) => (
         <ExerciseCard
           key={i} ex={ex} index={i}
@@ -320,10 +327,6 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
 
       <button type="button" className="btn-secondary" onClick={addExercise}>+ Add Exercise</button>
 
-      <div className="field">
-        <label className="label">Notes before workout (optional)</label>
-        <textarea className="input" rows={2} placeholder="How are you feeling going in?" value={notesBefore} onChange={e => setNotesBefore(e.target.value)} />
-      </div>
       <div className="field">
         <label className="label">Notes after workout (optional)</label>
         <textarea className="input" rows={2} placeholder="How'd it go?" value={notesAfter} onChange={e => setNotesAfter(e.target.value)} />
