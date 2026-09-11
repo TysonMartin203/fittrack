@@ -97,5 +97,10 @@ export const api = {
   acceptInvite: (id)  => request('PUT',  `/api/invites/${id}/accept`, {}),
   declineInvite:(id)  => request('PUT',  `/api/invites/${id}/decline`, {}),
 
-  fileUrl: (p) => p ? `${BASE}${p}` : null,
+  fileUrl: (p) => {
+    if (!p) return null;
+    const filename = p.split('/').pop();
+    const token = getToken();
+    return `${BASE}/api/uploads/${encodeURIComponent(filename)}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
 };
