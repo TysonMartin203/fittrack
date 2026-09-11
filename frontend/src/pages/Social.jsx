@@ -15,11 +15,9 @@ function FriendsTab() {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState('');
   const [buzzed,   setBuzzed]   = useState({});
-  const [pushStatus, setPushStatus] = useState('unknown');
 
   useEffect(() => {
     api.getFriends().then(setFriends).catch(console.error).finally(() => setLoading(false));
-    getPushStatus().then(setPushStatus).catch(() => setPushStatus('unsupported'));
   }, []);
 
   async function addFriend(e) {
@@ -54,13 +52,6 @@ function FriendsTab() {
       setBuzzed(b => ({ ...b, [friendId]: null }));
       setError(err.message);
     }
-  }
-
-  async function togglePush() {
-    try {
-      if (pushStatus === 'subscribed') { await disablePush(); setPushStatus('not-subscribed'); }
-      else { await enablePush(); setPushStatus('subscribed'); }
-    } catch (err) { setError(err.message); }
   }
 
   const accepted = friends.filter(f => f.status === 'accepted');
