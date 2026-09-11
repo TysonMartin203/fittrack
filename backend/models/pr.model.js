@@ -16,21 +16,21 @@ async function getAllPRs(userId) {
   return rows;
 }
 
-async function maybeUpdatePR({ userId, exercise, weight, date }) {
+async function maybeUpdatePR({ userId, exercise, weight, date, workoutId = null, workoutExerciseId = null }) {
   const existing = await getPRForExercise(userId, exercise);
 
   if (!existing) {
     await pool.query(
-      'INSERT INTO PRs (user_id, exercise, max_weight, achieved_on) VALUES (?, ?, ?, ?)',
-      [userId, exercise, weight, date]
+      'INSERT INTO PRs (user_id, exercise, max_weight, achieved_on, workout_id, workout_exercise_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [userId, exercise, weight, date, workoutId, workoutExerciseId]
     );
     return { isNewPR: true, previousMax: null, newMax: weight };
   }
 
   if (Number(weight) > Number(existing.max_weight)) {
     await pool.query(
-      'UPDATE PRs SET max_weight = ?, achieved_on = ? WHERE id = ?',
-      [weight, date, existing.id]
+      'UPDATE PRs SET max_weight = ?, achieved_on = ?, workout_id = ?, workout_exercise_id = ? WHERE id = ?',
+      [weight, date, workoutId, workoutExerciseId, existing.id]
     );
     return { isNewPR: true, previousMax: existing.max_weight, newMax: weight };
   }

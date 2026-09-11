@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
+import MealPlanIcon from '../components/MealPlanIcons';
 import { IconSparkle, IconRefresh } from '../components/Icons';
 import KitchenIllustration from '../components/KitchenIllustration';
 
@@ -100,6 +101,8 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
   const [editing,    setEditing]    = useState(false);
   const [nameVal,    setNameVal]    = useState('');
   const [swapping,   setSwapping]   = useState(null);
+  const [swapPanel,  setSwapPanel]  = useState(null); // { dayIdx, mealIdx }
+  const [swapDetail, setSwapDetail] = useState('');
   const [loading,    setLoading]    = useState(true);
   const [recipe,     setRecipe]     = useState({});   // keyed by "dayIdx-mealIdx"
   const [loadingRec, setLoadingRec] = useState({});
@@ -152,10 +155,12 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
     finally { setLoadingRec(l => ({...l, [key]: false})); }
   }
 
-  async function swapMeal(dayIdx, mealIdx, meal) {
+  async function swapMeal(dayIdx, mealIdx, meal, reason, detail) {
     setSwapping({dayIdx, mealIdx});
+    setSwapPanel(null);
+    setSwapDetail('');
     try {
-      const res = await api.swapMeal({ mealName: meal.name, restrictions: profile?.restrictions||[], macroTarget: meal, appliances: profile?.appliances||[], planId, dayIdx, mealIdx });
+      const res = await api.swapMeal({ mealName: meal.name, restrictions: profile?.restrictions||[], macroTarget: meal, appliances: profile?.appliances||[], planId, dayIdx, mealIdx, reason, detail });
       setData(d => ({...d, plan: {...d.plan, days: d.plan.days.map((day,di) => di!==dayIdx ? day : {...day, meals: day.meals.map((m,mi) => mi!==mealIdx ? m : {...m,...res.meal})})}}));
     } catch {}
     finally { setSwapping(null); }
@@ -220,7 +225,7 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
                     </div>
                     <div style={{textAlign:'right',flexShrink:0,marginLeft:'12px'}}>
                       <div style={{fontWeight:'700',color:'var(--rose)',fontSize:'14px'}}>{meal.calories} cal</div>
-                      {meal.can_substitute && <button className="btn-ghost-sm" style={{marginTop:'4px',fontSize:'11px'}} disabled={swapping?.dayIdx===di&&swapping?.mealIdx===mi} onClick={()=>swapMeal(di,mi,meal)}>{swapping?.dayIdx===di&&swapping?.mealIdx===mi?'…':'↔ Swap'}</button>}
+                      {meal.can_substitute && <button className="btn-ghost-sm" style={{marginTop:'4px',fontSize:'11px'}} disabled={swapping?.dayIdx===di&&swapping?.mealIdx===mi} onClick={()=>setSwapPanel(swapPanel?.dayIdx===di&&swapPanel?.mealIdx===mi ? null : {dayIdx:di, mealIdx:mi})}>{swapping?.dayIdx===di&&swapping?.mealIdx===mi?'…':'↔ Swap'}</button>}
                     </div>
                   </div>
                   <div style={{display:'flex',gap:'12px',fontSize:'12px',color:'var(--muted)',marginBottom:'8px'}}>
@@ -229,6 +234,27 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
                   {meal.ingredients?.length>0 && (
                     <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'10px'}}>
                       {meal.ingredients.map((ing,ii)=><span key={ii} style={{fontSize:'11px',background:'rgba(28,46,48,.6)',border:'1px solid var(--border)',borderRadius:'6px',padding:'2px 8px',color:'var(--muted)'}}>{ing}</span>)}
+                    </div>
+                  )}
+                  {swapPanel?.dayIdx===di && swapPanel?.mealIdx===mi && (
+                    <div style={{background:'rgba(28,46,48,.6)',border:'1px solid var(--border)',borderRadius:'10px',padding:'12px',marginBottom:'10px'}}>
+                      <div style={{fontSize:'12px',fontWeight:'600',marginBottom:'8px'}}>Why swap this meal?</div>
+                      <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
+                        <button className="btn-ghost-sm" style={{flex:1}} onClick={()=>swapMeal(di,mi,meal,'dislike',null)}>Don't want it</button>
+                        <button className="btn-ghost-sm" style={{flex:1}} onClick={()=>document.getElementById(`swap-detail-${di}-${mi}`)?.focus()}>Can't have something</button>
+                      </div>
+                      <input
+                        id={`swap-detail-${di}-${mi}`}
+                        className="input"
+                        placeholder="e.g. shellfish, dairy, mushrooms"
+                        value={swapDetail}
+                        onChange={e=>setSwapDetail(e.target.value)}
+                        style={{marginBottom:'8px',fontSize:'13px',padding:'9px 12px'}}
+                      />
+                      <div style={{display:'flex',gap:'8px'}}>
+                        <button className="btn-accent-sm" style={{flex:1}} disabled={!swapDetail.trim()} onClick={()=>swapMeal(di,mi,meal,'restriction',swapDetail.trim())}>Swap without it</button>
+                        <button className="btn-ghost-sm" onClick={()=>{setSwapPanel(null);setSwapDetail('');}}>Cancel</button>
+                      </div>
                     </div>
                   )}
                   {/* Recipe section */}
@@ -455,8 +481,8 @@ export default function Meals() {
                   <div style={{
                     width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,
                     background:'rgba(28,46,48,0.6)',border:'1px solid var(--border)',
-                    display:'flex',alignItems:'center',justifyContent:'center',fontSize:'22px',
-                  }}>{t.icon}</div>
+                    display:'flex',alignItems:'center',justifyContent:'center',color:'var(--teal)',
+                  }}><MealPlanIcon id={t.icon} size={22} /></div>
                   <div style={{flex:1}}>
                     <div style={{fontWeight:'700',fontSize:'15px',marginBottom:'2px'}}>{t.name}</div>
                     <div style={{fontSize:'12px',color:'var(--muted)'}}>

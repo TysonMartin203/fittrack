@@ -166,11 +166,21 @@ Include Breakfast, Lunch, Dinner, and one Snack per day for all 7 days.`;
 async function swap(req, res) {
   try {
     const client = getClient();
-    const { mealName, restrictions = [], macroTarget, appliances = [], planId, dayIdx, mealIdx } = req.body;
+    const { mealName, restrictions = [], macroTarget, appliances = [], planId, dayIdx, mealIdx, reason, detail } = req.body;
     const applianceText = appliances.length > 0 ? appliances.join(', ') : 'stovetop, oven, microwave';
+
+    let reasonText = '';
+    if (reason === 'restriction' && detail) {
+      reasonText = `The user cannot have the following, so it must not appear anywhere in the replacement meal or its ingredients: ${detail}.`;
+    } else if (reason === 'dislike') {
+      reasonText = detail
+        ? `The user doesn't want this meal because: ${detail}. Pick something meaningfully different that avoids that.`
+        : `The user just doesn't want this specific meal — pick something meaningfully different.`;
+    }
 
     const prompt = `Suggest one budget-friendly alternative meal to replace "${mealName}".
 Dietary restrictions: ${restrictions.length > 0 ? restrictions.join(', ') : 'none'}.
+${reasonText}
 Available appliances: ${applianceText}.
 Match approximately: ${macroTarget.calories} calories, ${macroTarget.protein}g protein, ${macroTarget.carbs}g carbs, ${macroTarget.fat}g fat.
 Use affordable, common ingredients. Return ONLY JSON:

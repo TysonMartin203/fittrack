@@ -1,9 +1,9 @@
 const pool = require('../config/db');
 
-async function savePhoto({ userId, filePath, photoDate }) {
+async function savePhoto({ userId, filePath, photoDate, workoutId = null }) {
   const [result] = await pool.query(
-    'INSERT INTO ProgressPhotos (user_id, file_path, photo_date) VALUES (?, ?, ?)',
-    [userId, filePath, photoDate]
+    'INSERT INTO ProgressPhotos (user_id, file_path, photo_date, workout_id) VALUES (?, ?, ?, ?)',
+    [userId, filePath, photoDate, workoutId]
   );
   return result.insertId;
 }

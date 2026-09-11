@@ -11,23 +11,59 @@ CREATE TABLE IF NOT EXISTS Users (
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS Workouts (
-  id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, exercise VARCHAR(100) NOT NULL,
-  sets INT NOT NULL, reps INT NOT NULL, weight DECIMAL(6,2) NOT NULL, date DATE NOT NULL,
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  date DATE NOT NULL,
+  notes_before TEXT NULL,
+  notes_after TEXT NULL,
+  photo_path VARCHAR(255) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS WorkoutExercises (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  workout_id INT NOT NULL,
+  category ENUM('lifting','cardio') NOT NULL,
+  exercise_name VARCHAR(100) NOT NULL,
+  order_index INT NOT NULL DEFAULT 0,
+  notes TEXT NULL,
+  sets INT NULL,
+  reps INT NULL,
+  weight DECIMAL(6,2) NULL,
+  per_set_weights TINYINT(1) NOT NULL DEFAULT 0,
+  duration_minutes DECIMAL(6,2) NULL,
+  distance DECIMAL(6,2) NULL,
+  distance_unit VARCHAR(10) NULL,
+  calories INT NULL,
+  avg_heart_rate INT NULL,
+  pace VARCHAR(30) NULL,
+  FOREIGN KEY (workout_id) REFERENCES Workouts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS WorkoutSets (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  workout_exercise_id INT NOT NULL,
+  set_number INT NOT NULL,
+  reps INT NULL,
+  weight DECIMAL(6,2) NULL,
+  FOREIGN KEY (workout_exercise_id) REFERENCES WorkoutExercises(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS PRs (
   id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, exercise VARCHAR(100) NOT NULL,
   max_weight DECIMAL(6,2) NOT NULL, achieved_on DATE NOT NULL,
+  workout_id INT NULL, workout_exercise_id INT NULL,
   FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+  FOREIGN KEY (workout_id) REFERENCES Workouts(id) ON DELETE SET NULL,
   UNIQUE KEY uq_pr_user_exercise (user_id, exercise)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS ProgressPhotos (
   id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, file_path VARCHAR(255) NOT NULL,
-  photo_date DATE NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+  photo_date DATE NOT NULL, workout_id INT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+  FOREIGN KEY (workout_id) REFERENCES Workouts(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS Friends (
