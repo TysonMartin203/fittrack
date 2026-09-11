@@ -52,7 +52,7 @@ function RestrictionInput({ value, onChange }) {
   return (
     <div>
       <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'8px'}}>
-        {value.map(r => <span key={r} onClick={() => remove(r)} style={{padding:'4px 12px',fontSize:'13px',fontWeight:'500',cursor:'pointer',background:'rgba(204,139,134,0.15)',border:'1px solid var(--teal)',borderRadius:'999px',color:'var(--teal)'}}>{r} ✕</span>)}
+        {value.map(r => <span key={r} onClick={() => remove(r)} style={{padding:'4px 12px',fontSize:'13px',fontWeight:'500',cursor:'pointer',background:'rgba(224,122,95,0.15)',border:'1px solid var(--teal)',borderRadius:'999px',color:'var(--teal)'}}>{r} ✕</span>)}
       </div>
       <div style={{position:'relative'}}>
         <input className="input" placeholder="Type to search restrictions…" value={query} onChange={e=>{setQuery(e.target.value);setShow(true);}} onFocus={()=>setShow(true)} onBlur={()=>setTimeout(()=>setShow(false),150)}/>

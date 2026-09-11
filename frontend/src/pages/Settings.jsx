@@ -204,8 +204,8 @@ export default function Settings() {
                     display:'flex', alignItems:'center', gap:'14px',
                     padding:'14px 16px',
                     borderRadius:'var(--r)',
-                    border: `1px solid ${a.unlocked ? 'rgba(204,139,134,0.3)' : 'var(--border)'}`,
-                    background: a.unlocked ? 'rgba(204,139,134,0.08)' : 'var(--surface-tint)',
+                    border: `1px solid ${a.unlocked ? 'rgba(224,122,95,0.3)' : 'var(--border)'}`,
+                    background: a.unlocked ? 'rgba(224,122,95,0.08)' : 'var(--surface-tint)',
                     cursor:'pointer',
                     transition:'all .15s',
                     WebkitTapHighlightColor:'transparent',
@@ -214,7 +214,7 @@ export default function Settings() {
                   <div style={{
                     width:'48px', height:'48px', borderRadius:'12px', flexShrink:0,
                     background: a.unlocked ? 'var(--surface-tint)' : 'var(--surface-tint)',
-                    border: `1px solid ${a.unlocked ? 'rgba(204,139,134,0.25)' : 'var(--border)'}`,
+                    border: `1px solid ${a.unlocked ? 'rgba(224,122,95,0.25)' : 'var(--border)'}`,
                     display:'flex', alignItems:'center', justifyContent:'center',
                   }}>
                     <AchievementIcon id={a.id} active={a.unlocked} size={32}/>

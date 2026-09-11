@@ -49,7 +49,7 @@ export default function App() {
     const dark = user?.theme === 'dark';
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', dark ? '#241416' : '#CC8B86');
+    if (meta) meta.setAttribute('content', dark ? '#262840' : '#E07A5F');
   }, [user?.theme]);
 
   if (!user) {
