@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { IconLogo } from './Icons';
+import { IconLogo, IconHome } from './Icons';
 import { api } from '../api/client';
 
 export default function Header() {
@@ -11,10 +11,13 @@ export default function Header() {
 
   return (
     <header className="top-header">
-      <button className="header-logo" onClick={() => navigate('/dashboard')} aria-label="Go to home">
+      <button className="header-home-btn" onClick={() => navigate('/dashboard')} aria-label="Go to home">
+        <IconHome />
+      </button>
+      <div className="header-logo">
         <IconLogo />
         <span className="header-logo-text">FitTrack</span>
-      </button>
+      </div>
       <button className="header-avatar-btn" onClick={() => navigate('/settings')} aria-label="Profile">
         {avatarUrl
           ? <img src={avatarUrl} alt="avatar" />

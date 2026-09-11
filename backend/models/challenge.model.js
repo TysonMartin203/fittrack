@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { areFriends } = require('./friend.model');
+const { addFeedEvent } = require('./feed.model');
 
 async function createChallenge(userId, { title, type, exercise, targetValue, startDate, endDate }) {
   const [result] = await pool.query(
@@ -9,6 +10,11 @@ async function createChallenge(userId, { title, type, exercise, targetValue, sta
   );
   const id = result.insertId;
   await pool.query('INSERT INTO ChallengeParticipants (challenge_id, user_id) VALUES (?, ?)', [id, userId]);
+  addFeedEvent({
+    userId, type: 'challenge', refId: id,
+    headline: `started a challenge — ${title}`,
+    detail: type === 'most_workouts' ? 'Most workouts' : `Biggest ${exercise} gain`,
+  }).catch(err => console.error('Feed event failed:', err));
   return id;
 }
 
@@ -38,6 +44,13 @@ async function joinChallenge(challengeId, userId) {
   if (!friends && challenge.creator_id !== userId)
     throw Object.assign(new Error('You can only join challenges from friends'), { status: 403 });
   await pool.query('INSERT IGNORE INTO ChallengeParticipants (challenge_id, user_id) VALUES (?, ?)', [challengeId, userId]);
+  if (userId !== challenge.creator_id) {
+    addFeedEvent({
+      userId, type: 'challenge', refId: challengeId,
+      headline: `joined a challenge — ${challenge.title}`,
+      detail: challenge.type === 'most_workouts' ? 'Most workouts' : `Biggest ${challenge.exercise} gain`,
+    }).catch(err => console.error('Feed event failed:', err));
+  }
 }
 
 async function getChallengeProgress(challengeId, userId) {

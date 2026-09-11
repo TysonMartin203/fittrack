@@ -20,12 +20,16 @@ export default function Dashboard() {
   const [streak,     setStreak]     = useState(0);
   const [showAllPRs, setShowAllPRs] = useState(false);
   const [loading,    setLoading]    = useState(true);
+  const [workoutPlanCount, setWorkoutPlanCount] = useState(null);
+  const [mealPlanCount,    setMealPlanCount]    = useState(null);
 
   useEffect(() => {
     Promise.all([api.getWorkouts(), api.getPRs(), api.getStreak().catch(() => ({ streak: 0 }))])
       .then(([w, p, s]) => { setWorkouts(w); setPRs(p); setStreak(s.streak || 0); })
       .catch(console.error)
       .finally(() => setLoading(false));
+    api.getWorkoutPlans().then(p => setWorkoutPlanCount(p.length)).catch(() => setWorkoutPlanCount(0));
+    api.listMealPlans().then(d => setMealPlanCount((d.plans||[]).length)).catch(() => setMealPlanCount(0));
   }, []);
 
   const recent = workouts.slice(0, 5);
@@ -54,6 +58,17 @@ export default function Dashboard() {
           </span>
           <span className="stat-label">Day Streak</span>
         </div>
+      </div>
+
+      <div style={{display:'flex',gap:'10px',marginBottom:'20px'}}>
+        <Link to="/workout-plans" className="glass-card" style={{flex:1,textDecoration:'none',color:'inherit',padding:'14px',textAlign:'center'}}>
+          <div style={{fontWeight:'700',fontSize:'14px'}}>🏋️ Workout Plans</div>
+          <div className="muted" style={{fontSize:'12px',marginTop:'2px'}}>{workoutPlanCount === null ? '…' : `${workoutPlanCount} saved`}</div>
+        </Link>
+        <Link to="/meals" className="glass-card" style={{flex:1,textDecoration:'none',color:'inherit',padding:'14px',textAlign:'center'}}>
+          <div style={{fontWeight:'700',fontSize:'14px'}}>🥗 Meal Plans</div>
+          <div className="muted" style={{fontSize:'12px',marginTop:'2px'}}>{mealPlanCount === null ? '…' : `${mealPlanCount} saved`}</div>
+        </Link>
       </div>
 
       <section className="section">

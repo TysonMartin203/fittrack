@@ -22,37 +22,61 @@ function toFormExercise(ex) {
   };
 }
 
-function ExerciseRow({ ex, onSwap }) {
+const infoCache = {}; // exerciseName -> fetched description, shared across rows for this session
+
+function ExerciseRow({ ex, planId, dayIdx, exIdx, onSwap }) {
   const [showPanel, setShowPanel] = useState(false);
   const [detail, setDetail] = useState('');
   const [swapping, setSwapping] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+  const [info, setInfo] = useState(infoCache[ex.exerciseName] || null);
+  const [loadingInfo, setLoadingInfo] = useState(false);
 
   async function doSwap(reason, val) {
     setSwapping(true);
     try {
       const res = await api.swapPlanExercise({
         exerciseName: ex.exerciseName, category: ex.category, sets: ex.sets, reps: ex.reps, reason, detail: val,
+        planId, dayIdx, exIdx,
       });
       onSwap(res.exercise);
-      setShowPanel(false); setDetail('');
+      setShowPanel(false); setDetail(''); setInfo(null); setShowInfo(false);
     } catch { /* leave panel open so they can retry */ }
     finally { setSwapping(false); }
+  }
+
+  async function toggleInfo() {
+    const next = !showInfo;
+    setShowInfo(next);
+    if (next && !info) {
+      setLoadingInfo(true);
+      try {
+        const res = await api.exerciseInfo({ exerciseName: ex.exerciseName, category: ex.category });
+        infoCache[ex.exerciseName] = res.info;
+        setInfo(res.info);
+      } catch { setInfo('Could not load details right now.'); }
+      finally { setLoadingInfo(false); }
+    }
   }
 
   return (
     <div className="list-item" style={{flexDirection:'column',alignItems:'stretch',gap:'6px'}}>
       <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-        <div style={{flex:1}}>
+        <div style={{flex:1,cursor:'pointer'}} onClick={toggleInfo}>
           <div className="item-main">{ex.exerciseName}</div>
           <div className="item-meta">
             {ex.category === 'cardio' ? (ex.durationMinutes ? `${ex.durationMinutes} min` : 'Cardio') : `${ex.sets} sets × ${ex.reps}`}
-            {ex.notes ? ` · ${ex.notes}` : ''}
           </div>
         </div>
         <button className="btn-ghost-sm" disabled={swapping} onClick={()=>setShowPanel(s=>!s)}>{swapping?'…':'↔ Swap'}</button>
       </div>
+      {showInfo && (
+        <p className="muted" style={{fontSize:'13px',padding:'2px 2px 4px'}}>
+          {loadingInfo ? 'Loading…' : info}
+        </p>
+      )}
       {showPanel && (
-        <div style={{background:'rgba(28,46,48,.4)',border:'1px solid var(--border)',borderRadius:'10px',padding:'10px'}}>
+        <div style={{background:'rgba(243,227,211,.6)',border:'1px solid var(--border)',borderRadius:'10px',padding:'10px'}}>
           <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
             <button className="btn-ghost-sm" style={{flex:1}} onClick={()=>doSwap('dislike',null)}>Don't want it</button>
             <button className="btn-ghost-sm" style={{flex:1}} onClick={()=>document.getElementById(`ex-detail-${ex.exerciseName}`)?.focus()}>Can't do it</button>
@@ -182,7 +206,7 @@ function PlanDetail({ planId, onBack, onUpdate }) {
                 <button className="btn-primary" style={{width:'auto',padding:'8px 16px',fontSize:'13px'}} onClick={()=>logThisWorkout(plan.days[dayIdx].exercises, `${plan.days[dayIdx].day} — ${plan.days[dayIdx].focus} (${data.name})`)}>Log this workout</button>
               </div>
               {plan.days[dayIdx].exercises.map((ex,i) => (
-                <ExerciseRow key={i} ex={ex} onSwap={(newEx)=>updateExerciseAt(dayIdx,i,newEx)} />
+                <ExerciseRow key={i} ex={ex} planId={planId} dayIdx={dayIdx} exIdx={i} onSwap={(newEx)=>updateExerciseAt(dayIdx,i,newEx)} />
               ))}
             </>
           )}
@@ -194,7 +218,7 @@ function PlanDetail({ planId, onBack, onUpdate }) {
             <button className="btn-primary" style={{width:'auto',padding:'8px 16px',fontSize:'13px'}} onClick={()=>logThisWorkout(plan.exercises, `${plan.focus} (${data.name})`)}>Log this workout</button>
           </div>
           {plan.exercises.map((ex,i) => (
-            <ExerciseRow key={i} ex={ex} onSwap={(newEx)=>updateExerciseAt(null,i,newEx)} />
+            <ExerciseRow key={i} ex={ex} planId={planId} dayIdx={null} exIdx={i} onSwap={(newEx)=>updateExerciseAt(null,i,newEx)} />
           ))}
         </>
       )}
@@ -211,7 +235,7 @@ export default function WorkoutPlans() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
-  const [profile, setProfile] = useState({ weight:'', goalWeight:'', goal:GOALS[2], timeline:'', planName:'My Workout Plan' });
+  const [profile, setProfile] = useState({ weight:'', goalWeight:'', goal:GOALS[2], timeline:'', notes:'', planName:'My Workout Plan' });
 
   useEffect(() => {
     loadPlans();
@@ -290,6 +314,11 @@ export default function WorkoutPlans() {
               </div>
               <div className="input-group"><label className="label">Timeline (weeks)</label><input className="input" type="number" placeholder="12" value={profile.timeline} onChange={e=>setProfile(p=>({...p,timeline:e.target.value}))}/></div>
             </div>
+            <div className="field" style={{marginTop:'12px'}}>
+              <label className="label">Notes for the AI (goals, injuries, preferences)</label>
+              <textarea className="input" rows={3} placeholder="e.g. training for a half marathon, bad left knee so avoid heavy squats, prefer dumbbells over barbells"
+                value={profile.notes} onChange={e=>setProfile(p=>({...p,notes:e.target.value}))} />
+            </div>
           </div>
           <button className="btn-primary" type="submit" disabled={generating}>
             {generating ? 'Building your plan…' : <><IconSparkle style={{width:'16px',height:'16px',marginRight:'6px'}}/>Generate Plan</>}
@@ -331,7 +360,7 @@ export default function WorkoutPlans() {
         <p className="muted" style={{fontSize:'12px',marginTop:'-6px',marginBottom:'12px'}}>Full weekly splits, rest days included.</p>
         {weekTemplates.map(t => (
           <div key={t.id} className="list-item clickable" onClick={()=>useTemplate(t.id, t.name)}>
-            <div style={{width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,background:'rgba(28,46,48,0.6)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--teal)',marginRight:'12px'}}>
+            <div style={{width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,background:'rgba(243,227,211,0.6)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--teal)',marginRight:'12px'}}>
               <WorkoutPlanIcon id={t.icon} size={22} />
             </div>
             <div style={{flex:1}}>
@@ -347,7 +376,7 @@ export default function WorkoutPlans() {
         <p className="muted" style={{fontSize:'12px',marginTop:'-6px',marginBottom:'12px'}}>Single sessions you can log right now.</p>
         {singleTemplates.map(t => (
           <div key={t.id} className="list-item clickable" onClick={()=>useTemplate(t.id, t.name)}>
-            <div style={{width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,background:'rgba(28,46,48,0.6)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--teal)',marginRight:'12px'}}>
+            <div style={{width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,background:'rgba(243,227,211,0.6)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--teal)',marginRight:'12px'}}>
               <WorkoutPlanIcon id={t.icon} size={22} />
             </div>
             <div style={{flex:1}}>

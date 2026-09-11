@@ -1,6 +1,5 @@
 const pool = require('../config/db');
 const Anthropic = require('@anthropic-ai/sdk');
-const { addFeedEvent } = require('../models/feed.model');
 const { createNotification } = require('../models/notification.model');
 const { sendPushToUser } = require('../models/push.model');
 const { findById } = require('../models/user.model');
@@ -89,7 +88,7 @@ async function generate(req, res) {
   try {
     await ensureTable();
     const client = getClient();
-    const { weight, goalWeight, goal, timeline, restrictions = [], dislikes = '', wantedFoods = '', appliances = [], planName = 'My Meal Plan' } = req.body;
+    const { weight, goalWeight, goal, timeline, restrictions = [], dislikes = '', wantedFoods = '', appliances = [], notes = '', planName = 'My Meal Plan' } = req.body;
 
     const [prs] = await pool.query('SELECT exercise, max_weight FROM PRs WHERE user_id = ? LIMIT 5', [req.userId]);
     const prText = prs.length > 0 ? prs.map(p => `${p.exercise}: ${p.max_weight}lbs`).join(', ') : 'Not provided';
@@ -115,6 +114,7 @@ User stats:
 - Foods to avoid: ${dislikes || 'none'}
 - Foods to include: ${wantedFoods || 'none'}
 - Available appliances: ${applianceText}
+- Additional notes from the user: ${notes || 'none'}
 
 Only suggest recipes makeable with the listed appliances. Unless the user has requested specific foods, default to universally popular, crowd-pleasing meals that most people enjoy — things like chicken and rice, pasta, tacos, burgers, eggs, stir fry, sandwiches, oatmeal, and similar widely-liked foods. Avoid niche or polarizing ingredients like tofu, tempeh, liver, anchovies, Brussels sprouts, or bitter greens unless explicitly requested.
 
@@ -270,12 +270,25 @@ async function useTemplate(req, res) {
       'INSERT INTO MealPlans (user_id, name, plan) VALUES (?, ?, ?)',
       [req.userId, name, JSON.stringify(template.plan)]
     );
-    addFeedEvent({
-      userId: req.userId, type: 'template_pick', refId: result.insertId,
-      headline: `started the ${template.name} plan`,
-      detail: template.category,
-    }).catch(err => console.error('Feed event failed:', err));
     res.json({ planId: result.insertId, plan: template.plan, planName: name });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+// ── Build a plan entirely by hand, no AI ──
+async function createCustom(req, res) {
+  try {
+    await ensureTable();
+    const { name, plan } = req.body;
+    if (!name?.trim()) return res.status(400).json({ error: 'Plan name required' });
+    if (!plan?.days?.length) return res.status(400).json({ error: 'At least one day with a meal is required' });
+    const [result] = await pool.query(
+      'INSERT INTO MealPlans (user_id, name, plan) VALUES (?, ?, ?)',
+      [req.userId, name.trim(), JSON.stringify(plan)]
+    );
+    res.status(201).json({ planId: result.insertId });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -331,5 +344,5 @@ async function sharePlan(req, res) {
 
 module.exports = {
   listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, generate, swap,
-  getRecipe, getTemplates, getTemplateById, useTemplate, sharePlan,
+  getRecipe, getTemplates, getTemplateById, useTemplate, sharePlan, createCustom,
 };

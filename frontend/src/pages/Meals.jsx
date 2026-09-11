@@ -339,6 +339,123 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
 }
 
 // ── Main Meals page ──
+const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const MEAL_TYPES = ['Breakfast','Lunch','Dinner','Snack'];
+
+function CustomPlanBuilder({ onBack, onCreated }) {
+  const [planName, setPlanName] = useState('My Custom Plan');
+  const [dayIdx, setDayIdx] = useState(0);
+  const [days, setDays] = useState(DAY_NAMES.map(d => ({ day: d, meals: [] })));
+  const [form, setForm] = useState({ type:'Breakfast', name:'', calories:'', protein:'', carbs:'', fat:'', ingredients:'' });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  function addMeal() {
+    if (!form.name.trim()) { setError('Meal name required'); return; }
+    setError('');
+    const meal = {
+      type: form.type, name: form.name.trim(),
+      calories: Number(form.calories)||0, protein: Number(form.protein)||0, carbs: Number(form.carbs)||0, fat: Number(form.fat)||0,
+      ingredients: form.ingredients.split(',').map(s=>s.trim()).filter(Boolean),
+      can_substitute: true,
+    };
+    setDays(ds => ds.map((d,i) => i!==dayIdx ? d : {...d, meals:[...d.meals, meal]}));
+    setForm({ type:'Breakfast', name:'', calories:'', protein:'', carbs:'', fat:'', ingredients:'' });
+  }
+  function removeMeal(mi) {
+    setDays(ds => ds.map((d,i) => i!==dayIdx ? d : {...d, meals: d.meals.filter((_,j)=>j!==mi)}));
+  }
+
+  async function save() {
+    const daysWithMeals = days.filter(d => d.meals.length > 0);
+    if (!planName.trim()) { setError('Plan name required'); return; }
+    if (daysWithMeals.length === 0) { setError('Add at least one meal first'); return; }
+    setSaving(true); setError('');
+    const totals = daysWithMeals.map(d => d.meals.reduce((s,m)=>({
+      calories: s.calories+m.calories, protein: s.protein+m.protein, carbs: s.carbs+m.carbs, fat: s.fat+m.fat,
+    }), {calories:0,protein:0,carbs:0,fat:0}));
+    const avg = (key) => Math.round(totals.reduce((s,t)=>s+t[key],0) / totals.length);
+    try {
+      const data = await api.createCustomMealPlan({
+        name: planName.trim(),
+        plan: {
+          daily_calories: avg('calories'), macros: { protein: avg('protein'), carbs: avg('carbs'), fat: avg('fat') },
+          budget_tip: '', days: daysWithMeals,
+        },
+      });
+      onCreated(data.planId);
+    } catch (err) { setError(err.message); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div className="page">
+      <button className="btn-ghost" onClick={onBack} style={{marginBottom:'16px'}}>← Back</button>
+      <h2 className="page-title">Build Your Own Plan</h2>
+      <div className="card-form" style={{marginBottom:'16px'}}>
+        <div className="field">
+          <label className="label">Plan Name</label>
+          <input className="input" value={planName} onChange={e=>setPlanName(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="tab-row" style={{marginBottom:'16px',flexWrap:'wrap'}}>
+        {days.map((d,i) => (
+          <button key={i} className={dayIdx===i?'tab active':'tab'} onClick={()=>setDayIdx(i)}>
+            {d.day.slice(0,3)}{d.meals.length>0 ? ` (${d.meals.length})` : ''}
+          </button>
+        ))}
+      </div>
+
+      {days[dayIdx].meals.map((m,mi) => (
+        <div key={mi} className="list-item">
+          <div style={{flex:1}}>
+            <div className="item-main">{m.type}: {m.name}</div>
+            <div className="item-meta">{m.calories} cal · {m.protein}p {m.carbs}c {m.fat}f</div>
+          </div>
+          <button className="btn-ghost-sm" onClick={()=>removeMeal(mi)}>Remove</button>
+        </div>
+      ))}
+      {days[dayIdx].meals.length === 0 && <p className="muted" style={{marginBottom:'12px'}}>No meals added to {days[dayIdx].day} yet.</p>}
+
+      <div className="card-form" style={{marginTop:'12px'}}>
+        <div className="form-stack">
+          <div className="input-row">
+            <div className="input-group">
+              <label className="label">Meal Type</label>
+              <select className="input" value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}>
+                {MEAL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="input-group">
+              <label className="label">Meal Name</label>
+              <input className="input" placeholder="e.g. Chicken & Rice" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} />
+            </div>
+          </div>
+          <div className="input-row">
+            <div className="input-group"><label className="label">Calories</label><input className="input" type="number" value={form.calories} onChange={e=>setForm(f=>({...f,calories:e.target.value}))} /></div>
+            <div className="input-group"><label className="label">Protein (g)</label><input className="input" type="number" value={form.protein} onChange={e=>setForm(f=>({...f,protein:e.target.value}))} /></div>
+          </div>
+          <div className="input-row">
+            <div className="input-group"><label className="label">Carbs (g)</label><input className="input" type="number" value={form.carbs} onChange={e=>setForm(f=>({...f,carbs:e.target.value}))} /></div>
+            <div className="input-group"><label className="label">Fat (g)</label><input className="input" type="number" value={form.fat} onChange={e=>setForm(f=>({...f,fat:e.target.value}))} /></div>
+          </div>
+          <div className="field">
+            <label className="label">Ingredients (comma separated)</label>
+            <input className="input" placeholder="e.g. 6oz chicken breast, 1 cup rice, broccoli" value={form.ingredients} onChange={e=>setForm(f=>({...f,ingredients:e.target.value}))} />
+          </div>
+          <button type="button" className="btn-secondary" onClick={addMeal}>+ Add Meal to {days[dayIdx].day}</button>
+        </div>
+      </div>
+
+      {error && <p className="form-error" style={{marginTop:'12px'}}>{error}</p>}
+      <button className="btn-primary" style={{marginTop:'16px'}} onClick={save} disabled={saving}>
+        {saving ? 'Saving…' : 'Save Plan'}
+      </button>
+    </div>
+  );
+}
+
 export default function Meals() {
   const [view,       setView]       = useState('list');
   const [plans,      setPlans]      = useState([]);
@@ -347,7 +464,7 @@ export default function Meals() {
   const [loading,    setLoading]    = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error,      setError]      = useState('');
-  const [profile,    setProfile]    = useState({ weight:'',goalWeight:'',goal:GOALS[2],timeline:'',restrictions:[],dislikes:'',wantedFoods:'',appliances:[],planName:'My Meal Plan' });
+  const [profile,    setProfile]    = useState({ weight:'',goalWeight:'',goal:GOALS[2],timeline:'',restrictions:[],dislikes:'',wantedFoods:'',appliances:[],notes:'',planName:'My Meal Plan' });
 
   useEffect(() => {
     loadPlans();
@@ -402,6 +519,10 @@ export default function Meals() {
     return <PlanDetail planId={activePlan} profile={profile} onBack={()=>{loadPlans();setView('list');}} onUpdate={loadPlans}/>;
   }
 
+  if (view === 'custom') {
+    return <CustomPlanBuilder onBack={()=>setView('list')} onCreated={(id)=>{loadPlans();setActivePlan(id);setView('detail');}} />;
+  }
+
   // New plan form
   if (view === 'new') {
     return (
@@ -439,6 +560,11 @@ export default function Meals() {
             <div className="form-stack">
               <div className="field"><label className="label">Foods You Dislike</label><input className="input" placeholder="e.g. mushrooms, cilantro" value={profile.dislikes} onChange={e=>setProfile(p=>({...p,dislikes:e.target.value}))}/></div>
               <div className="field"><label className="label">Foods You Really Want</label><input className="input" placeholder="e.g. salmon, sweet potatoes" value={profile.wantedFoods} onChange={e=>setProfile(p=>({...p,wantedFoods:e.target.value}))}/></div>
+              <div className="field">
+                <label className="label">Notes for the AI (goals, injuries, preferences)</label>
+                <textarea className="input" rows={3} placeholder="e.g. trying to hit 150g protein a day, recovering from a wrist injury, cooking for one"
+                  value={profile.notes} onChange={e=>setProfile(p=>({...p,notes:e.target.value}))} />
+              </div>
             </div>
           </div>
 
@@ -473,9 +599,14 @@ export default function Meals() {
     <div className="page">
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'24px'}}>
         <h2 className="page-title" style={{marginBottom:0}}>Meal Plans</h2>
-        <button className="btn-primary" style={{width:'auto',padding:'10px 16px',fontSize:'14px'}} onClick={()=>setView('new')}>
-          + AI Plan
-        </button>
+        <div style={{display:'flex',gap:'8px'}}>
+          <button className="btn-ghost-sm" onClick={()=>setView('custom')}>
+            + Build Your Own
+          </button>
+          <button className="btn-primary" style={{width:'auto',padding:'10px 16px',fontSize:'14px'}} onClick={()=>setView('new')}>
+            + AI Plan
+          </button>
+        </div>
       </div>
 
       {/* AI-created plans (deletable, shown first) */}

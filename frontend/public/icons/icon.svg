@@ -1,11 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="80" fill="#F9EAE1"/>
-  <!-- Barbell shape -->
-  <rect x="60" y="236" width="392" height="40" rx="8" fill="#CC8B86"/>
-  <!-- Left weights -->
-  <rect x="60" y="160" width="40" height="192" rx="8" fill="#7D4F50"/>
-  <rect x="110" y="176" width="32" height="160" rx="6" fill="#CC8B86"/>
-  <!-- Right weights -->
-  <rect x="412" y="160" width="40" height="192" rx="8" fill="#7D4F50"/>
-  <rect x="370" y="176" width="32" height="160" rx="6" fill="#CC8B86"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="#F9EAE1"/>
+  <line x1="6" y1="16" x2="26" y2="16" stroke="#CC8B86" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="4" y="11" width="3" height="10" rx="1" fill="#CC8B86"/>
+  <rect x="2" y="13" width="2" height="6" rx="0.5" fill="#CC8B86"/>
+  <rect x="25" y="11" width="3" height="10" rx="1" fill="#CC8B86"/>
+  <rect x="28" y="13" width="2" height="6" rx="0.5" fill="#CC8B86"/>
 </svg>

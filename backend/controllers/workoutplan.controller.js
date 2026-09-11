@@ -1,7 +1,6 @@
 const pool = require('../config/db');
 const Anthropic = require('@anthropic-ai/sdk');
 const TEMPLATES = require('../data/workout-plan-templates');
-const { addFeedEvent } = require('../models/feed.model');
 const { createNotification } = require('../models/notification.model');
 const { sendPushToUser } = require('../models/push.model');
 const { findById } = require('../models/user.model');
@@ -33,11 +32,6 @@ async function useTemplate(req, res) {
       'INSERT INTO WorkoutPlans (user_id, name, plan) VALUES (?, ?, ?)',
       [req.userId, name, JSON.stringify({ ...t.plan, format: t.format })]
     );
-    addFeedEvent({
-      userId: req.userId, type: 'template_pick', refId: result.insertId,
-      headline: `started the ${t.name} workout plan`,
-      detail: t.category,
-    }).catch(err => console.error('Feed event failed:', err));
     res.json({ planId: result.insertId, plan: t.plan, planName: name, format: t.format });
   } catch (err) {
     console.error(err);
@@ -147,7 +141,7 @@ async function sharePlan(req, res) {
 async function generate(req, res) {
   try {
     const client = getClient();
-    const { weight, goalWeight, goal, timeline, planName = 'My Workout Plan' } = req.body;
+    const { weight, goalWeight, goal, timeline, notes = '', planName = 'My Workout Plan' } = req.body;
 
     const [prs] = await pool.query('SELECT exercise, max_weight FROM PRs WHERE user_id = ? LIMIT 8', [req.userId]);
     const prText = prs.length > 0 ? prs.map(p => `${p.exercise}: ${p.max_weight}lbs`).join(', ') : 'Not provided';
@@ -160,8 +154,9 @@ User stats:
 - Goal: ${goal || 'general fitness'}
 - Timeline: ${timeline || 'not provided'} weeks
 - Current lifting PRs: ${prText}
+- Additional notes from the user (goals, injuries, preferences): ${notes || 'none'}
 
-Choose a sensible split (e.g. Push/Pull/Legs, Upper/Lower, Full Body, or a bro split) based on their goal. Include rest days appropriately — this is a full week, so not every day should be a training day. For each exercise give sets and a rep range as a string (e.g. "8-10"). Use common gym exercise names.
+Choose a sensible split (e.g. Push/Pull/Legs, Upper/Lower, Full Body, or a bro split) based on their goal. If the notes mention an injury or limitation, avoid exercises that would aggravate it. Include rest days appropriately — this is a full week, so not every day should be a training day. For each exercise give sets and a rep range as a string (e.g. "8-10"). Use common gym exercise names.
 
 Return ONLY valid JSON, no markdown. Structure:
 {
@@ -201,7 +196,7 @@ Return ONLY valid JSON, no markdown. Structure:
 async function swapExercise(req, res) {
   try {
     const client = getClient();
-    const { exerciseName, category = 'lifting', sets, reps, reason, detail } = req.body;
+    const { exerciseName, category = 'lifting', sets, reps, reason, detail, planId, dayIdx, exIdx } = req.body;
 
     let reasonText = '';
     if (reason === 'restriction' && detail) {
@@ -215,19 +210,54 @@ async function swapExercise(req, res) {
     const prompt = `Suggest one alternative ${category} exercise to replace "${exerciseName}" that trains the same muscle group(s) or purpose.
 ${reasonText}
 Keep the same rough sets/rep range: ${sets || '?'} sets of ${reps || '?'}.
-Return ONLY JSON: { "exerciseName": "...", "sets": ${sets || 3}, "reps": "${reps || '8-12'}", "notes": "" }`;
+Return ONLY JSON with just these fields, nothing else: { "exerciseName": "...", "sets": ${sets || 3}, "reps": "${reps || '8-12'}" }`;
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 500,
+      max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     });
 
     let text = message.content[0].text.trim();
     text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
     const suggestion = JSON.parse(text);
+    const exercise = { category, exerciseName: suggestion.exerciseName, sets: suggestion.sets, reps: suggestion.reps, notes: '' };
 
-    res.json({ exercise: { category, ...suggestion } });
+    // Persist to the saved plan, if this swap came from one, so it sticks around.
+    if (planId != null && exIdx != null) {
+      const [[row]] = await pool.query('SELECT * FROM WorkoutPlans WHERE id = ? AND user_id = ?', [planId, req.userId]);
+      if (row) {
+        const plan = typeof row.plan === 'string' ? JSON.parse(row.plan) : row.plan;
+        if (dayIdx != null && plan.days) {
+          plan.days[dayIdx].exercises[exIdx] = exercise;
+        } else if (plan.exercises) {
+          plan.exercises[exIdx] = exercise;
+        }
+        await pool.query('UPDATE WorkoutPlans SET plan = ? WHERE id = ?', [JSON.stringify(plan), planId]);
+      }
+    }
+
+    res.json({ exercise });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Server error' });
+  }
+}
+
+// ── Short AI explanation of a single exercise (how to perform, what it targets) ──
+async function exerciseInfo(req, res) {
+  try {
+    const client = getClient();
+    const { exerciseName, category = 'lifting' } = req.body;
+    if (!exerciseName) return res.status(400).json({ error: 'exerciseName required' });
+
+    const prompt = `In 2-3 short sentences, explain the ${category} exercise "${exerciseName}": what it targets and a quick form cue. No markdown, no headers, plain text only.`;
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 200,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    res.json({ info: message.content[0].text.trim() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message || 'Server error' });
@@ -237,5 +267,5 @@ Return ONLY JSON: { "exerciseName": "...", "sets": ${sets || 3}, "reps": "${reps
 module.exports = {
   getTemplates, getTemplateById, useTemplate,
   listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, sharePlan,
-  generate, swapExercise,
+  generate, swapExercise, exerciseInfo,
 };

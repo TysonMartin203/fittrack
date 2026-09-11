@@ -65,6 +65,7 @@ export const api = {
   useMealTemplate:   (id, b) => request('POST', `/api/meals/templates/${id}`, b),
   getMealRecipe:     (b)     => request('POST', '/api/meals/recipe', b),
   shareMealPlan:     (id,b)  => request('POST', `/api/meals/${id}/share`, b),
+  createCustomMealPlan: (b)  => request('POST', '/api/meals/custom', b),
 
   getVapidPublicKey: ()    => request('GET',  '/api/push/vapid-public-key'),
   subscribePush:     (sub) => request('POST', '/api/push/subscribe', { subscription: sub }),
@@ -112,6 +113,7 @@ export const api = {
   shareWorkoutPlan: (id,b)         => request('POST', `/api/workout-plans/${id}/share`, b),
   generateWorkoutPlan: (b)         => request('POST', '/api/workout-plans/generate', b),
   swapPlanExercise: (b)            => request('POST', '/api/workout-plans/swap-exercise', b),
+  exerciseInfo:     (b)            => request('POST', '/api/workout-plans/exercise-info', b),
 
   fileUrl: (p) => {
     if (!p) return null;

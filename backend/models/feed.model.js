@@ -13,12 +13,13 @@ async function getFeed(userId, viewerId) {
     `SELECT fe.*, u.username
      FROM FeedEvents fe
      JOIN Users u ON u.id = fe.user_id
-     WHERE fe.user_id = ?
+     WHERE fe.type != 'template_pick'
+       AND (fe.user_id = ?
         OR fe.user_id IN (
           SELECT IF(f.requester_id = ?, f.receiver_id, f.requester_id)
           FROM Friends f
           WHERE (f.requester_id = ? OR f.receiver_id = ?) AND f.status = 'accepted'
-        )
+        ))
      ORDER BY fe.created_at DESC
      LIMIT 60`,
     [userId, userId, userId, userId]
