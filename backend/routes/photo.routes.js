@@ -12,8 +12,8 @@ const uploader = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const ok = ['image/jpeg','image/png','image/webp'].includes(file.mimetype);
-    cb(ok ? null : new Error('Invalid file type'), ok);
+    const ok = ['image/jpeg','image/png','image/webp','image/heic','image/heif'].includes(file.mimetype);
+    cb(ok ? null : new Error('Invalid file type — please use a JPEG, PNG, WebP, or HEIC photo'), ok);
   },
 });
 

@@ -124,3 +124,11 @@ ALTER TABLE MealPlans ADD COLUMN shared_from_user_id INT NULL;
 
 -- 12.
 ALTER TABLE MealPlans ADD COLUMN shared_from_username VARCHAR(50) NULL;
+
+-- 13. Let a progress photo optionally be tied to the workout it was taken during
+-- (this was missing from the original version of this migration — if you already ran
+-- steps 1-12 before, just run 13 and 14 now, nothing else needs to be re-run)
+ALTER TABLE ProgressPhotos ADD COLUMN workout_id INT NULL;
+
+-- 14.
+ALTER TABLE ProgressPhotos ADD FOREIGN KEY (workout_id) REFERENCES Workouts(id) ON DELETE SET NULL;

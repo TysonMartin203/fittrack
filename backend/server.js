@@ -35,5 +35,20 @@ app.use('/api/invites',      require('./routes/invite.routes'));
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
+// Catch-all error handler — without this, errors thrown outside a route's own
+// try/catch (e.g. a multer file-filter rejection) fall through to Express's
+// default handler, which returns an HTML page instead of JSON the frontend expects.
+app.use((err, req, res, next) => {
+  if (err?.name === 'MulterError') {
+    const msg = err.code === 'LIMIT_FILE_SIZE' ? 'Photo is too large (max 10MB)' : err.message;
+    return res.status(400).json({ error: msg });
+  }
+  if (err) {
+    console.error(err);
+    return res.status(400).json({ error: err.message || 'Something went wrong' });
+  }
+  next();
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`FitTrack API on port ${PORT}`));
