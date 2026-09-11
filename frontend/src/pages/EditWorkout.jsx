@@ -6,6 +6,7 @@ import { CARDIO_ACTIVITIES } from '../data/exercises';
 
 function toFormInitial(workout) {
   return {
+    name: workout.name || '',
     date: workout.date ? String(workout.date).slice(0, 10) : '',
     notesBefore: workout.notes_before || '',
     notesAfter: workout.notes_after || '',
@@ -64,6 +65,10 @@ export default function EditWorkout() {
     }
   }
 
+  async function handleRemovePhoto(keep) {
+    await api.removeWorkoutPhoto(id, keep);
+  }
+
   if (loading) return <div className="page"><div className="spinner" /></div>;
   if (error && !initial) return <div className="page"><p className="form-error">{error}</p></div>;
 
@@ -76,6 +81,7 @@ export default function EditWorkout() {
           initial={initial}
           onSubmit={(payload, photoFile) => api.updateWorkout(id, payload, photoFile)}
           onDelete={handleDelete}
+          onRemovePhoto={handleRemovePhoto}
         />
       </div>
     </div>

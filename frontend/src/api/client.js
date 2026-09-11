@@ -36,6 +36,8 @@ export const api = {
   updateWorkout: (id, payload, photoFile) => uploadFile(`/api/workouts/${id}`, workoutFormData(payload, photoFile), 'PUT'),
   getWorkouts:   ()   => request('GET',    '/api/workouts'),
   getWorkout:    (id) => request('GET',    `/api/workouts/${id}`),
+  getWorkoutView: (id) => request('GET',   `/api/workouts/${id}/view`),
+  removeWorkoutPhoto: (id, keep) => request('DELETE', `/api/workouts/${id}/photo?keep=${keep}`),
   deleteWorkout: (id) => request('DELETE', `/api/workouts/${id}`),
 
   getPRs: () => request('GET', '/api/prs'),

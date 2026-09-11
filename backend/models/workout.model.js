@@ -1,6 +1,8 @@
 const pool = require('../config/db');
 const { maybeUpdatePR } = require('./pr.model');
+const { maybeUpdateCardioPR } = require('./cardiopr.model');
 const { addFeedEvent } = require('./feed.model');
+const { areFriends } = require('./friend.model');
 
 function effectiveMaxWeight(ex) {
   if (ex.perSetWeights && Array.isArray(ex.setsData) && ex.setsData.length > 0) {
@@ -54,20 +56,26 @@ async function insertExercises(conn, workoutId, exercises, userId, date) {
           userId, exercise: ex.exerciseName, weight: maxWeight, date,
           workoutId, workoutExerciseId, conn,
         });
-        prResults.push({ exercise: ex.exerciseName, ...prResult });
+        prResults.push({ exercise: ex.exerciseName, unit: 'lbs', ...prResult });
       }
+    } else {
+      const cardioResult = await maybeUpdateCardioPR({
+        userId, activity: ex.exerciseName, distance: ex.distance, distanceUnit: ex.distanceUnit,
+        durationMinutes: ex.durationMinutes, date, workoutId, workoutExerciseId, conn,
+      });
+      if (cardioResult) prResults.push(cardioResult);
     }
   }
   return prResults;
 }
 
-async function createWorkout({ userId, date, notesBefore, notesAfter, photoPath, exercises }) {
+async function createWorkout({ userId, name, date, notesBefore, notesAfter, photoPath, exercises }) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
     const [wResult] = await conn.query(
-      'INSERT INTO Workouts (user_id, date, notes_before, notes_after, photo_path) VALUES (?, ?, ?, ?, ?)',
-      [userId, date, notesBefore || null, notesAfter || null, photoPath || null]
+      'INSERT INTO Workouts (user_id, name, date, notes_before, notes_after, photo_path) VALUES (?, ?, ?, ?, ?, ?)',
+      [userId, name || null, date, notesBefore || null, notesAfter || null, photoPath || null]
     );
     const workoutId = wResult.insertId;
     const prResults = await insertExercises(conn, workoutId, exercises || [], userId, date);
@@ -77,7 +85,7 @@ async function createWorkout({ userId, date, notesBefore, notesAfter, photoPath,
     const names = (exercises || []).slice(0, 2).map(e => e.exerciseName).join(', ');
     addFeedEvent({
       userId, type: 'workout', refId: workoutId,
-      headline: `logged a workout — ${exCount} exercise${exCount === 1 ? '' : 's'}`,
+      headline: name ? `logged "${name}" — ${exCount} exercise${exCount === 1 ? '' : 's'}` : `logged a workout — ${exCount} exercise${exCount === 1 ? '' : 's'}`,
       detail: names,
     }).catch(err => console.error('Feed event failed:', err));
 
@@ -90,7 +98,7 @@ async function createWorkout({ userId, date, notesBefore, notesAfter, photoPath,
   }
 }
 
-async function updateWorkout(id, userId, { date, notesBefore, notesAfter, photoPath, exercises }) {
+async function updateWorkout(id, userId, { name, date, notesBefore, notesAfter, photoPath, exercises }) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -99,8 +107,8 @@ async function updateWorkout(id, userId, { date, notesBefore, notesAfter, photoP
 
     const finalPhotoPath = photoPath !== undefined ? photoPath : owned[0].photo_path;
     await conn.query(
-      'UPDATE Workouts SET date = ?, notes_before = ?, notes_after = ?, photo_path = ? WHERE id = ?',
-      [date, notesBefore || null, notesAfter || null, finalPhotoPath, id]
+      'UPDATE Workouts SET name = ?, date = ?, notes_before = ?, notes_after = ?, photo_path = ? WHERE id = ?',
+      [name || null, date, notesBefore || null, notesAfter || null, finalPhotoPath, id]
     );
     // Simplest correct approach to edits: replace all exercises for this workout.
     await conn.query('DELETE FROM WorkoutExercises WHERE workout_id = ?', [id]);
@@ -117,7 +125,7 @@ async function updateWorkout(id, userId, { date, notesBefore, notesAfter, photoP
 
 async function getWorkouts(userId) {
   const [rows] = await pool.query(
-    `SELECT w.id, w.date, w.notes_before, w.notes_after, w.photo_path, w.created_at,
+    `SELECT w.id, w.name, w.date, w.notes_before, w.notes_after, w.photo_path, w.created_at,
             COUNT(we.id) AS exercise_count,
             GROUP_CONCAT(DISTINCT we.category) AS categories,
             SUBSTRING_INDEX(GROUP_CONCAT(we.exercise_name ORDER BY we.order_index), ',', 1) AS first_exercise
@@ -131,14 +139,10 @@ async function getWorkouts(userId) {
   return rows;
 }
 
-async function getWorkoutById(id, userId) {
-  const [wRows] = await pool.query('SELECT * FROM Workouts WHERE id = ? AND user_id = ?', [id, userId]);
-  if (!wRows[0]) return null;
-  const workout = wRows[0];
-
+async function attachExercises(workout) {
   const [exRows] = await pool.query(
     'SELECT * FROM WorkoutExercises WHERE workout_id = ? ORDER BY order_index ASC, id ASC',
-    [id]
+    [workout.id]
   );
   const exerciseIds = exRows.map(e => e.id);
   let setsByExercise = {};
@@ -152,9 +156,42 @@ async function getWorkoutById(id, userId) {
       return acc;
     }, {});
   }
-
   workout.exercises = exRows.map(e => ({ ...e, sets_data: setsByExercise[e.id] || [] }));
   return workout;
+}
+
+async function getWorkoutById(id, userId) {
+  const [wRows] = await pool.query('SELECT * FROM Workouts WHERE id = ? AND user_id = ?', [id, userId]);
+  if (!wRows[0]) return null;
+  return attachExercises(wRows[0]);
+}
+
+// Read-only view for a friend: allowed if owner or friend of owner, but the
+// photo is always stripped out regardless of who's asking — feed access to a
+// workout was never meant to include the photo.
+async function getWorkoutForViewing(id, viewerId) {
+  const [wRows] = await pool.query(
+    `SELECT w.*, u.username FROM Workouts w JOIN Users u ON u.id = w.user_id WHERE w.id = ?`,
+    [id]
+  );
+  if (!wRows[0]) return null;
+  const workout = wRows[0];
+  const isOwner = workout.user_id === viewerId;
+  if (!isOwner) {
+    const friends = await areFriends(viewerId, workout.user_id);
+    if (!friends) return { forbidden: true };
+  }
+  await attachExercises(workout);
+  workout.photo_path = null; // never expose the photo through the friend-view path
+  workout.is_owner = isOwner;
+  return workout;
+}
+
+async function deleteWorkoutPhoto(id, userId) {
+  const [[row]] = await pool.query('SELECT photo_path FROM Workouts WHERE id = ? AND user_id = ?', [id, userId]);
+  if (!row) return null;
+  await pool.query('UPDATE Workouts SET photo_path = NULL WHERE id = ?', [id]);
+  return row.photo_path;
 }
 
 async function deleteWorkout(id, userId) {
@@ -165,4 +202,7 @@ async function deleteWorkout(id, userId) {
   return result.affectedRows > 0;
 }
 
-module.exports = { createWorkout, updateWorkout, getWorkouts, getWorkoutById, deleteWorkout };
+module.exports = {
+  createWorkout, updateWorkout, getWorkouts, getWorkoutById, getWorkoutForViewing,
+  deleteWorkout, deleteWorkoutPhoto,
+};

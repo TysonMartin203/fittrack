@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import ReactionIcon, { REACTIONS } from '../components/ReactionIcons';
 
 function timeAgo(dateStr) {
@@ -15,11 +16,12 @@ function timeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function FeedItem({ item, onReact }) {
+function FeedItem({ item, onReact, currentUserId }) {
   const [open, setOpen] = useState(false);
-  const icon = item.type === 'pr' ? '🏆' : item.type === 'template_pick' ? '🥗' : '🏋️';
-  const linkTo = item.type === 'pr' || item.type === 'workout' ? (item.ref_id ? `/workouts/${item.ref_id}` : null)
-    : item.type === 'template_pick' ? '/meals'
+  const icon = item.type === 'pr' ? '🏆' : item.type === 'challenge' ? '🏁' : '🏋️';
+  const isMine = item.user_id === currentUserId;
+  const linkTo = (item.type === 'pr' || item.type === 'workout') && item.ref_id
+    ? (isMine ? `/workouts/${item.ref_id}` : `/workouts/${item.ref_id}/view`)
     : null;
 
   const body = (
@@ -61,6 +63,7 @@ function FeedItem({ item, onReact }) {
 }
 
 export default function Feed() {
+  const { user } = useAuth();
   const [items,   setItems]   = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -91,7 +94,7 @@ export default function Feed() {
       <h2 className="page-title">Feed</h2>
       {items.length === 0
         ? <p className="muted">No activity yet. Log a workout or add some friends to see their progress here.</p>
-        : items.map(item => <FeedItem key={item.id} item={item} onReact={handleReact} />)
+        : items.map(item => <FeedItem key={item.id} item={item} onReact={handleReact} currentUserId={user.id} />)
       }
     </div>
   );

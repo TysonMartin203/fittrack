@@ -219,7 +219,8 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
   );
 }
 
-export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDelete }) {
+export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDelete, onRemovePhoto }) {
+  const [name,         setName]         = useState(initial?.name || '');
   const [date,         setDate]         = useState(initial?.date || today());
   const [notesBefore,  setNotesBefore]  = useState(initial?.notesBefore || '');
   const [notesAfter,   setNotesAfter]   = useState(initial?.notesAfter || '');
@@ -227,10 +228,23 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
   const [photoFile,    setPhotoFile]    = useState(null);
   const [compressingPhoto, setCompressingPhoto] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(initial?.photoUrl || null);
+  const [hasExistingPhoto, setHasExistingPhoto] = useState(!!initial?.photoUrl);
+  const [showRemovePhotoPopup, setShowRemovePhotoPopup] = useState(false);
   const [error,        setError]        = useState('');
   const [result,       setResult]       = useState(null);
   const [loading,      setLoading]      = useState(false);
   const fileRef = useRef();
+
+  async function confirmRemovePhoto(keep) {
+    setShowRemovePhotoPopup(false);
+    if (onRemovePhoto) {
+      try { await onRemovePhoto(keep); } catch { /* surfaced by parent if needed */ }
+    }
+    setPhotoPreview(null);
+    setHasExistingPhoto(false);
+    setPhotoFile(null);
+    if (fileRef.current) fileRef.current.value = '';
+  }
 
   function updateExercise(i, next) {
     setExercises(prev => prev.map((e, idx) => idx === i ? next : e));
@@ -263,7 +277,7 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
     }
 
     const payload = {
-      date, notesBefore, notesAfter,
+      name: name.trim() || null, date, notesBefore, notesAfter,
       exercises: exercises.map(ex => {
         if (ex.category === 'lifting') {
           return {
@@ -296,9 +310,10 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
       const data = await onSubmit(payload, photoFile);
       setResult(data);
       if (mode === 'create') {
+        setName('');
         setExercises([blankLiftingExercise()]);
         setNotesBefore(''); setNotesAfter('');
-        setPhotoFile(null); setPhotoPreview(null);
+        setPhotoFile(null); setPhotoPreview(null); setHasExistingPhoto(false);
         if (fileRef.current) fileRef.current.value = '';
       }
     } catch (err) {
@@ -312,6 +327,11 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
 
   return (
     <form onSubmit={submit} className="form-stack">
+      <div className="field">
+        <label className="label">Workout Name (optional)</label>
+        <input className="input" placeholder="e.g. Leg Day" value={name} onChange={e => setName(e.target.value)} />
+      </div>
+
       <div className="field">
         <label className="label">Date</label>
         <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} required />
@@ -339,17 +359,38 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
 
       <div className="field">
         <label className="label">Progress photo (optional)</label>
-        <input className="input" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" ref={fileRef} onChange={onPhoto} />
+        {!hasExistingPhoto && (
+          <input className="input" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" ref={fileRef} onChange={onPhoto} />
+        )}
       </div>
       {compressingPhoto && <p className="muted" style={{fontSize:'12px'}}>Optimizing photo…</p>}
-      {photoPreview && !compressingPhoto && <img src={photoPreview} alt="preview" className="photo-preview" />}
+      {photoPreview && !compressingPhoto && (
+        <div>
+          <img src={photoPreview} alt="preview" className="photo-preview" />
+          {hasExistingPhoto && (
+            <button type="button" className="btn-ghost-sm" style={{marginTop:'8px'}} onClick={()=>setShowRemovePhotoPopup(true)}>
+              Remove Photo
+            </button>
+          )}
+        </div>
+      )}
+      {showRemovePhotoPopup && (
+        <div className="glass-card" style={{marginTop:'-8px'}}>
+          <p style={{fontSize:'13px',fontWeight:'600',marginBottom:'10px'}}>Remove this photo from the workout?</p>
+          <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+            <button type="button" className="btn-accent-sm" onClick={()=>confirmRemovePhoto(true)}>Keep in Progress Photos</button>
+            <button type="button" className="btn-danger-sm" onClick={()=>confirmRemovePhoto(false)}>Delete Completely</button>
+            <button type="button" className="btn-ghost-sm" onClick={()=>setShowRemovePhotoPopup(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {error && <p className="form-error">{error}</p>}
       {result && (
         <div className={`result-banner ${newPRs.length ? 'pr-banner' : ''}`}>
           {newPRs.length
             ? newPRs.map(p => (
-              <div key={p.exercise}>🏆 New PR — {p.exercise}: {p.previousMax != null ? `${p.previousMax} → ` : ''}{p.newMax} lbs</div>
+              <div key={p.exercise}>🏆 New PR — {p.exercise}: {p.previousMax != null ? `${p.previousMax} → ` : ''}{p.newMax}{p.unit === 'lbs' ? ' lbs' : ''}</div>
             ))
             : `✅ Workout ${mode === 'edit' ? 'updated' : 'logged'}!`}
         </div>

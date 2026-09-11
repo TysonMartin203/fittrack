@@ -7,6 +7,7 @@ import Home       from './pages/Home';
 import Dashboard  from './pages/Dashboard';
 import LogWorkout from './pages/LogWorkout';
 import EditWorkout from './pages/EditWorkout';
+import ViewWorkout from './pages/ViewWorkout';
 import WorkoutPlans from './pages/WorkoutPlans';
 import Photos     from './pages/ProgressPhotos';
 import Feed       from './pages/Feed';
@@ -27,6 +28,7 @@ function AppRoutes() {
       <Route path="/log"       element={<Private><LogWorkout /></Private>} />
       <Route path="/workout-plans" element={<Private><WorkoutPlans /></Private>} />
       <Route path="/workouts/:id" element={<Private><EditWorkout /></Private>} />
+      <Route path="/workouts/:id/view" element={<Private><ViewWorkout /></Private>} />
       <Route path="/photos"    element={<Private><Photos /></Private>} />
       <Route path="/feed"      element={<Private><Feed /></Private>} />
       <Route path="/social"    element={<Private><Social /></Private>} />

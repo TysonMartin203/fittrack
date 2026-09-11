@@ -84,7 +84,7 @@ export default function Dashboard() {
             return (
               <Link to={`/workouts/${w.id}`} key={w.id} className="list-item clickable" style={{animationDelay:`${i*.05}s`,animation:'fadeInUp .3s ease both'}}>
                 <div style={{flex:1}}>
-                  <div className="item-main">{w.first_exercise}{extra > 0 ? ` +${extra} more` : ''}</div>
+                  <div className="item-main">{w.name || `${w.first_exercise}${extra > 0 ? ` +${extra} more` : ''}`}</div>
                   <div className="item-meta">{w.exercise_count} exercise{w.exercise_count === 1 ? '' : 's'} · {mixed ? 'mixed' : w.categories}</div>
                 </div>
                 <span className="item-date">{new Date(w.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>
@@ -109,7 +109,7 @@ export default function Dashboard() {
           return (
             <Card key={pr.id} className="list-item clickable" style={{animationDelay:`${i*.05}s`,animation:'fadeInUp .3s ease both'}} {...cardProps}>
               <span className="item-main">{pr.exercise}</span>
-              <span className="item-accent">{pr.max_weight} lbs</span>
+              <span className="item-accent">{pr.display_value}</span>
             </Card>
           );
         })}

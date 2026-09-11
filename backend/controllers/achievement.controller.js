@@ -26,6 +26,14 @@ const ACHIEVEMENTS = [
   { id: 'three_meals',     title: 'Healthy Habits',  desc: 'Generate 3 meal plans',           icon: '🌿', check: c => c.meals >= 3 },
   // Profile
   { id: 'has_avatar',      title: 'Face of the Game',desc: 'Upload a profile photo',          icon: '😎', check: c => c.hasAvatar },
+  // Cardio milestones
+  { id: 'first_mile',      title: 'First Mile',      desc: 'Log a timed mile',                icon: '🏃', check: c => c.milestones.has('Fastest Mile') },
+  { id: 'first_5k',        title: '5K Finisher',     desc: 'Log a timed 5K',                  icon: '🎽', check: c => c.milestones.has('Fastest 5K') },
+  { id: 'first_10k',       title: '10K Finisher',    desc: 'Log a timed 10K',                 icon: '🏅', check: c => c.milestones.has('Fastest 10K') },
+  { id: 'first_half',      title: 'Half Marathoner', desc: 'Log a half marathon',             icon: '🥈', check: c => c.milestones.has('Fastest Half Marathon') },
+  { id: 'first_marathon',  title: 'Marathoner',      desc: 'Log a full marathon',             icon: '🥇', check: c => c.milestones.has('Fastest Marathon') },
+  { id: 'first_century',   title: 'Century Rider',   desc: 'Log a 100-mile ride',             icon: '🚴', check: c => c.milestones.has('Fastest Century') },
+  { id: 'first_mile_swim', title: 'Mile Swimmer',    desc: 'Log a timed mile swim',           icon: '🏊', check: c => c.milestones.has('Fastest Mile Swim') },
 ];
 
 async function getAchievements(req, res) {
@@ -39,11 +47,13 @@ async function getAchievements(req, res) {
     const [[mgRow]] = await pool.query('SELECT COUNT(*) as n FROM Messages WHERE sender_id=?', [uid]);
     const [[mpRow]] = await pool.query('SELECT COUNT(*) as n FROM MealPlans WHERE user_id=? AND plan IS NOT NULL', [uid]).catch(() => [[{n:0}]]);
     const [[avRow]] = await pool.query('SELECT avatar_url FROM Users WHERE id=?', [uid]);
+    const [cpRows] = await pool.query('SELECT DISTINCT milestone FROM CardioPRs WHERE user_id=?', [uid]).catch(() => [[]]);
 
     const counts = {
       workouts: wRow.n, prs: prRow.n, photos: phRow.n,
       friends: frRow.n, messages: mgRow.n, meals: mpRow.n,
       hasAvatar: !!avRow?.avatar_url,
+      milestones: new Set(cpRows.map(r => r.milestone)),
     };
 
     const result = ACHIEVEMENTS.map(a => ({

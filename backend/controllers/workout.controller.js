@@ -1,6 +1,10 @@
+const fs = require('fs');
+const path = require('path');
 const { savePhoto } = require('../models/photo.model');
+const pool = require('../config/db');
 const {
-  createWorkout, updateWorkout, getWorkouts, getWorkoutById, deleteWorkout,
+  createWorkout, updateWorkout, getWorkouts, getWorkoutById, getWorkoutForViewing,
+  deleteWorkout, deleteWorkoutPhoto,
 } = require('../models/workout.model');
 
 function parsePayload(req) {
@@ -26,6 +30,7 @@ async function create(req, res) {
 
     const result = await createWorkout({
       userId: req.userId,
+      name: data.name,
       date: data.date,
       notesBefore: data.notesBefore,
       notesAfter: data.notesAfter,
@@ -50,6 +55,7 @@ async function update(req, res) {
     const photoPath = req.file ? `/uploads/${req.file.filename}` : undefined;
 
     const result = await updateWorkout(req.params.id, req.userId, {
+      name: data.name,
       date: data.date,
       notesBefore: data.notesBefore,
       notesAfter: data.notesAfter,
@@ -90,6 +96,48 @@ async function getOne(req, res) {
   }
 }
 
+// Friend-safe read-only view — used from the Feed. Never includes the photo.
+async function getView(req, res) {
+  try {
+    const workout = await getWorkoutForViewing(req.params.id, req.userId);
+    if (!workout) return res.status(404).json({ error: 'Not found' });
+    if (workout.forbidden) return res.status(403).json({ error: 'Not friends with this user' });
+    res.json(workout);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+// Remove a workout's photo. `keep=true` leaves it in Progress Photos (just
+// unlinks it from this workout); `keep=false` deletes it entirely, file included.
+async function removePhoto(req, res) {
+  try {
+    const keep = req.query.keep === 'true';
+    const oldPath = await deleteWorkoutPhoto(req.params.id, req.userId);
+    if (oldPath === null) return res.status(404).json({ error: 'Not found' });
+    if (!oldPath) return res.json({ success: true }); // no photo was attached anyway
+
+    const [[photoRow]] = await pool.query(
+      'SELECT id FROM ProgressPhotos WHERE user_id = ? AND file_path = ? AND workout_id = ?',
+      [req.userId, oldPath, req.params.id]
+    );
+
+    if (keep) {
+      if (photoRow) await pool.query('UPDATE ProgressPhotos SET workout_id = NULL WHERE id = ?', [photoRow.id]);
+    } else {
+      if (photoRow) await pool.query('DELETE FROM ProgressPhotos WHERE id = ?', [photoRow.id]);
+      const abs = path.join(__dirname, '..', 'public', 'uploads', oldPath.split('/').pop());
+      fs.unlink(abs, () => {}); // best-effort; fine if it's already gone
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
 async function remove(req, res) {
   try {
     const deleted = await deleteWorkout(req.params.id, req.userId);
@@ -101,4 +149,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { create, update, list, getOne, remove };
+module.exports = { create, update, list, getOne, getView, removePhoto, remove };
