@@ -52,7 +52,7 @@ function RestrictionInput({ value, onChange }) {
   return (
     <div>
       <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'8px'}}>
-        {value.map(r => <span key={r} onClick={() => remove(r)} style={{padding:'4px 12px',fontSize:'13px',fontWeight:'500',cursor:'pointer',background:'rgba(126,176,155,0.15)',border:'1px solid var(--teal)',borderRadius:'999px',color:'var(--teal)'}}>{r} ✕</span>)}
+        {value.map(r => <span key={r} onClick={() => remove(r)} style={{padding:'4px 12px',fontSize:'13px',fontWeight:'500',cursor:'pointer',background:'rgba(204,139,134,0.15)',border:'1px solid var(--teal)',borderRadius:'999px',color:'var(--teal)'}}>{r} ✕</span>)}
       </div>
       <div style={{position:'relative'}}>
         <input className="input" placeholder="Type to search restrictions…" value={query} onChange={e=>{setQuery(e.target.value);setShow(true);}} onFocus={()=>setShow(true)} onBlur={()=>setTimeout(()=>setShow(false),150)}/>
@@ -81,7 +81,7 @@ function ShoppingList({ plan }) {
             <span style={{fontSize:'12px',color:'var(--muted)'}}>{list[section].filter(x=>x.checked).length}/{list[section].length}</span>
           </div>
           {list[section].map((item,idx) => (
-            <div key={idx} onClick={()=>toggle(section,idx)} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 14px',background:'rgba(46,74,78,.4)',border:'1px solid var(--border)',borderRadius:'var(--r)',marginBottom:'6px',cursor:'pointer',opacity:item.checked?.5:1,transition:'opacity .15s'}}>
+            <div key={idx} onClick={()=>toggle(section,idx)} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 14px',background:'rgba(243,227,211,.4)',border:'1px solid var(--border)',borderRadius:'var(--r)',marginBottom:'6px',cursor:'pointer',opacity:item.checked?.5:1,transition:'opacity .15s'}}>
               <div style={{width:'20px',height:'20px',borderRadius:'50%',flexShrink:0,border:item.checked?'none':'2px solid var(--border)',background:item.checked?'var(--teal)':'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>
                 {item.checked&&<span style={{color:'#fff',fontSize:'12px',fontWeight:'700'}}>✓</span>}
               </div>
@@ -243,7 +243,7 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
             {plan.budget_tip && <div style={{fontSize:'12px',color:'var(--teal)',marginBottom:'10px'}}>💰 {plan.budget_tip}</div>}
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'8px',textAlign:'center'}}>
               {[['Cal',plan.daily_calories],['Protein',`${plan.macros?.protein}g`],['Carbs',`${plan.macros?.carbs}g`],['Fat',`${plan.macros?.fat}g`]].map(([l,v])=>(
-                <div key={l} style={{background:'rgba(28,46,48,.5)',borderRadius:'10px',padding:'8px 4px'}}>
+                <div key={l} style={{background:'rgba(249,234,225,.5)',borderRadius:'10px',padding:'8px 4px'}}>
                   <div style={{fontWeight:'700',fontSize:'14px',color:'var(--text)'}}>{v}</div>
                   <div style={{fontSize:'10px',color:'var(--muted)'}}>{l}</div>
                 </div>
@@ -273,11 +273,11 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
                   </div>
                   {meal.ingredients?.length>0 && (
                     <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'10px'}}>
-                      {meal.ingredients.map((ing,ii)=><span key={ii} style={{fontSize:'11px',background:'rgba(28,46,48,.6)',border:'1px solid var(--border)',borderRadius:'6px',padding:'2px 8px',color:'var(--muted)'}}>{ing}</span>)}
+                      {meal.ingredients.map((ing,ii)=><span key={ii} style={{fontSize:'11px',background:'rgba(249,234,225,.6)',border:'1px solid var(--border)',borderRadius:'6px',padding:'2px 8px',color:'var(--muted)'}}>{ing}</span>)}
                     </div>
                   )}
                   {swapPanel?.dayIdx===di && swapPanel?.mealIdx===mi && (
-                    <div style={{background:'rgba(28,46,48,.6)',border:'1px solid var(--border)',borderRadius:'10px',padding:'12px',marginBottom:'10px'}}>
+                    <div style={{background:'rgba(249,234,225,.6)',border:'1px solid var(--border)',borderRadius:'10px',padding:'12px',marginBottom:'10px'}}>
                       <div style={{fontSize:'12px',fontWeight:'600',marginBottom:'8px'}}>Why swap this meal?</div>
                       <div style={{display:'flex',gap:'8px',marginBottom:'8px'}}>
                         <button className="btn-ghost-sm" style={{flex:1}} onClick={()=>swapMeal(di,mi,meal,'dislike',null)}>Don't want it</button>
@@ -520,7 +520,7 @@ export default function Meals() {
                 <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
                   <div style={{
                     width:'44px',height:'44px',borderRadius:'12px',flexShrink:0,
-                    background:'rgba(28,46,48,0.6)',border:'1px solid var(--border)',
+                    background:'rgba(249,234,225,0.6)',border:'1px solid var(--border)',
                     display:'flex',alignItems:'center',justifyContent:'center',color:'var(--teal)',
                   }}><MealPlanIcon id={t.icon} size={22} /></div>
                   <div style={{flex:1}}>

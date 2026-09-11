@@ -109,8 +109,8 @@ export default function Settings() {
                     display:'flex', alignItems:'center', gap:'14px',
                     padding:'14px 16px',
                     borderRadius:'var(--r)',
-                    border: `1px solid ${a.unlocked ? 'rgba(126,176,155,0.3)' : 'var(--border)'}`,
-                    background: a.unlocked ? 'rgba(126,176,155,0.08)' : 'rgba(46,74,78,.3)',
+                    border: `1px solid ${a.unlocked ? 'rgba(204,139,134,0.3)' : 'var(--border)'}`,
+                    background: a.unlocked ? 'rgba(204,139,134,0.08)' : 'rgba(243,227,211,.3)',
                     cursor:'pointer',
                     transition:'all .15s',
                     WebkitTapHighlightColor:'transparent',
@@ -118,8 +118,8 @@ export default function Settings() {
                   {/* Icon */}
                   <div style={{
                     width:'48px', height:'48px', borderRadius:'12px', flexShrink:0,
-                    background: a.unlocked ? 'rgba(28,46,48,0.6)' : 'rgba(28,46,48,0.4)',
-                    border: `1px solid ${a.unlocked ? 'rgba(126,176,155,0.25)' : 'var(--border)'}`,
+                    background: a.unlocked ? 'rgba(249,234,225,0.6)' : 'rgba(249,234,225,0.4)',
+                    border: `1px solid ${a.unlocked ? 'rgba(204,139,134,0.25)' : 'var(--border)'}`,
                     display:'flex', alignItems:'center', justifyContent:'center',
                   }}>
                     <AchievementIcon id={a.id} active={a.unlocked} size={32}/>
@@ -142,7 +142,7 @@ export default function Settings() {
                     {!a.unlocked && expanded === a.id && (
                       <div style={{
                         marginTop:'8px', padding:'8px 10px',
-                        background:'rgba(28,46,48,0.5)', borderRadius:'8px',
+                        background:'rgba(249,234,225,0.5)', borderRadius:'8px',
                         fontSize:'12px', color:'var(--text)', lineHeight:'1.5',
                         border:'1px solid var(--border)',
                       }}>
