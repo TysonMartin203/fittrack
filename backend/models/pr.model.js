@@ -1,8 +1,8 @@
 const pool = require('../config/db');
 const { addFeedEvent } = require('./feed.model');
 
-async function getPRForExercise(userId, exercise) {
-  const [rows] = await pool.query(
+async function getPRForExercise(userId, exercise, conn = pool) {
+  const [rows] = await conn.query(
     'SELECT * FROM PRs WHERE user_id = ? AND exercise = ?',
     [userId, exercise]
   );
@@ -17,11 +17,15 @@ async function getAllPRs(userId) {
   return rows;
 }
 
-async function maybeUpdatePR({ userId, exercise, weight, date, workoutId = null, workoutExerciseId = null }) {
-  const existing = await getPRForExercise(userId, exercise);
+// Pass `conn` when called from inside another transaction (e.g. workout creation) —
+// PRs.workout_id is a foreign key to Workouts, so running this on a *different*
+// connection than the one holding the workout's (uncommitted) row causes a lock-wait
+// timeout while it waits for a lock that won't release until that transaction commits.
+async function maybeUpdatePR({ userId, exercise, weight, date, workoutId = null, workoutExerciseId = null, conn = pool }) {
+  const existing = await getPRForExercise(userId, exercise, conn);
 
   if (!existing) {
-    await pool.query(
+    await conn.query(
       'INSERT INTO PRs (user_id, exercise, max_weight, achieved_on, workout_id, workout_exercise_id) VALUES (?, ?, ?, ?, ?, ?)',
       [userId, exercise, weight, date, workoutId, workoutExerciseId]
     );
@@ -34,7 +38,7 @@ async function maybeUpdatePR({ userId, exercise, weight, date, workoutId = null,
   }
 
   if (Number(weight) > Number(existing.max_weight)) {
-    await pool.query(
+    await conn.query(
       'UPDATE PRs SET max_weight = ?, achieved_on = ?, workout_id = ?, workout_exercise_id = ? WHERE id = ?',
       [weight, date, workoutId, workoutExerciseId, existing.id]
     );

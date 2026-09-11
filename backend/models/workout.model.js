@@ -52,7 +52,7 @@ async function insertExercises(conn, workoutId, exercises, userId, date) {
       if (maxWeight != null) {
         const prResult = await maybeUpdatePR({
           userId, exercise: ex.exerciseName, weight: maxWeight, date,
-          workoutId, workoutExerciseId,
+          workoutId, workoutExerciseId, conn,
         });
         prResults.push({ exercise: ex.exerciseName, ...prResult });
       }
