@@ -6,7 +6,7 @@ import { IconEdit, IconChevron, IconSun, IconMoon, IconCheck } from '../componen
 import AchievementIcon from '../components/AchievementIcon';
 import { compressImage } from '../compressImage';
 import { enablePush, disablePush, getPushStatus } from '../push';
-import ProfileForm from '../components/ProfileForm';
+import ProfileEditModal from '../components/ProfileEditModal';
 
 // How-to descriptions for each achievement
 const HOW_TO = {
@@ -44,9 +44,8 @@ export default function Settings() {
   const [bio,          setBio]          = useState(user?.bio || '');
   const [savingBio,    setSavingBio]    = useState(false);
   const [pushStatus,   setPushStatus]   = useState('unknown');
-  const [mwProfile,    setMwProfile]    = useState({});
-  const [savingProfile,setSavingProfile]= useState(false);
-  const [profileMsg,   setProfileMsg]   = useState('');
+  const [mwSummaryCount, setMwSummaryCount] = useState(0);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const initials  = user?.username?.slice(0,2).toUpperCase() || 'FT';
   const avatarUrl = user?.avatarUrl ? api.fileUrl(user.avatarUrl) : null;
@@ -57,7 +56,9 @@ export default function Settings() {
       .catch(() => {})
       .finally(() => setLoadingAch(false));
     getPushStatus().then(setPushStatus).catch(() => setPushStatus('unsupported'));
-    api.getProfile().then(d => { if (d.profile) setMwProfile(d.profile); }).catch(()=>{});
+    api.getProfile().then(d => {
+      if (d.profile) setMwSummaryCount(Object.values(d.profile).filter(v => v && (!Array.isArray(v) || v.length>0)).length);
+    }).catch(()=>{});
   }, []);
 
   async function onAvatarChange(e) {
@@ -105,16 +106,6 @@ export default function Settings() {
       if (pushStatus === 'subscribed') { await disablePush(); setPushStatus('not-subscribed'); }
       else { await enablePush(); setPushStatus('subscribed'); }
     } catch (err) { setError(err.message); }
-  }
-
-  async function saveMwProfile() {
-    setSavingProfile(true); setProfileMsg('');
-    try {
-      await api.saveProfile(mwProfile);
-      setProfileMsg('Saved!');
-      setTimeout(()=>setProfileMsg(''), 2000);
-    } catch (err) { setProfileMsg(err.message); }
-    finally { setSavingProfile(false); }
   }
 
   const unlocked = achievements.filter(a => a.unlocked);
@@ -195,14 +186,21 @@ export default function Settings() {
           <span className="section-title">Meal & Workout Profile</span>
         </div>
         <p className="muted" style={{fontSize:'12px',marginBottom:'12px'}}>Used to build your AI meal and workout plans.</p>
-        <div className="card-form">
-          <ProfileForm profile={mwProfile} setProfile={setMwProfile}/>
-          {profileMsg && <p style={{fontSize:'12px',color:profileMsg==='Saved!'?'var(--teal)':'var(--danger)',marginTop:'8px'}}>{profileMsg}</p>}
-          <button className="btn-primary" style={{marginTop:'12px'}} onClick={saveMwProfile} disabled={savingProfile}>
-            {savingProfile ? 'Saving…' : 'Save Profile'}
-          </button>
+        <div className="list-item clickable" onClick={()=>setShowProfileModal(true)} style={{cursor:'pointer'}}>
+          <div style={{flex:1}}>
+            <div className="item-main">{mwSummaryCount > 0 ? `${mwSummaryCount} detail${mwSummaryCount===1?'':'s'} saved` : 'Not set up yet'}</div>
+            <div className="item-meta">Tap to view, edit, or reset</div>
+          </div>
+          <IconChevron style={{width:'16px',height:'16px',color:'var(--muted)'}}/>
         </div>
       </div>
+
+      {showProfileModal && (
+        <ProfileEditModal
+          onClose={()=>setShowProfileModal(false)}
+          onSaved={(p)=>setMwSummaryCount(Object.values(p).filter(v => v && (!Array.isArray(v) || v.length>0)).length)}
+        />
+      )}
 
       {/* Appearance */}
       <div className="section">

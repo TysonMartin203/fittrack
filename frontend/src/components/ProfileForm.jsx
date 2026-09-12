@@ -1,12 +1,10 @@
 import RestrictionPicker from './RestrictionPicker';
+import KitchenIllustration from './KitchenIllustration';
 
 const GOALS = ['Cut (Lose Fat)', 'Bulk (Gain Muscle)', 'Maintain', 'Recomp'];
 const ACTIVITY_LEVELS = [
   'Not Active', 'Lightly Active', 'Moderately Active', 'Pretty Active', 'Very Active', 'Super Active',
 ];
-
-function toCsv(arr) { return Array.isArray(arr) ? arr.join(', ') : (arr || ''); }
-function fromCsv(str) { return str.split(',').map(s => s.trim()).filter(Boolean); }
 
 export { GOALS, ACTIVITY_LEVELS };
 
@@ -55,8 +53,8 @@ export default function ProfileForm({ profile, setProfile }) {
         <input className="input" placeholder="e.g. salmon, sweet potatoes" value={profile.wantedFoods || ''} onChange={e=>setProfile(p=>({...p,wantedFoods:e.target.value}))}/>
       </div>
       <div className="field">
-        <label className="label">Kitchen Appliances (comma separated)</label>
-        <input className="input" placeholder="e.g. oven, air fryer, instant pot" value={toCsv(profile.appliances)} onChange={e=>setProfile(p=>({...p,appliances:fromCsv(e.target.value)}))}/>
+        <label className="label">Kitchen Appliances</label>
+        <KitchenIllustration selected={Array.isArray(profile.appliances) ? profile.appliances : []} onChange={v=>setProfile(p=>({...p,appliances:v}))}/>
       </div>
       <div className="field">
         <label className="label">Notes for the AI (goals, injuries, preferences)</label>
