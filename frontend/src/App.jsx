@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Header     from './components/Header';
@@ -8,6 +8,7 @@ import Dashboard  from './pages/Dashboard';
 import LogWorkout from './pages/LogWorkout';
 import WorkoutsHub from './pages/WorkoutsHub';
 import PastWorkouts from './pages/PastWorkouts';
+const RunTracker = lazy(() => import('./pages/RunTracker'));
 import EditWorkout from './pages/EditWorkout';
 import ViewWorkout from './pages/ViewWorkout';
 import WorkoutPlans from './pages/WorkoutPlans';
@@ -31,6 +32,7 @@ function AppRoutes() {
       <Route path="/log"       element={<Private><WorkoutsHub /></Private>} />
       <Route path="/log/new"   element={<Private><LogWorkout /></Private>} />
       <Route path="/log/history" element={<Private><PastWorkouts /></Private>} />
+      <Route path="/log/track" element={<Private><Suspense fallback={<div className="page"><div className="spinner"/></div>}><RunTracker /></Suspense></Private>} />
       <Route path="/workout-plans" element={<Private><WorkoutPlans /></Private>} />
       <Route path="/workouts/:id" element={<Private><EditWorkout /></Private>} />
       <Route path="/workouts/:id/view" element={<Private><ViewWorkout /></Private>} />

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { IconBarbell, IconClipboard, IconClock, IconChevron } from '../components/Icons';
+import { IconBarbell, IconClipboard, IconClock, IconChevron, IconMapPin } from '../components/Icons';
 
 export default function WorkoutsHub() {
   return (
@@ -17,6 +17,15 @@ export default function WorkoutsHub() {
           <span className="muted" style={{fontSize:'13px'}}>Templates, AI, or build your own</span>
         </Link>
       </div>
+
+      <Link to="/log/track" className="list-item clickable" style={{textDecoration:'none',color:'inherit'}}>
+        <IconMapPin style={{width:'20px',height:'20px',color:'var(--accent)',flexShrink:0}}/>
+        <div style={{flex:1}}>
+          <div className="item-main">Run, Walk, Bike</div>
+          <div className="item-meta">Live GPS distance, pace, and route</div>
+        </div>
+        <IconChevron style={{width:'16px',height:'16px',color:'var(--muted)'}}/>
+      </Link>
 
       <Link to="/log/history" className="list-item clickable" style={{textDecoration:'none',color:'inherit'}}>
         <IconClock style={{width:'20px',height:'20px',color:'var(--accent)',flexShrink:0}}/>
