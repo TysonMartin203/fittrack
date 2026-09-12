@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
-import { IconEdit, IconChevron } from '../components/Icons';
+import { IconEdit, IconChevron, IconSun, IconMoon, IconCheck } from '../components/Icons';
 import AchievementIcon from '../components/AchievementIcon';
 import { compressImage } from '../compressImage';
 import { enablePush, disablePush, getPushStatus } from '../push';
+import ProfileForm from '../components/ProfileForm';
 
 // How-to descriptions for each achievement
 const HOW_TO = {
@@ -43,6 +44,9 @@ export default function Settings() {
   const [bio,          setBio]          = useState(user?.bio || '');
   const [savingBio,    setSavingBio]    = useState(false);
   const [pushStatus,   setPushStatus]   = useState('unknown');
+  const [mwProfile,    setMwProfile]    = useState({});
+  const [savingProfile,setSavingProfile]= useState(false);
+  const [profileMsg,   setProfileMsg]   = useState('');
 
   const initials  = user?.username?.slice(0,2).toUpperCase() || 'FT';
   const avatarUrl = user?.avatarUrl ? api.fileUrl(user.avatarUrl) : null;
@@ -53,6 +57,7 @@ export default function Settings() {
       .catch(() => {})
       .finally(() => setLoadingAch(false));
     getPushStatus().then(setPushStatus).catch(() => setPushStatus('unsupported'));
+    api.getProfile().then(d => { if (d.profile) setMwProfile(d.profile); }).catch(()=>{});
   }, []);
 
   async function onAvatarChange(e) {
@@ -100,6 +105,16 @@ export default function Settings() {
       if (pushStatus === 'subscribed') { await disablePush(); setPushStatus('not-subscribed'); }
       else { await enablePush(); setPushStatus('subscribed'); }
     } catch (err) { setError(err.message); }
+  }
+
+  async function saveMwProfile() {
+    setSavingProfile(true); setProfileMsg('');
+    try {
+      await api.saveProfile(mwProfile);
+      setProfileMsg('Saved!');
+      setTimeout(()=>setProfileMsg(''), 2000);
+    } catch (err) { setProfileMsg(err.message); }
+    finally { setSavingProfile(false); }
   }
 
   const unlocked = achievements.filter(a => a.unlocked);
@@ -174,14 +189,29 @@ export default function Settings() {
         </label>
       </div>
 
+      {/* Meal & Workout Profile */}
+      <div className="section">
+        <div className="section-header">
+          <span className="section-title">Meal & Workout Profile</span>
+        </div>
+        <p className="muted" style={{fontSize:'12px',marginBottom:'12px'}}>Used to build your AI meal and workout plans.</p>
+        <div className="card-form">
+          <ProfileForm profile={mwProfile} setProfile={setMwProfile}/>
+          {profileMsg && <p style={{fontSize:'12px',color:profileMsg==='Saved!'?'var(--teal)':'var(--danger)',marginTop:'8px'}}>{profileMsg}</p>}
+          <button className="btn-primary" style={{marginTop:'12px'}} onClick={saveMwProfile} disabled={savingProfile}>
+            {savingProfile ? 'Saving…' : 'Save Profile'}
+          </button>
+        </div>
+      </div>
+
       {/* Appearance */}
       <div className="section">
         <div className="section-header">
           <span className="section-title">Appearance</span>
         </div>
         <div className="tab-row">
-          <button className={user?.theme !== 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('light')}>☀️ Light</button>
-          <button className={user?.theme === 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('dark')}>🌙 Dark</button>
+          <button className={user?.theme !== 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('light')} style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconSun style={{width:'15px',height:'15px'}}/> Light</button>
+          <button className={user?.theme === 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('dark')} style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconMoon style={{width:'15px',height:'15px'}}/> Dark</button>
         </div>
       </div>
 
@@ -228,7 +258,7 @@ export default function Settings() {
                       marginBottom:'2px',
                     }}>
                       {a.title}
-                      {a.unlocked && <span style={{marginLeft:'8px',fontSize:'11px',color:'var(--teal)',fontWeight:'700'}}>✓ UNLOCKED</span>}
+                      {a.unlocked && <span style={{marginLeft:'8px',fontSize:'11px',color:'var(--teal)',fontWeight:'700',display:'inline-flex',alignItems:'center',gap:'3px'}}><IconCheck style={{width:'11px',height:'11px'}}/> UNLOCKED</span>}
                     </div>
                     <div style={{fontSize:'12px',color:'var(--muted)',lineHeight:'1.4'}}>
                       {a.unlocked ? a.desc : HOW_TO[a.id] || a.desc}

@@ -1,4 +1,7 @@
-const { createCrew, getMyCrews, getCrew, addMember, getMessages, sendMessage } = require('../models/crew.model');
+const {
+  createCrew, getMyCrews, getCrew, inviteMember, getCrewInvites, respondCrewInvite,
+  getMessages, sendMessage,
+} = require('../models/crew.model');
 
 async function create(req, res) {
   try {
@@ -34,7 +37,34 @@ async function getOne(req, res) {
 
 async function invite(req, res) {
   try {
-    await addMember(req.params.id, req.userId, req.body.friendId);
+    const id = await inviteMember(req.params.id, req.userId, req.body.friendId);
+    res.json({ success: true, inviteId: id });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'Server error' });
+  }
+}
+
+async function listInvites(req, res) {
+  try {
+    res.json(await getCrewInvites(req.userId));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function acceptInvite(req, res) {
+  try {
+    const crewId = await respondCrewInvite(req.params.id, req.userId, true);
+    res.json({ success: true, crewId });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'Server error' });
+  }
+}
+
+async function declineInvite(req, res) {
+  try {
+    await respondCrewInvite(req.params.id, req.userId, false);
     res.json({ success: true });
   } catch (err) {
     res.status(err.status || 500).json({ error: err.status ? err.message : 'Server error' });
@@ -60,4 +90,4 @@ async function send(req, res) {
   }
 }
 
-module.exports = { create, list, getOne, invite, messages, send };
+module.exports = { create, list, getOne, invite, listInvites, acceptInvite, declineInvite, messages, send };

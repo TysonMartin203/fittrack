@@ -94,6 +94,7 @@ const EXERCISE_DESCRIPTIONS = {
   'Bodyweight Squat': 'A squat using just your bodyweight for resistance, good for warming up or building foundational strength.',
   'Jump Squat': 'An explosive squat variation adding a jump at the top for lower-body power development.',
   'Pistol Squat': 'A challenging single-leg squat requiring strength, balance, and mobility.',
+  'Superman Hold': 'A bodyweight lower-back and glute exercise. Lie face down and lift your arms and legs off the ground simultaneously, holding the position.',
   // Machines
   'Smith Machine Squat': 'A squat performed on a guided barbell track, which adds stability for beginners or heavy sets.',
   'Smith Machine Bench': 'A bench press performed on a guided barbell track for added stability.',

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { formatDateStr } from '../dateUtils';
+import { IconBarbell, IconMeals, IconWave } from '../components/Icons';
+import FireIcon from '../components/StreakFire';
 
 function Skeleton() {
   return (
@@ -41,7 +43,7 @@ export default function Dashboard() {
   return (
     <div className="page">
       <p className="page-subtitle" style={{color:'var(--muted)',fontSize:'13px',marginBottom:'4px',marginTop:'0'}}>{greeting}</p>
-      <h2 className="page-title" style={{marginBottom:'20px'}}>{user.username} 👋</h2>
+      <h2 className="page-title" style={{marginBottom:'20px',display:'flex',alignItems:'center',gap:'8px'}}>{user.username} <IconWave style={{width:'20px',height:'20px',color:'var(--accent)'}}/></h2>
 
       <div className="stat-row">
         <div className="stat-card" style={{animationDelay:'.05s'}}>
@@ -55,7 +57,7 @@ export default function Dashboard() {
         <div className="stat-card" style={{animationDelay:'.15s'}}>
           <span className="stat-num" style={{display:'flex',alignItems:'center',gap:'4px',justifyContent:'center'}}>
             {streak}
-            {streak > 0 && <span style={{fontSize: Math.min(22, 14 + streak)}}>🔥</span>}
+            {streak > 0 && <FireIcon size={Math.min(24, 14 + streak)} />}
           </span>
           <span className="stat-label">Day Streak</span>
         </div>
@@ -63,11 +65,11 @@ export default function Dashboard() {
 
       <div style={{display:'flex',gap:'10px',marginBottom:'20px'}}>
         <Link to="/workout-plans" className="glass-card" style={{flex:1,textDecoration:'none',color:'inherit',padding:'14px',textAlign:'center'}}>
-          <div style={{fontWeight:'700',fontSize:'14px'}}>🏋️ Workout Plans</div>
+          <div style={{fontWeight:'700',fontSize:'14px',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><IconBarbell style={{width:'16px',height:'16px'}}/> Workout Plans</div>
           <div className="muted" style={{fontSize:'12px',marginTop:'2px'}}>{workoutPlanCount === null ? '…' : `${workoutPlanCount} saved`}</div>
         </Link>
         <Link to="/meals" className="glass-card" style={{flex:1,textDecoration:'none',color:'inherit',padding:'14px',textAlign:'center'}}>
-          <div style={{fontWeight:'700',fontSize:'14px'}}>🥗 Meal Plans</div>
+          <div style={{fontWeight:'700',fontSize:'14px',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><IconMeals style={{width:'16px',height:'16px'}}/> Meal Plans</div>
           <div className="muted" style={{fontSize:'12px',marginTop:'2px'}}>{mealPlanCount === null ? '…' : `${mealPlanCount} saved`}</div>
         </Link>
       </div>

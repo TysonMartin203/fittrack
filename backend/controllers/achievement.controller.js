@@ -36,36 +36,38 @@ const ACHIEVEMENTS = [
   { id: 'first_mile_swim', title: 'Mile Swimmer',    desc: 'Log a timed mile swim',           icon: '🏊', check: c => c.milestones.has('Fastest Mile Swim') },
 ];
 
+async function computeAchievements(uid) {
+  const [[wRow]]  = await pool.query('SELECT COUNT(*) as n FROM Workouts WHERE user_id=?', [uid]);
+  const [[prRow]] = await pool.query('SELECT COUNT(*) as n FROM PRs WHERE user_id=?', [uid]);
+  const [[phRow]] = await pool.query('SELECT COUNT(*) as n FROM ProgressPhotos WHERE user_id=?', [uid]);
+  const [[frRow]] = await pool.query(
+    'SELECT COUNT(*) as n FROM Friends WHERE (requester_id=? OR receiver_id=?) AND status="accepted"', [uid,uid]);
+  const [[mgRow]] = await pool.query('SELECT COUNT(*) as n FROM Messages WHERE sender_id=?', [uid]);
+  const [[mpRow]] = await pool.query('SELECT COUNT(*) as n FROM MealPlans WHERE user_id=? AND plan IS NOT NULL', [uid]).catch(() => [[{n:0}]]);
+  const [[avRow]] = await pool.query('SELECT avatar_url FROM Users WHERE id=?', [uid]);
+  const [cpRows] = await pool.query('SELECT DISTINCT milestone FROM CardioPRs WHERE user_id=?', [uid]).catch(() => [[]]);
+
+  const counts = {
+    workouts: wRow.n, prs: prRow.n, photos: phRow.n,
+    friends: frRow.n, messages: mgRow.n, meals: mpRow.n,
+    hasAvatar: !!avRow?.avatar_url,
+    milestones: new Set(cpRows.map(r => r.milestone)),
+  };
+
+  return ACHIEVEMENTS.map(a => ({
+    id: a.id, title: a.title, desc: a.desc, icon: a.icon,
+    unlocked: a.check(counts),
+  }));
+}
+
 async function getAchievements(req, res) {
   try {
-    const uid = req.userId;
-    const [[wRow]]  = await pool.query('SELECT COUNT(*) as n FROM Workouts WHERE user_id=?', [uid]);
-    const [[prRow]] = await pool.query('SELECT COUNT(*) as n FROM PRs WHERE user_id=?', [uid]);
-    const [[phRow]] = await pool.query('SELECT COUNT(*) as n FROM ProgressPhotos WHERE user_id=?', [uid]);
-    const [[frRow]] = await pool.query(
-      'SELECT COUNT(*) as n FROM Friends WHERE (requester_id=? OR receiver_id=?) AND status="accepted"', [uid,uid]);
-    const [[mgRow]] = await pool.query('SELECT COUNT(*) as n FROM Messages WHERE sender_id=?', [uid]);
-    const [[mpRow]] = await pool.query('SELECT COUNT(*) as n FROM MealPlans WHERE user_id=? AND plan IS NOT NULL', [uid]).catch(() => [[{n:0}]]);
-    const [[avRow]] = await pool.query('SELECT avatar_url FROM Users WHERE id=?', [uid]);
-    const [cpRows] = await pool.query('SELECT DISTINCT milestone FROM CardioPRs WHERE user_id=?', [uid]).catch(() => [[]]);
-
-    const counts = {
-      workouts: wRow.n, prs: prRow.n, photos: phRow.n,
-      friends: frRow.n, messages: mgRow.n, meals: mpRow.n,
-      hasAvatar: !!avRow?.avatar_url,
-      milestones: new Set(cpRows.map(r => r.milestone)),
-    };
-
-    const result = ACHIEVEMENTS.map(a => ({
-      id: a.id, title: a.title, desc: a.desc, icon: a.icon,
-      unlocked: a.check(counts),
-    }));
-
-    res.json({ achievements: result, counts });
+    const result = await computeAchievements(req.userId);
+    res.json({ achievements: result });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
 }
 
-module.exports = { getAchievements };
+module.exports = { getAchievements, computeAchievements };

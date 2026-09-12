@@ -1,3 +1,5 @@
+import { IconX } from './Icons';
+
 const APPLIANCES = [
   { id: 'stovetop',    label: 'Stovetop'     },
   { id: 'oven',        label: 'Oven'         },
@@ -200,7 +202,7 @@ export default function KitchenIllustration({ selected = [], onChange }) {
                     borderRadius:'999px', color:'var(--teal)',
                     transition: 'all .15s',
                   }}>
-                    {a.label} ✕
+                    {a.label} <IconX style={{width:'10px',height:'10px',display:'inline',verticalAlign:'middle'}}/>
                   </span>
                 ) : null;
               })}

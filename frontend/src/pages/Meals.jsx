@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
 import MealPlanIcon from '../components/MealPlanIcons';
-import { IconSparkle, IconRefresh } from '../components/Icons';
+import { IconSparkle, IconRefresh, IconX, IconCheck, IconEdit, IconDollar, IconChefHat, IconStar, IconTrash, IconClock, IconFlame } from '../components/Icons';
+import ProfileGateModal from '../components/ProfileGateModal';
 import KitchenIllustration from '../components/KitchenIllustration';
 
 const RESTRICTION_SUGGESTIONS = [
@@ -52,7 +53,7 @@ function RestrictionInput({ value, onChange }) {
   return (
     <div>
       <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'8px'}}>
-        {value.map(r => <span key={r} onClick={() => remove(r)} style={{padding:'4px 12px',fontSize:'13px',fontWeight:'500',cursor:'pointer',background:'rgba(224,122,95,0.15)',border:'1px solid var(--teal)',borderRadius:'999px',color:'var(--teal)'}}>{r} ✕</span>)}
+        {value.map(r => <span key={r} onClick={() => remove(r)} style={{padding:'4px 12px',fontSize:'13px',fontWeight:'500',cursor:'pointer',background:'rgba(224,122,95,0.15)',border:'1px solid var(--teal)',borderRadius:'999px',color:'var(--teal)',display:'inline-flex',alignItems:'center',gap:'4px'}}>{r} <IconX style={{width:'11px',height:'11px'}}/></span>)}
       </div>
       <div style={{position:'relative'}}>
         <input className="input" placeholder="Type to search restrictions…" value={query} onChange={e=>{setQuery(e.target.value);setShow(true);}} onFocus={()=>setShow(true)} onBlur={()=>setTimeout(()=>setShow(false),150)}/>
@@ -83,7 +84,7 @@ function ShoppingList({ plan }) {
           {list[section].map((item,idx) => (
             <div key={idx} onClick={()=>toggle(section,idx)} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 14px',background:'var(--surface-tint)',border:'1px solid var(--border)',borderRadius:'var(--r)',marginBottom:'6px',cursor:'pointer',opacity:item.checked?.5:1,transition:'opacity .15s'}}>
               <div style={{width:'20px',height:'20px',borderRadius:'50%',flexShrink:0,border:item.checked?'none':'2px solid var(--border)',background:item.checked?'var(--teal)':'transparent',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                {item.checked&&<span style={{color:'#fff',fontSize:'12px',fontWeight:'700'}}>✓</span>}
+                {item.checked&&<IconCheck style={{width:'12px',height:'12px',color:'#fff'}}/>}
               </div>
               <span style={{fontSize:'14px',fontWeight:'500',textDecoration:item.checked?'line-through':'none',color:item.checked?'var(--muted)':'var(--text)'}}>{item.text}</span>
             </div>
@@ -235,7 +236,7 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
             <h2 className="page-title" style={{marginBottom:0,flex:1}}>{data.name}</h2>
             {isOwnPlan && <button className="btn-ghost-sm" onClick={openRegenerate}>Regenerate</button>}
             {isOwnPlan && <button className="btn-ghost-sm" onClick={openShare}>Share</button>}
-            <button onClick={()=>setEditing(true)} style={{color:'var(--muted)',fontSize:'14px',background:'none',border:'none',cursor:'pointer'}}>✏️</button>
+            <button onClick={()=>setEditing(true)} style={{color:'var(--muted)',background:'none',border:'none',cursor:'pointer'}}><IconEdit style={{width:'16px',height:'16px'}}/></button>
           </>
         )}
       </div>
@@ -296,7 +297,7 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
         <>
           <div className="glass-card" style={{marginBottom:'16px'}}>
             <div style={{fontWeight:'600',fontSize:'14px',marginBottom:'8px'}}>Daily Targets</div>
-            {plan.budget_tip && <div style={{fontSize:'12px',color:'var(--teal)',marginBottom:'10px'}}>💰 {plan.budget_tip}</div>}
+            {plan.budget_tip && <div style={{fontSize:'12px',color:'var(--teal)',marginBottom:'10px',display:'flex',alignItems:'center',gap:'5px'}}><IconDollar style={{width:'13px',height:'13px'}}/> {plan.budget_tip}</div>}
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'8px',textAlign:'center'}}>
               {[['Cal',plan.daily_calories],['Protein',`${plan.macros?.protein}g`],['Carbs',`${plan.macros?.carbs}g`],['Fat',`${plan.macros?.fat}g`]].map(([l,v])=>(
                 <div key={l} style={{background:'var(--surface-tint)',borderRadius:'10px',padding:'8px 4px'}}>
@@ -362,15 +363,15 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
                       <div style={{borderTop:'1px solid var(--border)',paddingTop:'10px'}}>
                         {!r && !loading && (
                           <button className="btn-ghost-sm" style={{fontSize:'12px',display:'flex',alignItems:'center',gap:'5px'}} onClick={()=>fetchRecipe(di,mi,meal)}>
-                            👨‍🍳 How to Cook
+                            <IconChefHat style={{width:'14px',height:'14px'}}/> How to Cook
                           </button>
                         )}
                         {loading && <p style={{fontSize:'12px',color:'var(--muted)'}}>Loading recipe…</p>}
                         {r && (
                           <div>
                             <div style={{display:'flex',gap:'12px',fontSize:'11px',color:'var(--teal)',fontWeight:'600',marginBottom:'8px'}}>
-                              {r.prep_time && <span>⏱ Prep: {r.prep_time}</span>}
-                              {r.cook_time && <span>🔥 Cook: {r.cook_time}</span>}
+                              {r.prep_time && <span style={{display:'inline-flex',alignItems:'center',gap:'4px'}}><IconClock style={{width:'12px',height:'12px'}}/> Prep: {r.prep_time}</span>}
+                              {r.cook_time && <span style={{display:'inline-flex',alignItems:'center',gap:'4px'}}><IconFlame style={{width:'12px',height:'12px'}}/> Cook: {r.cook_time}</span>}
                             </div>
                             {r.steps?.map((step, si) => (
                               <div key={si} style={{display:'flex',gap:'10px',marginBottom:'6px',fontSize:'13px'}}>
@@ -514,6 +515,7 @@ function CustomPlanBuilder({ onBack, onCreated }) {
 
 export default function Meals() {
   const [view,       setView]       = useState('list');
+  const [showGate,   setShowGate]   = useState(false);
   const [plans,      setPlans]      = useState([]);
   const [templates,  setTemplates]  = useState([]);
   const [activePlan, setActivePlan] = useState(null);
@@ -659,7 +661,7 @@ export default function Meals() {
           <button className="btn-ghost-sm" onClick={()=>setView('custom')}>
             + Build Your Own
           </button>
-          <button className="btn-primary" style={{width:'auto',padding:'10px 16px',fontSize:'14px'}} onClick={()=>setView('new')}>
+          <button className="btn-primary" style={{width:'auto',padding:'10px 16px',fontSize:'14px'}} onClick={()=>setShowGate(true)}>
             + AI Plan
           </button>
         </div>
@@ -682,12 +684,12 @@ export default function Meals() {
                     </div>
                   </div>
                   <button onClick={e=>toggleFav(e,plan.id)}
-                    style={{fontSize:'18px',background:'none',border:'none',cursor:'pointer',flexShrink:0,lineHeight:1,padding:'4px'}}>
-                    {plan.is_favorite ? '⭐' : '☆'}
+                    style={{background:'none',border:'none',cursor:'pointer',flexShrink:0,lineHeight:1,padding:'4px',color:plan.is_favorite?'var(--accent)':'var(--muted)'}}>
+                    <IconStar filled={plan.is_favorite} style={{width:'18px',height:'18px'}}/>
                   </button>
                   <button onClick={e=>deletePlan(e,plan.id)}
-                    style={{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',flexShrink:0,padding:'4px',fontSize:'16px'}}>
-                    🗑
+                    style={{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',flexShrink:0,padding:'4px'}}>
+                    <IconTrash style={{width:'16px',height:'16px'}}/>
                   </button>
                 </div>
               </div>
@@ -732,8 +734,15 @@ export default function Meals() {
         <div className="empty-state">
           <PlateDome/>
           <p style={{marginBottom:'20px'}}>No meal plans yet.<br/>Create an AI plan or pick a starter above.</p>
-          <button className="btn-primary" style={{maxWidth:'240px',margin:'0 auto'}} onClick={()=>setView('new')}>Create AI Plan</button>
+          <button className="btn-primary" style={{maxWidth:'240px',margin:'0 auto'}} onClick={()=>setShowGate(true)}>Create AI Plan</button>
         </div>
+      )}
+
+      {showGate && (
+        <ProfileGateModal
+          onClose={()=>setShowGate(false)}
+          onProceed={(p)=>{ setProfile(prev=>({...prev,...p})); setShowGate(false); setView('new'); }}
+        />
       )}
     </div>
   );

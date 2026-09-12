@@ -151,6 +151,42 @@ const TEMPLATES = [
     },
   },
 
+  {
+    id: 'bodyweight-week',
+    name: 'Bodyweight Only',
+    description: 'A full week of strength training using nothing but your own bodyweight — no gym required',
+    category: 'Bodyweight',
+    icon: 'full-body',
+    format: 'week',
+    plan: {
+      split_type: 'Bodyweight Push/Pull/Legs', days_per_week: 5,
+      days: [
+        workoutDay('Monday', 'Push', [
+          lift('Push-Up', 4, 'AMRAP'), lift('Diamond Push-Up', 3, 'AMRAP'),
+          lift('Dip', 3, 'AMRAP'), lift('Plank', 3, '30-45 sec'),
+        ]),
+        workoutDay('Tuesday', 'Pull', [
+          lift('Pull-Up', 4, 'AMRAP'), lift('Chin-Up', 3, 'AMRAP'),
+          lift('Hanging Leg Raise', 3, 'AMRAP'), lift('Superman Hold', 3, '20-30 sec'),
+        ]),
+        workoutDay('Wednesday', 'Legs', [
+          lift('Bodyweight Squat', 4, '15-20'), lift('Jump Squat', 3, '10-12'),
+          lift('Walking Lunge', 3, '12 each leg'), lift('Calf Raise', 4, '20-25'),
+        ]),
+        rest('Thursday'),
+        workoutDay('Friday', 'Full Body', [
+          lift('Burpee', 4, '10-15'), lift('Push-Up', 3, 'AMRAP'),
+          lift('Pistol Squat', 3, '5-8 each leg'), lift('Mountain Climber', 3, '20-30 sec'),
+        ]),
+        workoutDay('Saturday', 'Core & Conditioning', [
+          lift('Plank', 3, '45-60 sec'), lift('Sit-Up', 3, '15-20'),
+          lift('Russian Twist', 3, '15-20 each side'), cardio('Jump Rope', 10, 'steady pace'),
+        ]),
+        rest('Sunday'),
+      ],
+    },
+  },
+
   // ── Individual standalone workouts (single session, no rest days) ──
   { id: 'push-day', name: 'Push Day', description: 'Chest, shoulders, and triceps in one session', category: 'Push', icon: 'push', format: 'single',
     plan: { focus: 'Push', exercises: [

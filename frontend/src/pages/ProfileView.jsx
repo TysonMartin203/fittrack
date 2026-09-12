@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { formatDateStr } from '../dateUtils';
+import FireIcon from '../components/StreakFire';
+import AchievementIcon from '../components/AchievementIcon';
 
 export default function ProfileView() {
   const { id } = useParams();
@@ -52,11 +54,25 @@ export default function ProfileView() {
         <div className="stat-card">
           <span className="stat-num" style={{display:'flex',alignItems:'center',gap:'4px',justifyContent:'center'}}>
             {profile.streak}
-            {profile.streak > 0 && <span style={{fontSize: Math.min(22, 14 + profile.streak)}}>🔥</span>}
+            {profile.streak > 0 && <FireIcon size={Math.min(24, 14 + profile.streak)} />}
           </span>
           <span className="stat-label">Day Streak</span>
         </div>
       </div>
+
+      {profile.achievements?.length > 0 && (
+        <section className="section">
+          <div className="section-header"><span className="section-title">Achievements</span></div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(80px,1fr))',gap:'12px'}}>
+            {profile.achievements.map(a => (
+              <div key={a.id} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'6px',textAlign:'center'}} title={a.desc}>
+                <AchievementIcon id={a.id} active size={36}/>
+                <span style={{fontSize:'11px',fontWeight:'600'}}>{a.title}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

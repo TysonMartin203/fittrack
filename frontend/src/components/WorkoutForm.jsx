@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { LIFTING_EXERCISES, CARDIO_ACTIVITIES, DISTANCE_UNITS } from '../data/exercises';
 import { compressImage } from '../compressImage';
 import { today } from '../dateUtils';
+import { IconTrophy, IconCheck } from './Icons';
 
 function blankLiftingExercise() {
   return {
@@ -389,9 +390,9 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
         <div className={`result-banner ${newPRs.length ? 'pr-banner' : ''}`}>
           {newPRs.length
             ? newPRs.map(p => (
-              <div key={p.exercise}>🏆 New PR — {p.exercise}: {p.previousMax != null ? `${p.previousMax} → ` : ''}{p.newMax}{p.unit === 'lbs' ? ' lbs' : p.unit === 'reps' ? ' reps' : ''}</div>
+              <div key={p.exercise} style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconTrophy style={{width:'16px',height:'16px'}}/> New PR — {p.exercise}: {p.previousMax != null ? `${p.previousMax} → ` : ''}{p.newMax}{p.unit === 'lbs' ? ' lbs' : p.unit === 'reps' ? ' reps' : ''}</div>
             ))
-            : `✅ Workout ${mode === 'edit' ? 'updated' : 'logged'}!`}
+            : <span style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconCheck style={{width:'16px',height:'16px'}}/> Workout {mode === 'edit' ? 'updated' : 'logged'}!</span>}
         </div>
       )}
 

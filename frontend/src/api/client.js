@@ -91,6 +91,9 @@ export const api = {
   getCrews:     ()       => request('GET',  '/api/crews'),
   getCrew:      (id)     => request('GET',  `/api/crews/${id}`),
   addCrewMember:(id, b)  => request('POST', `/api/crews/${id}/members`, b),
+  getCrewInvites: ()     => request('GET',  '/api/crews/invites'),
+  acceptCrewInvite: (id) => request('PUT',  `/api/crews/invites/${id}/accept`, {}),
+  declineCrewInvite: (id)=> request('PUT',  `/api/crews/invites/${id}/decline`, {}),
   getCrewMessages: (id)  => request('GET',  `/api/crews/${id}/messages`),
   sendCrewMessage: (id,b)=> request('POST', `/api/crews/${id}/messages`, b),
 

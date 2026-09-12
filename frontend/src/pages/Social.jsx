@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { today, formatDateStr } from '../dateUtils';
+import { IconLightning } from '../components/Icons';
+import FireIcon from '../components/StreakFire';
 
 
 // ── Friends sub-tab (add, accept, list, DM, buzz) ──
@@ -131,7 +133,7 @@ function FriendsTab() {
             <div key={f.id} className="list-item">
               <Link to={`/profile/${f.id}`} className="item-main" style={{flex:1,color:'inherit',textDecoration:'none'}}>{f.username}</Link>
               <button className="btn-ghost-sm" style={{marginRight:'6px'}} onClick={()=>buzz(f.id)} disabled={buzzed[f.id]==='sending'}>
-                {buzzed[f.id]==='sent' ? 'Buzzed! ⚡' : buzzed[f.id]==='sending' ? '…' : '⚡ Buzz'}
+                {buzzed[f.id]==='sent' ? <>Buzzed! <IconLightning style={{width:'12px',height:'12px',display:'inline'}}/></> : buzzed[f.id]==='sending' ? '…' : <><IconLightning style={{width:'12px',height:'12px',display:'inline'}}/> Buzz</>}
               </button>
               <button className="btn-ghost-sm" onClick={()=>openConvo(f)}>Message</button>
             </div>
@@ -188,7 +190,7 @@ function CompeteTab() {
             <span style={{width:'22px',color:'var(--muted)',fontWeight:'700',fontSize:'13px'}}>{i+1}</span>
             <Link to={`/profile/${r.id}`} className="item-main" style={{flex:1,color:'inherit',textDecoration:'none'}}>{r.username}</Link>
             <span className="item-accent">
-              {metric==='byWorkouts' ? `${r.workoutsThisWeek}` : metric==='byVolume' ? `${r.volumeThisWeek.toLocaleString()} lbs` : `${r.streak} 🔥`}
+              {metric==='byWorkouts' ? `${r.workoutsThisWeek}` : metric==='byVolume' ? `${r.volumeThisWeek.toLocaleString()} lbs` : <span style={{display:'inline-flex',alignItems:'center',gap:'4px'}}>{r.streak} <FireIcon size={14}/></span>}
             </span>
           </div>
         ))}
@@ -260,14 +262,17 @@ function CompeteTab() {
 function CrewsTab() {
   const { user } = useAuth();
   const [crews,   setCrews]   = useState([]);
+  const [invites, setInvites] = useState([]);
   const [active,  setActive]  = useState(null);
   const [name,    setName]    = useState('');
   const [msgText, setMsgText] = useState('');
   const [friends, setFriends] = useState([]);
+  const [invited, setInvited] = useState({});
   const [error,   setError]   = useState('');
 
   useEffect(() => {
     api.getCrews().then(setCrews).catch(console.error);
+    api.getCrewInvites().then(setInvites).catch(console.error);
     api.getFriends().then(f => setFriends(f.filter(x=>x.status==='accepted'))).catch(console.error);
   }, []);
 
@@ -278,6 +283,12 @@ function CrewsTab() {
       setName('');
       setCrews(await api.getCrews());
     } catch (err) { setError(err.message); }
+  }
+
+  async function respondInvite(id, accept) {
+    if (accept) await api.acceptCrewInvite(id); else await api.declineCrewInvite(id);
+    setInvites(await api.getCrewInvites());
+    if (accept) setCrews(await api.getCrews());
   }
 
   async function openCrew(id) {
@@ -295,28 +306,30 @@ function CrewsTab() {
     setMsgText('');
   }
 
-  async function addMember(friendId) {
-    await api.addCrewMember(active.crew.id, { friendId });
-    const crew = await api.getCrew(active.crew.id);
-    setActive(a => ({ ...a, crew }));
+  async function inviteFriend(friendId) {
+    try {
+      await api.addCrewMember(active.crew.id, { friendId });
+      setInvited(i => ({ ...i, [friendId]: true }));
+    } catch (err) { setError(err.message); }
   }
 
   if (active) {
     const memberIds = new Set(active.crew.members.map(m=>m.id));
-    const addable = friends.filter(f => !memberIds.has(f.id));
+    const invitable = friends.filter(f => !memberIds.has(f.id) && !invited[f.id]);
     return (
       <div>
         <button className="btn-ghost" onClick={()=>setActive(null)} style={{marginBottom:'12px'}}>← Back</button>
         <h3 style={{marginBottom:'6px'}}>{active.crew.name}</h3>
         <p className="muted" style={{marginBottom:'12px'}}>{active.crew.members.map(m=>m.username).join(', ')}</p>
 
-        {addable.length > 0 && (
+        {invitable.length > 0 && (
           <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'14px'}}>
-            {addable.map(f => (
-              <button key={f.id} className="btn-ghost-sm" onClick={()=>addMember(f.id)}>+ {f.username}</button>
+            {invitable.map(f => (
+              <button key={f.id} className="btn-ghost-sm" onClick={()=>inviteFriend(f.id)}>+ Invite {f.username}</button>
             ))}
           </div>
         )}
+        {error && <p className="form-error" style={{marginBottom:'12px'}}>{error}</p>}
 
         <div className="messages">
           {active.messages.map(m => (
@@ -338,6 +351,21 @@ function CrewsTab() {
 
   return (
     <div>
+      {invites.length > 0 && (
+        <section className="section">
+          <div className="section-header"><span className="section-title">Crew Invites</span></div>
+          {invites.map(inv => (
+            <div key={inv.id} className="glass-card" style={{marginBottom:'10px'}}>
+              <div style={{fontWeight:'700',fontSize:'14px'}}>{inv.inviter_username} invited you to "{inv.crew_name}"</div>
+              <div style={{display:'flex',gap:'8px',marginTop:'8px'}}>
+                <button className="btn-accent-sm" onClick={()=>respondInvite(inv.id,true)}>Accept</button>
+                <button className="btn-ghost-sm" onClick={()=>respondInvite(inv.id,false)}>Decline</button>
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
       <div className="card-form">
         <form onSubmit={createCrew} className="form-stack">
           <div className="field">

@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const { areFriends } = require('../models/friend.model');
 const { computeStreak } = require('../models/social.model');
+const { computeAchievements } = require('./achievement.controller');
 
 async function getProfile(req, res) {
   try {
@@ -21,10 +22,12 @@ async function getProfile(req, res) {
     const [[wRow]] = await pool.query('SELECT COUNT(*) AS n FROM Workouts WHERE user_id = ?', [targetId]);
     const [[prRow]] = await pool.query('SELECT COUNT(*) AS n FROM PRs WHERE user_id = ?', [targetId]);
     const streak = await computeStreak(targetId);
+    const achievements = await computeAchievements(targetId);
 
     res.json({
       id: user.id, username: user.username, avatarUrl: user.avatar_url, bio: user.bio,
       joinedAt: user.created_at, workoutCount: wRow.n, prCount: prRow.n, streak,
+      achievements: achievements.filter(a => a.unlocked),
     });
   } catch (err) {
     console.error(err);

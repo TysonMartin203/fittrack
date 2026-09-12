@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import WorkoutPlanIcon from '../components/WorkoutPlanIcons';
-import { IconSparkle } from '../components/Icons';
+import { IconSparkle, IconEdit, IconStar, IconSleep } from '../components/Icons';
+import ProfileGateModal from '../components/ProfileGateModal';
 
 const GOALS = ['Cut (Lose Fat)', 'Bulk (Gain Muscle)', 'Maintain', 'Recomp'];
 
@@ -196,7 +197,7 @@ function PlanDetail({ planId, onBack, onUpdate }) {
             <h2 className="page-title" style={{marginBottom:0,flex:1}}>{data.name}</h2>
             <button className="btn-ghost-sm" onClick={openRegenerate}>Regenerate</button>
             <button className="btn-ghost-sm" onClick={openShare}>Share</button>
-            <button onClick={()=>setEditing(true)} style={{color:'var(--muted)',fontSize:'14px',background:'none',border:'none',cursor:'pointer'}}>✏️</button>
+            <button onClick={()=>setEditing(true)} style={{color:'var(--muted)',background:'none',border:'none',cursor:'pointer'}}><IconEdit style={{width:'16px',height:'16px'}}/></button>
           </>
         )}
       </div>
@@ -250,7 +251,7 @@ function PlanDetail({ planId, onBack, onUpdate }) {
           </div>
           {plan.days[dayIdx].type === 'rest' ? (
             <div className="glass-card" style={{textAlign:'center',padding:'30px'}}>
-              <div style={{fontSize:'28px',marginBottom:'8px'}}>😴</div>
+              <div style={{marginBottom:'8px',display:'flex',justifyContent:'center',color:'var(--muted)'}}><IconSleep style={{width:'28px',height:'28px'}}/></div>
               <div style={{fontWeight:'700'}}>Rest Day</div>
               <p className="muted" style={{fontSize:'13px',marginTop:'4px'}}>Recovery is part of the program.</p>
             </div>
@@ -428,6 +429,7 @@ function CustomWorkoutPlanBuilder({ onBack, onCreated }) {
 
 export default function WorkoutPlans() {
   const [view, setView] = useState('list');
+  const [showGate, setShowGate] = useState(false);
   const [plans, setPlans] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [activePlan, setActivePlan] = useState(null);
@@ -542,7 +544,7 @@ export default function WorkoutPlans() {
         <button className="btn-ghost-sm" onClick={()=>setView('custom')}>
           + Build Your Own
         </button>
-        <button className="btn-primary" onClick={()=>setView('new')}>
+        <button className="btn-primary" onClick={()=>setShowGate(true)}>
           <IconSparkle style={{width:'16px',height:'16px',marginRight:'6px'}}/>Generate an AI Plan
         </button>
       </div>
@@ -556,7 +558,7 @@ export default function WorkoutPlans() {
                 <div className="item-main">{p.name}</div>
                 {p.shared_from_username && <div className="item-meta">Shared by {p.shared_from_username}</div>}
               </div>
-              <button onClick={(e)=>toggleFav(e,p.id)} style={{background:'none',border:'none',fontSize:'16px',marginRight:'8px'}}>{p.is_favorite ? '★' : '☆'}</button>
+              <button onClick={(e)=>toggleFav(e,p.id)} style={{background:'none',border:'none',marginRight:'8px',color:p.is_favorite?'var(--accent)':'var(--muted)'}}><IconStar filled={p.is_favorite} style={{width:'16px',height:'16px'}}/></button>
               <button className="btn-ghost-sm" onClick={(e)=>deletePlan(e,p.id)}>Delete</button>
             </div>
           ))}
@@ -594,6 +596,13 @@ export default function WorkoutPlans() {
           </div>
         ))}
       </section>
+
+      {showGate && (
+        <ProfileGateModal
+          onClose={()=>setShowGate(false)}
+          onProceed={(p)=>{ setProfile(prev=>({...prev,...p})); setShowGate(false); setView('new'); }}
+        />
+      )}
     </div>
   );
 }

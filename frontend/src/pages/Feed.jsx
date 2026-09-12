@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import ReactionIcon, { REACTIONS } from '../components/ReactionIcons';
+import { IconTrophy, IconFlag, IconBarbell } from '../components/Icons';
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -18,7 +19,7 @@ function timeAgo(dateStr) {
 
 function FeedItem({ item, onReact, currentUserId }) {
   const [open, setOpen] = useState(false);
-  const icon = item.type === 'pr' ? '🏆' : item.type === 'challenge' ? '🏁' : '🏋️';
+  const FeedIcon = item.type === 'pr' ? IconTrophy : item.type === 'challenge' ? IconFlag : IconBarbell;
   const isMine = item.user_id === currentUserId;
   const linkTo = (item.type === 'pr' || item.type === 'workout') && item.ref_id
     ? (isMine ? `/workouts/${item.ref_id}` : `/workouts/${item.ref_id}/view`)
@@ -27,7 +28,7 @@ function FeedItem({ item, onReact, currentUserId }) {
   const body = (
     <>
       <div style={{display:'flex',alignItems:'flex-start',gap:'10px'}}>
-        <span style={{fontSize:'20px',flexShrink:0}}>{icon}</span>
+        <span style={{flexShrink:0,color:'var(--accent)'}}><FeedIcon style={{width:'20px',height:'20px'}}/></span>
         <div style={{flex:1}}>
           <div style={{fontSize:'14px'}}><strong>{item.username}</strong> {item.headline}</div>
           {item.detail && <div style={{fontSize:'12px',color:'var(--muted)',marginTop:'2px'}}>{item.detail}</div>}

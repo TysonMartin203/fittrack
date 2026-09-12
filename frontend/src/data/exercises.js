@@ -27,7 +27,7 @@ export const LIFTING_EXERCISES = [
   // Olympic / Power
   'Clean and Jerk','Snatch','Power Clean','Power Snatch','Box Jump',
   // Bodyweight
-  'Burpee','Bodyweight Squat','Jump Squat','Pistol Squat','Walking Lunge',
+  'Burpee','Bodyweight Squat','Jump Squat','Pistol Squat','Walking Lunge','Superman Hold',
   // Machines
   'Smith Machine Squat','Smith Machine Bench','Cable Crossover',
   'Assisted Pull-Up','Leg Press Machine','Hack Squat Machine',

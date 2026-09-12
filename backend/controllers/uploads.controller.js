@@ -12,7 +12,10 @@ async function serve(req, res) {
   try {
     const [[isPhoto]]   = await pool.query('SELECT 1 AS x FROM ProgressPhotos WHERE file_path = ? AND user_id = ? LIMIT 1', [filePath, req.userId]);
     const [[isWorkout]] = await pool.query('SELECT 1 AS x FROM Workouts WHERE photo_path = ? AND user_id = ? LIMIT 1', [filePath, req.userId]);
-    const [[isAvatar]]  = await pool.query('SELECT 1 AS x FROM Users WHERE avatar_url = ? AND id = ? LIMIT 1', [filePath, req.userId]);
+    // Avatars are identity photos, not private content — viewable by anyone
+    // logged in (e.g. a friend viewing your profile, a message thread, a
+    // crew's member list), not just the account they belong to.
+    const [[isAvatar]]  = await pool.query('SELECT 1 AS x FROM Users WHERE avatar_url = ? LIMIT 1', [filePath]);
 
     if (!isPhoto && !isWorkout && !isAvatar) {
       return res.status(403).json({ error: 'Not authorized to view this file' });
