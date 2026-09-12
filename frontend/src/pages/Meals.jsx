@@ -4,14 +4,8 @@ import MealPlanIcon from '../components/MealPlanIcons';
 import { IconSparkle, IconX, IconCheck, IconEdit, IconDollar, IconChefHat, IconStar, IconTrash, IconClock, IconFlame } from '../components/Icons';
 import ProfileGateModal from '../components/ProfileGateModal';
 import KitchenIllustration from '../components/KitchenIllustration';
+import RestrictionPicker from '../components/RestrictionPicker';
 
-const RESTRICTION_SUGGESTIONS = [
-  'Vegan','Vegetarian','Gluten-Free','Dairy-Free','Pescatarian','Nut-Free','Halal','Kosher',
-  'Keto','Paleo','Low-FODMAP','Low-Sodium','Low-Carb','Low-Fat','Diabetic-Friendly',
-  'High-Protein','Mediterranean','Whole30','Anti-Inflammatory','DASH Diet','Egg-Free',
-  'Soy-Free','Shellfish-Free','Pork-Free','Red Meat-Free','Raw Food','Macrobiotic',
-  'Intermittent Fasting Friendly','Low-Calorie','Low-Sugar','Low-Cholesterol',
-];
 const GOALS = ['Cut (Lose Fat)','Bulk (Gain Muscle)','Maintain','Recomp'];
 const SECTIONS = ['Produce','Meat & Seafood','Dairy & Eggs','Bread & Grains','Canned & Dry Goods','Frozen','Condiments & Oils','Snacks & Nuts','Other'];
 
@@ -44,28 +38,6 @@ function buildShoppingList(plan) {
   return map;
 }
 
-function RestrictionInput({ value, onChange }) {
-  const [query, setQuery] = useState('');
-  const [show,  setShow]  = useState(false);
-  const filtered = query.length > 0 ? RESTRICTION_SUGGESTIONS.filter(s => s.toLowerCase().includes(query.toLowerCase()) && !value.includes(s)) : [];
-  function add(r) { onChange([...value, r]); setQuery(''); setShow(false); }
-  function remove(r) { onChange(value.filter(x => x !== r)); }
-  return (
-    <div>
-      <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'8px'}}>
-        {value.map(r => <span key={r} onClick={() => remove(r)} style={{padding:'4px 12px',fontSize:'13px',fontWeight:'500',cursor:'pointer',background:'rgba(224,122,95,0.15)',border:'1px solid var(--teal)',borderRadius:'999px',color:'var(--teal)',display:'inline-flex',alignItems:'center',gap:'4px'}}>{r} <IconX style={{width:'11px',height:'11px'}}/></span>)}
-      </div>
-      <div style={{position:'relative'}}>
-        <input className="input" placeholder="Type to search restrictions…" value={query} onChange={e=>{setQuery(e.target.value);setShow(true);}} onFocus={()=>setShow(true)} onBlur={()=>setTimeout(()=>setShow(false),150)}/>
-        {show && filtered.length > 0 && (
-          <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:50,background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'var(--r-sm)',marginTop:'4px',maxHeight:'180px',overflowY:'auto',boxShadow:'var(--shadow)'}}>
-            {filtered.map(r => <div key={r} onMouseDown={()=>add(r)} style={{padding:'10px 14px',cursor:'pointer',fontSize:'14px',borderBottom:'1px solid var(--border)'}} onMouseEnter={e=>e.currentTarget.style.background='var(--surface-2)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>{r}</div>)}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function ShoppingList({ plan }) {
   const [list, setList] = useState({});
@@ -611,7 +583,7 @@ export default function Meals() {
 
           <div className="card-form">
             <label className="label" style={{display:'block',marginBottom:'10px'}}>Dietary Restrictions</label>
-            <RestrictionInput value={profile.restrictions} onChange={v=>setProfile(p=>({...p,restrictions:v}))}/>
+            <RestrictionPicker value={profile.restrictions} onChange={v=>setProfile(p=>({...p,restrictions:v}))}/>
           </div>
 
           <div className="card-form">

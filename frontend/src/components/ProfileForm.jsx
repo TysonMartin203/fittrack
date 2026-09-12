@@ -1,9 +1,14 @@
+import RestrictionPicker from './RestrictionPicker';
+
 const GOALS = ['Cut (Lose Fat)', 'Bulk (Gain Muscle)', 'Maintain', 'Recomp'];
+const ACTIVITY_LEVELS = [
+  'Not Active', 'Lightly Active', 'Moderately Active', 'Pretty Active', 'Very Active', 'Super Active',
+];
 
 function toCsv(arr) { return Array.isArray(arr) ? arr.join(', ') : (arr || ''); }
 function fromCsv(str) { return str.split(',').map(s => s.trim()).filter(Boolean); }
 
-export { GOALS };
+export { GOALS, ACTIVITY_LEVELS };
 
 export default function ProfileForm({ profile, setProfile }) {
   return (
@@ -31,8 +36,15 @@ export default function ProfileForm({ profile, setProfile }) {
         </div>
       </div>
       <div className="field">
-        <label className="label">Dietary Restrictions (comma separated)</label>
-        <input className="input" placeholder="e.g. vegetarian, gluten-free" value={toCsv(profile.restrictions)} onChange={e=>setProfile(p=>({...p,restrictions:fromCsv(e.target.value)}))}/>
+        <label className="label">Activity Level</label>
+        <select className="input" value={profile.activityLevel || ''} onChange={e=>setProfile(p=>({...p,activityLevel:e.target.value}))}>
+          <option value="" disabled>Select one…</option>
+          {ACTIVITY_LEVELS.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+      </div>
+      <div className="field">
+        <label className="label">Dietary Restrictions</label>
+        <RestrictionPicker value={Array.isArray(profile.restrictions) ? profile.restrictions : []} onChange={r=>setProfile(p=>({...p,restrictions:r}))}/>
       </div>
       <div className="field">
         <label className="label">Foods You Dislike</label>

@@ -89,7 +89,7 @@ async function generate(req, res) {
   try {
     await ensureTable();
     const client = getClient();
-    const { weight, goalWeight, goal, timeline, restrictions = [], dislikes = '', wantedFoods = '', appliances = [], notes = '', planName = 'My Meal Plan' } = req.body;
+    const { weight, goalWeight, goal, timeline, activityLevel = '', restrictions = [], dislikes = '', wantedFoods = '', appliances = [], notes = '', planName = 'My Meal Plan' } = req.body;
 
     const [prs] = await pool.query('SELECT exercise, max_weight FROM PRs WHERE user_id = ? LIMIT 5', [req.userId]);
     const prText = prs.length > 0 ? prs.map(p => `${p.exercise}: ${p.max_weight}lbs`).join(', ') : 'Not provided';
@@ -110,6 +110,7 @@ User stats:
 - Goal weight: ${goalWeight || 'not provided'} lbs
 - Goal: ${goal}
 - Timeline: ${timeline || 'not provided'} weeks
+- Activity level: ${activityLevel || 'not provided'}
 - Lifting PRs: ${prText}
 - Dietary restrictions: ${restrictions.length > 0 ? restrictions.join(', ') : 'none'}
 - Foods to avoid: ${dislikes || 'none'}
@@ -174,7 +175,7 @@ async function regenerate(req, res) {
   try {
     await ensureTable();
     const client = getClient();
-    const { weight, goalWeight, goal, timeline, restrictions = [], dislikes = '', wantedFoods = '', appliances = [], notes = '' } = req.body;
+    const { weight, goalWeight, goal, timeline, activityLevel = '', restrictions = [], dislikes = '', wantedFoods = '', appliances = [], notes = '' } = req.body;
 
     const [[existing]] = await pool.query('SELECT * FROM MealPlans WHERE id = ? AND user_id = ?', [req.params.id, req.userId]);
     if (!existing) return res.status(404).json({ error: 'Plan not found' });
@@ -195,6 +196,7 @@ Updated user stats:
 - Goal weight: ${goalWeight || 'not provided'} lbs
 - Goal: ${goal || 'not provided'}
 - Timeline: ${timeline || 'not provided'} weeks
+- Activity level: ${activityLevel || 'not provided'}
 - Lifting PRs: ${prText}
 - Dietary restrictions: ${restrictions.length > 0 ? restrictions.join(', ') : 'none'}
 - Foods to avoid: ${dislikes || 'none'}

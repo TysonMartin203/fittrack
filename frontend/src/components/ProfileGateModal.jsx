@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../api/client';
 import ProfileForm from './ProfileForm';
 
@@ -9,15 +10,23 @@ export default function ProfileGateModal({ onProceed, onClose }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
+    let cancelled = false;
     api.getProfile()
       .then(d => {
+        if (cancelled) return;
         if (d.profile) { setProfile(d.profile); setHadProfile(true); }
         else { setEditing(true); } // no profile yet — go straight to filling it out
       })
-      .catch(() => setEditing(true))
-      .finally(() => setLoading(false));
+      .catch(err => {
+        if (cancelled) return;
+        setLoadError(err?.message || 'Could not load your profile.');
+        setEditing(true); // still let them fill it out fresh
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   async function saveAndContinue() {
@@ -25,7 +34,7 @@ export default function ProfileGateModal({ onProceed, onClose }) {
     try {
       await api.saveProfile(profile);
       onProceed(profile);
-    } catch (err) { setError(err.message); }
+    } catch (err) { setError(err?.message || 'Could not save. Try again.'); }
     finally { setSaving(false); }
   }
 
@@ -33,19 +42,24 @@ export default function ProfileGateModal({ onProceed, onClose }) {
     profile.weight && `Weight: ${profile.weight} lbs`,
     profile.goalWeight && `Goal weight: ${profile.goalWeight} lbs`,
     profile.goal && `Goal: ${profile.goal}`,
+    profile.activityLevel && `Activity: ${profile.activityLevel}`,
     profile.timeline && `Timeline: ${profile.timeline} weeks`,
     Array.isArray(profile.restrictions) && profile.restrictions.length > 0 && `Restrictions: ${profile.restrictions.join(', ')}`,
     profile.appliances?.length > 0 && `Appliances: ${Array.isArray(profile.appliances) ? profile.appliances.join(', ') : profile.appliances}`,
     profile.notes && `Notes: ${profile.notes}`,
   ].filter(Boolean);
 
-  return (
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1000,display:'flex',alignItems:'flex-end',justifyContent:'center'}} onClick={onClose}>
-      <div className="card-form" style={{width:'100%',maxWidth:'480px',maxHeight:'85vh',overflowY:'auto',borderRadius:'20px 20px 0 0',margin:0,background:'var(--surface)'}} onClick={e=>e.stopPropagation()}>
+  const modal = (
+    <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.55)',zIndex:9999,display:'flex',alignItems:'flex-end',justifyContent:'center'}} onClick={onClose}>
+      <div style={{width:'100%',maxWidth:'480px',maxHeight:'85vh',overflowY:'auto',borderRadius:'20px 20px 0 0',background:'var(--surface)',padding:'20px',boxShadow:'var(--shadow-lg)'}} onClick={e=>e.stopPropagation()}>
         <h3 style={{marginBottom:'4px'}}>Your Profile</h3>
         <p className="muted" style={{fontSize:'13px',marginBottom:'16px'}}>Used to build a plan that actually fits you.</p>
 
-        {loading ? <div className="spinner"/> : editing ? (
+        {loadError && <p className="form-error" style={{marginBottom:'12px'}}>{loadError}</p>}
+
+        {loading ? (
+          <div style={{display:'flex',justifyContent:'center',padding:'30px 0'}}><div className="spinner"/></div>
+        ) : editing ? (
           <>
             <ProfileForm profile={profile} setProfile={setProfile}/>
             {error && <p className="form-error" style={{marginTop:'10px'}}>{error}</p>}
@@ -74,4 +88,6 @@ export default function ProfileGateModal({ onProceed, onClose }) {
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
