@@ -75,9 +75,6 @@ export const api = {
   getVapidPublicKey: ()    => request('GET',  '/api/push/vapid-public-key'),
   subscribePush:     (sub) => request('POST', '/api/push/subscribe', { subscription: sub }),
   unsubscribePush:   (b)   => request('POST', '/api/push/unsubscribe', b),
-  getNotifications:  ()    => request('GET',  '/api/push/notifications'),
-  markNotificationRead: (id) => request('PUT', `/api/push/notifications/${id}/read`, {}),
-  markAllNotificationsRead: () => request('PUT', '/api/push/notifications/read-all', {}),
 
   getFeed:    ()        => request('GET',    '/api/feed'),
   react:      (id, r)   => request('POST',   `/api/feed/${id}/react`, { reaction: r }),
@@ -99,7 +96,6 @@ export const api = {
 
   createChallenge: (b)   => request('POST', '/api/challenges', b),
   getChallenges:   ()    => request('GET',  '/api/challenges'),
-  getChallenge:    (id)  => request('GET',  `/api/challenges/${id}`),
   joinChallenge:   (id)  => request('POST', `/api/challenges/${id}/join`, {}),
 
   sendInvite:   (b)   => request('POST', '/api/invites', b),
@@ -111,7 +107,6 @@ export const api = {
   saveProfile: (p)   => request('PUT', '/api/profile', p),
 
   getWorkoutPlanTemplates: ()      => request('GET',  '/api/workout-plans/templates'),
-  getWorkoutPlanTemplate:  (id)    => request('GET',  `/api/workout-plans/templates/${id}`),
   useWorkoutPlanTemplate:  (id,b)  => request('POST', `/api/workout-plans/templates/${id}`, b),
   getWorkoutPlans:  ()             => request('GET',  '/api/workout-plans'),
   getWorkoutPlan:   (id)           => request('GET',  `/api/workout-plans/${id}`),

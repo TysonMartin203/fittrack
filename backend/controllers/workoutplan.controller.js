@@ -17,12 +17,6 @@ async function getTemplates(req, res) {
   res.json(TEMPLATES.map(t => ({ id: t.id, name: t.name, description: t.description, category: t.category, icon: t.icon, format: t.format })));
 }
 
-async function getTemplateById(req, res) {
-  const t = TEMPLATES.find(x => x.id === req.params.id);
-  if (!t) return res.status(404).json({ error: 'Not found' });
-  res.json({ plan: t.plan, name: t.name, format: t.format });
-}
-
 async function useTemplate(req, res) {
   try {
     const t = TEMPLATES.find(x => x.id === req.params.id);
@@ -348,7 +342,7 @@ async function createCustom(req, res) {
 }
 
 module.exports = {
-  getTemplates, getTemplateById, useTemplate,
+  getTemplates, useTemplate,
   listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, sharePlan,
   generate, regenerate, swapExercise, exerciseInfo, createCustom,
 };

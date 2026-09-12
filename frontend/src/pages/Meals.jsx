@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import MealPlanIcon from '../components/MealPlanIcons';
-import { IconSparkle, IconRefresh, IconX, IconCheck, IconEdit, IconDollar, IconChefHat, IconStar, IconTrash, IconClock, IconFlame } from '../components/Icons';
+import { IconSparkle, IconX, IconCheck, IconEdit, IconDollar, IconChefHat, IconStar, IconTrash, IconClock, IconFlame } from '../components/Icons';
 import ProfileGateModal from '../components/ProfileGateModal';
 import KitchenIllustration from '../components/KitchenIllustration';
 

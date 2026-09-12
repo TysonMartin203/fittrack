@@ -1,4 +1,4 @@
-const { createChallenge, listChallenges, joinChallenge, getChallengeProgress } = require('../models/challenge.model');
+const { createChallenge, listChallenges, joinChallenge } = require('../models/challenge.model');
 
 async function create(req, res) {
   try {
@@ -33,15 +33,4 @@ async function join(req, res) {
   }
 }
 
-async function getOne(req, res) {
-  try {
-    const progress = await getChallengeProgress(req.params.id, req.userId);
-    if (!progress) return res.status(404).json({ error: 'Not found' });
-    res.json(progress);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-}
-
-module.exports = { create, list, join, getOne };
+module.exports = { create, list, join };
