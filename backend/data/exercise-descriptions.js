@@ -83,6 +83,10 @@ const EXERCISE_DESCRIPTIONS = {
   'Mountain Climber': 'A dynamic core and cardio move, driving your knees toward your chest alternately from a plank position.',
   'Hanging Leg Raise': 'A harder ab variation performed hanging from a bar, raising your legs (or knees) up toward your torso.',
   'Torso Rotation Machine': 'A machine that isolates the obliques by rotating your torso against resistance.',
+  'Bicycle Crunch': 'A rotational ab exercise alternating elbow-to-opposite-knee, working the rectus abdominis and obliques together.',
+  'Side Plank': 'Targets the obliques. Hold your body in a straight line on one forearm, hips lifted off the ground.',
+  'V-Up': 'A full-range ab exercise lifting your torso and legs simultaneously to form a V shape.',
+  'Flutter Kicks': 'A lower-ab exercise alternating small up-and-down leg kicks while lying on your back.',
   // Olympic / Power
   'Clean and Jerk': 'A two-part Olympic lift: pulling the bar from the floor to your shoulders (clean), then driving it overhead (jerk).',
   'Snatch': 'A technical Olympic lift moving the bar from the floor to overhead in one continuous motion.',

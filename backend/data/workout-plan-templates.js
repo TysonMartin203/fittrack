@@ -232,6 +232,46 @@ const TEMPLATES = [
       cardio('Running', 20, 'steady pace'), lift('Plank', 3, '30-45 sec'),
       lift('Russian Twist', 3, '15-20'), lift('Mountain Climber', 3, '20-30 sec'),
     ] } },
+
+  // ── More bodyweight-only single sessions, no equipment ──
+  { id: 'bodyweight-fullbody-single', name: 'Bodyweight Full Body', description: 'A complete no-equipment session hitting everything in one go', category: 'Full Body', icon: 'full-body', format: 'single',
+    plan: { focus: 'Bodyweight Full Body', exercises: [
+      lift('Push-Up', 4, 'AMRAP'), lift('Bodyweight Squat', 4, '15-20'),
+      lift('Pull-Up', 3, 'AMRAP'), lift('Walking Lunge', 3, '12 each leg'),
+      lift('Plank', 3, '30-45 sec'),
+    ] } },
+  { id: 'bodyweight-upper-single', name: 'Bodyweight Upper Body', description: 'Push-ups, dips, and pull-ups — upper body with zero equipment', category: 'Upper', icon: 'upper-lower', format: 'single',
+    plan: { focus: 'Bodyweight Upper', exercises: [
+      lift('Push-Up', 4, 'AMRAP'), lift('Diamond Push-Up', 3, 'AMRAP'),
+      lift('Pull-Up', 4, 'AMRAP'), lift('Dip', 3, 'AMRAP'),
+      lift('Chin-Up', 3, 'AMRAP'),
+    ] } },
+  { id: 'bodyweight-lower-single', name: 'Bodyweight Lower Body', description: 'Legs and glutes with just your bodyweight', category: 'Lower', icon: 'upper-lower', format: 'single',
+    plan: { focus: 'Bodyweight Lower', exercises: [
+      lift('Bodyweight Squat', 4, '15-20'), lift('Jump Squat', 3, '10-12'),
+      lift('Walking Lunge', 3, '12 each leg'), lift('Pistol Squat', 3, '5-8 each leg'),
+      lift('Calf Raise', 4, '20-25'),
+    ] } },
+  { id: 'bodyweight-hiit', name: 'Bodyweight HIIT Burner', description: 'Fast-paced, no-equipment conditioning that also hammers your core', category: 'Cardio', icon: 'cardio', format: 'single',
+    plan: { focus: 'Bodyweight HIIT', exercises: [
+      lift('Burpee', 4, '12-15'), lift('Jump Squat', 4, '15'),
+      lift('Mountain Climber', 4, '30 sec'), lift('Push-Up', 3, 'AMRAP'),
+      lift('Plank', 3, '40-60 sec'),
+    ] } },
+
+  // ── Ab-focused single sessions ──
+  { id: 'ab-burner', name: 'Ab Burner', description: 'Straightforward, no-equipment ab session — reps and holds', category: 'Core', icon: 'core', format: 'single',
+    plan: { focus: 'Abs', exercises: [
+      lift('Sit-Up', 4, '15-20'), lift('Plank', 3, '40-60 sec'),
+      lift('Russian Twist', 3, '20 each side'), lift('Leg Raise', 3, '12-15'),
+      lift('Bicycle Crunch', 3, '20 each side'),
+    ] } },
+  { id: 'core-crusher', name: 'Core Crusher', description: 'A tougher core session mixing static holds with dynamic movement', category: 'Core', icon: 'core', format: 'single',
+    plan: { focus: 'Core', exercises: [
+      lift('Hanging Leg Raise', 3, '10-12'), lift('Side Plank', 3, '30-40 sec each side'),
+      lift('V-Up', 3, '12-15'), lift('Ab Wheel', 3, '8-10'),
+      lift('Flutter Kicks', 3, '30 sec'),
+    ] } },
 ];
 
 module.exports = TEMPLATES;

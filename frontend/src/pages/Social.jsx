@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { today, formatDateStr } from '../dateUtils';
 import { IconLightning } from '../components/Icons';
 import FireIcon from '../components/StreakFire';
+import { enablePush, getPushStatus } from '../push';
+import SharePlanPanel from '../components/SharePlanPanel';
 
 
 // ── Friends sub-tab (add, accept, list, DM, buzz) ──
@@ -17,10 +19,21 @@ function FriendsTab() {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState('');
   const [buzzed,   setBuzzed]   = useState({});
+  const [pushStatus, setPushStatus] = useState('unknown');
+  const [enabling,   setEnabling]   = useState(false);
+  const [showShare,  setShowShare]  = useState(false);
 
   useEffect(() => {
     api.getFriends().then(setFriends).catch(console.error).finally(() => setLoading(false));
+    getPushStatus().then(setPushStatus).catch(() => setPushStatus('unsupported'));
   }, []);
+
+  async function enableNotifications() {
+    setEnabling(true);
+    try { await enablePush(); setPushStatus('subscribed'); }
+    catch (err) { setError(err.message); }
+    finally { setEnabling(false); }
+  }
 
   async function addFriend(e) {
     e.preventDefault(); setError('');
@@ -34,6 +47,7 @@ function FriendsTab() {
   async function openConvo(friend) {
     const messages = await api.getConversation(friend.id);
     setConvo({ friend, messages });
+    setShowShare(false);
   }
 
   async function sendMsg(e) {
@@ -76,7 +90,15 @@ function FriendsTab() {
           ))}
           {convo.messages.length === 0 && <p className="muted">No messages yet. Say something!</p>}
         </div>
+        {showShare && (
+          <SharePlanPanel
+            friendId={convo.friend.id}
+            onClose={()=>setShowShare(false)}
+            onShared={async ()=>{ setShowShare(false); const messages = await api.getConversation(convo.friend.id); setConvo(c=>({...c,messages})); }}
+          />
+        )}
         <form onSubmit={sendMsg} className="msg-form">
+          <button type="button" className="btn-ghost-sm" onClick={()=>setShowShare(s=>!s)} style={{flexShrink:0}}>+ Plan</button>
           <input className="input" placeholder="Message…" value={msgText} onChange={e=>setMsgText(e.target.value)} />
           <button className="btn-primary" type="submit">Send</button>
         </form>
@@ -86,9 +108,20 @@ function FriendsTab() {
 
   return (
     <div>
-      <p className="muted" style={{fontSize:'12px',marginBottom:'16px'}}>
-        Manage notifications (buzz, messages, push) in your <Link to="/settings" style={{color:'var(--accent)'}}>Profile settings</Link>.
-      </p>
+      {(pushStatus === 'not-subscribed' || pushStatus === 'unknown') && (
+        <div className="glass-card" style={{marginBottom:'16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
+          <div>
+            <div style={{fontWeight:'700',fontSize:'14px'}}>Turn on notifications</div>
+            <div className="muted" style={{fontSize:'12px'}}>Get notified when a friend buzzes or messages you</div>
+          </div>
+          <button className="btn-primary" style={{width:'auto',padding:'8px 16px',fontSize:'13px',flexShrink:0}} onClick={enableNotifications} disabled={enabling}>
+            {enabling ? '…' : 'Enable'}
+          </button>
+        </div>
+      )}
+      {pushStatus === 'denied' && (
+        <p className="muted" style={{fontSize:'12px',marginBottom:'16px'}}>Notifications are blocked in your browser settings — enable them there to get buzzed or messaged.</p>
+      )}
 
       <div className="card-form">
         <form onSubmit={addFriend} className="form-stack">
@@ -135,7 +168,7 @@ function FriendsTab() {
               <button className="btn-ghost-sm" style={{marginRight:'6px'}} onClick={()=>buzz(f.id)} disabled={buzzed[f.id]==='sending'}>
                 {buzzed[f.id]==='sent' ? <>Buzzed! <IconLightning style={{width:'12px',height:'12px',display:'inline'}}/></> : buzzed[f.id]==='sending' ? '…' : <><IconLightning style={{width:'12px',height:'12px',display:'inline'}}/> Buzz</>}
               </button>
-              <button className="btn-ghost-sm" onClick={()=>openConvo(f)}>Message</button>
+              <button className="btn-ghost-sm" onClick={()=>openConvo(f)}>Messages</button>
             </div>
           ))
         }

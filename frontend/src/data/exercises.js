@@ -24,6 +24,7 @@ export const LIFTING_EXERCISES = [
   // Core
   'Plank','Crunch','Sit-Up','Leg Raise','Russian Twist',
   'Cable Crunch','Ab Wheel','Mountain Climber','Hanging Leg Raise','Torso Rotation Machine',
+  'Bicycle Crunch','Side Plank','V-Up','Flutter Kicks',
   // Olympic / Power
   'Clean and Jerk','Snatch','Power Clean','Power Snatch','Box Jump',
   // Bodyweight
