@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { savePhoto } = require('../models/photo.model');
 const pool = require('../config/db');
+const UPLOADS_DIR = require('../config/uploadsDir');
 const {
   createWorkout, updateWorkout, getWorkouts, getWorkoutById, getWorkoutForViewing,
   deleteWorkout, deleteWorkoutPhoto,
@@ -127,7 +128,7 @@ async function removePhoto(req, res) {
       if (photoRow) await pool.query('UPDATE ProgressPhotos SET workout_id = NULL WHERE id = ?', [photoRow.id]);
     } else {
       if (photoRow) await pool.query('DELETE FROM ProgressPhotos WHERE id = ?', [photoRow.id]);
-      const abs = path.join(__dirname, '..', 'public', 'uploads', oldPath.split('/').pop());
+      const abs = path.join(UPLOADS_DIR, oldPath.split('/').pop());
       fs.unlink(abs, () => {}); // best-effort; fine if it's already gone
     }
 

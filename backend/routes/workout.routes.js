@@ -2,10 +2,11 @@ const router = require('express').Router();
 const multer = require('multer');
 const path   = require('path');
 const auth = require('../middleware/auth');
+const UPLOADS_DIR = require('../config/uploadsDir');
 const { create, update, list, getOne, getView, removePhoto, remove } = require('../controllers/workout.controller');
 
 const storage = multer.diskStorage({
-  destination: path.join(__dirname, '../public/uploads'),
+  destination: UPLOADS_DIR,
   filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
 });
 const uploader = multer({

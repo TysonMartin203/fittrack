@@ -1,6 +1,7 @@
 const path = require('path');
 const fs   = require('fs');
 const { savePhoto, getPhotos, deletePhoto } = require('../models/photo.model');
+const UPLOADS_DIR = require('../config/uploadsDir');
 
 async function upload(req, res) {
   try {
@@ -30,7 +31,7 @@ async function remove(req, res) {
   try {
     const filePath = await deletePhoto(req.params.id, req.userId);
     if (!filePath) return res.status(404).json({ error: 'Not found' });
-    const abs = path.join(__dirname, '..', 'public', filePath);
+    const abs = path.join(UPLOADS_DIR, filePath.split('/').pop());
     if (fs.existsSync(abs)) fs.unlinkSync(abs);
     res.json({ success: true });
   } catch (err) {

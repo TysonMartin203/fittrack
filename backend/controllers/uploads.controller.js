@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const pool = require('../config/db');
+const UPLOADS_DIR = require('../config/uploadsDir');
 
 async function serve(req, res) {
   const filename = req.params.filename;
@@ -21,7 +22,7 @@ async function serve(req, res) {
       return res.status(403).json({ error: 'Not authorized to view this file' });
     }
 
-    const abs = path.join(__dirname, '..', 'public', 'uploads', filename);
+    const abs = path.join(UPLOADS_DIR, filename);
     if (!fs.existsSync(abs)) return res.status(404).json({ error: 'Not found' });
     res.sendFile(abs);
   } catch (err) {
