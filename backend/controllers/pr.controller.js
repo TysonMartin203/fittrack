@@ -1,4 +1,4 @@
-const { getAllPRs } = require('../models/pr.model');
+const { getAllPRs, getLoggedExercises, getExerciseHistory } = require('../models/pr.model');
 const { getCardioPRs } = require('../models/cardiopr.model');
 
 async function list(req, res) {
@@ -19,4 +19,22 @@ async function list(req, res) {
   }
 }
 
-module.exports = { list };
+async function exercises(req, res) {
+  try {
+    res.json(await getLoggedExercises(req.userId));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function history(req, res) {
+  try {
+    res.json(await getExerciseHistory(req.userId, req.params.exercise));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+module.exports = { list, exercises, history };

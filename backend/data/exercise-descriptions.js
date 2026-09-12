@@ -107,16 +107,16 @@ const EXERCISE_DESCRIPTIONS = {
   'Leg Press Machine': 'A machine exercise pressing a weighted platform away with your legs, targeting the quads, hamstrings, and glutes.',
   'Hack Squat Machine': 'A machine squat variation that targets the quads with a fixed, supported path.',
   // Cardio
-  'Running': 'A weight-bearing cardio activity that builds endurance and burns calories, scalable from an easy jog to sprint intervals.',
-  'Biking': 'A low-impact cardio activity that builds leg endurance and cardiovascular fitness.',
-  'Swimming': 'A full-body, joint-friendly cardio activity that builds endurance and works nearly every major muscle group.',
-  'Walking': 'A low-intensity, accessible form of cardio good for recovery days and building an aerobic base.',
-  'Rowing': 'A full-body cardio activity that also builds back, leg, and core strength.',
-  'Elliptical': 'A low-impact cardio machine that mimics running without the joint stress.',
-  'Stair Climber': 'A cardio machine that targets the glutes and legs while building endurance.',
-  'Jump Rope': 'A high-intensity cardio activity that also builds coordination and calf endurance.',
-  'Hiking': 'Outdoor walking over varied terrain, building endurance along with balance and stabilizer strength.',
-  'HIIT': 'High-Intensity Interval Training — alternating short bursts of maximal effort with brief recovery periods.',
+  'Running': 'Builds cardiovascular endurance and leg strength. Land with your foot under your hips (not way out in front), keep a relaxed upper body, and settle into a pace where you could still hold a conversation for easy runs.',
+  'Walking': 'The most accessible cardio there is, and genuinely effective for an aerobic base or recovery day. Pick up the intensity with a faster pace or incline — walking uphill rivals an easy jog for effort with far less joint impact.',
+  'Biking': 'Low-impact on the joints, great for building leg endurance. Aim for a quick, steady cadence (roughly 80-100 pedal strokes per minute) rather than mashing a big gear slowly — it\'s easier on your knees and lets you ride longer.',
+  'Swimming': 'Full-body and essentially zero-impact, working the lats, shoulders, and core along with the legs. Focus on a long, controlled stroke and steady breathing rhythm before worrying about speed.',
+  'Rowing': 'A full-body pull that also builds real back, leg, and core strength. The power comes from driving with your legs first, then leaning back, then pulling with your arms — in that order, every stroke.',
+  'Elliptical': 'Mimics the running motion with zero impact, making it a good option when your joints need a break. Push and pull through the handles too, not just your legs, to bring the upper body into it.',
+  'Stair Climber': 'Targets the glutes and quads hard while building endurance. Stand tall and let your legs do the work instead of leaning on the rails — that\'s what quietly cuts the effort (and the benefit) in half.',
+  'Jump Rope': 'A high-intensity option that also sharpens coordination and builds serious calf endurance. Small, quick wrist turns beat big arm swings, and stay light on your feet with minimal bounce.',
+  'Hiking': 'Walking over varied terrain, which adds balance and stabilizer work on top of the usual cardio benefits. A trekking pole or two takes real strain off your knees on the downhills.',
+  'HIIT': 'Short bursts of near-maximal effort alternated with brief recovery — very time-efficient for both cardio and calorie burn. A common starting ratio is 30 seconds of hard work to 30-90 seconds of easy recovery.',
 };
 
 module.exports = { EXERCISE_DESCRIPTIONS };

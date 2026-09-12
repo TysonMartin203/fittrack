@@ -3,7 +3,7 @@ import { IconBarbell, IconCamera, IconFeed, IconPeople, IconMeals } from './Icon
 
 const links = [
   { to: '/log',     label: 'Workouts', Icon: IconBarbell },
-  { to: '/photos',  label: 'Photos', Icon: IconCamera },
+  { to: '/photos',  label: 'Progress', Icon: IconCamera },
   { to: '/feed',    label: 'Feed',   Icon: IconFeed },
   { to: '/social',  label: 'Social', Icon: IconPeople },
   { to: '/meals',   label: 'Meals',  Icon: IconMeals },

@@ -13,6 +13,7 @@ import EditWorkout from './pages/EditWorkout';
 import ViewWorkout from './pages/ViewWorkout';
 import WorkoutPlans from './pages/WorkoutPlans';
 import Photos     from './pages/ProgressPhotos';
+import AllPhotos  from './pages/AllPhotos';
 import Feed       from './pages/Feed';
 import Social     from './pages/Social';
 import ProfileView from './pages/ProfileView';
@@ -37,6 +38,7 @@ function AppRoutes() {
       <Route path="/workouts/:id" element={<Private><EditWorkout /></Private>} />
       <Route path="/workouts/:id/view" element={<Private><ViewWorkout /></Private>} />
       <Route path="/photos"    element={<Private><Photos /></Private>} />
+      <Route path="/photos/all" element={<Private><AllPhotos /></Private>} />
       <Route path="/feed"      element={<Private><Feed /></Private>} />
       <Route path="/social"    element={<Private><Social /></Private>} />
       <Route path="/profile/:id" element={<Private><ProfileView /></Private>} />

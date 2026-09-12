@@ -43,6 +43,8 @@ export const api = {
   deleteWorkout: (id) => request('DELETE', `/api/workouts/${id}`),
 
   getPRs: () => request('GET', '/api/prs'),
+  getLoggedExercises: () => request('GET', '/api/prs/exercises'),
+  getExerciseHistory: (exercise) => request('GET', `/api/prs/history/${encodeURIComponent(exercise)}`),
 
   uploadPhoto: (fd) => uploadFile('/api/photos', fd),
   getPhotos:   ()   => request('GET',    '/api/photos'),

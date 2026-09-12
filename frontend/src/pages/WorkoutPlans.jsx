@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import WorkoutPlanIcon from '../components/WorkoutPlanIcons';
 import { IconSparkle, IconEdit, IconStar, IconSleep } from '../components/Icons';
+import { formatDuration } from '../format';
 import ProfileGateModal from '../components/ProfileGateModal';
 
 const GOALS = ['Cut (Lose Fat)', 'Bulk (Gain Muscle)', 'Maintain', 'Recomp'];
@@ -66,7 +67,7 @@ function ExerciseRow({ ex, planId, dayIdx, exIdx, onSwap }) {
         <div style={{flex:1,cursor:'pointer'}} onClick={toggleInfo}>
           <div className="item-main">{ex.exerciseName}</div>
           <div className="item-meta">
-            {ex.category === 'cardio' ? (ex.durationMinutes ? `${ex.durationMinutes} min` : 'Cardio') : `${ex.sets} sets × ${ex.reps}`}
+            {ex.category === 'cardio' ? (ex.durationMinutes ? formatDuration(ex.durationMinutes) : 'Cardio') : `${ex.sets} sets × ${ex.reps}`}
           </div>
         </div>
         <button className="btn-ghost-sm" disabled={swapping} onClick={()=>setShowPanel(s=>!s)}>{swapping?'…':'↔ Swap'}</button>
@@ -385,7 +386,7 @@ function CustomWorkoutPlanBuilder({ onBack, onCreated }) {
             <div key={i} className="list-item">
               <div style={{flex:1}}>
                 <div className="item-main">{ex.exerciseName}</div>
-                <div className="item-meta">{ex.category==='cardio' ? (ex.durationMinutes?`${ex.durationMinutes} min`:'Cardio') : `${ex.sets} sets × ${ex.reps}`}</div>
+                <div className="item-meta">{ex.category==='cardio' ? (ex.durationMinutes?formatDuration(ex.durationMinutes):'Cardio') : `${ex.sets} sets × ${ex.reps}`}</div>
               </div>
               <button className="btn-ghost-sm" onClick={()=>removeExercise(i)}>Remove</button>
             </div>

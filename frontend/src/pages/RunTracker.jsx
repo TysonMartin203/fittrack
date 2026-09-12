@@ -171,7 +171,7 @@ export default function RunTracker() {
           category: 'cardio',
           exerciseName: activity,
           notes: '',
-          durationMinutes: Math.max(1, Math.round(minutes)),
+          durationMinutes: +(elapsed / 60).toFixed(3),
           distance: distance.toFixed(2),
           distanceUnit: 'mi',
           calories: '',

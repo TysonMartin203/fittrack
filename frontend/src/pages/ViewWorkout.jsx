@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { formatDateStr } from '../dateUtils';
+import { formatDuration } from '../format';
 
 export default function ViewWorkout() {
   const { id } = useParams();
@@ -45,7 +46,7 @@ export default function ViewWorkout() {
             <div className="item-main">{ex.exercise_name}</div>
             <div className="item-meta">
               {ex.category === 'cardio'
-                ? (ex.duration_minutes ? `${ex.duration_minutes} min` : 'Cardio') + (ex.distance ? ` · ${ex.distance} ${ex.distance_unit || ''}` : '')
+                ? (ex.duration_minutes ? formatDuration(ex.duration_minutes) : 'Cardio') + (ex.distance ? ` · ${ex.distance} ${ex.distance_unit || ''}` : '')
                 : `${ex.sets} sets × ${ex.reps || (ex.sets_data?.length ? 'varied' : '')}${ex.weight ? ` @ ${ex.weight} lbs` : ''}`}
               {ex.notes ? ` · ${ex.notes}` : ''}
             </div>

@@ -54,4 +54,36 @@ async function maybeUpdatePR({ userId, exercise, weight, date, workoutId = null,
   return { isNewPR: false, previousMax: existing.max_weight, newMax: existing.max_weight };
 }
 
-module.exports = { getAllPRs, getPRForExercise, maybeUpdatePR };
+module.exports = { getAllPRs, getPRForExercise, maybeUpdatePR, getLoggedExercises, getExerciseHistory };
+
+// Every lifting exercise the user has ever logged a weight for — for the progress-chart dropdown.
+async function getLoggedExercises(userId) {
+  const [rows] = await pool.query(
+    `SELECT DISTINCT we.exercise_name
+     FROM WorkoutExercises we JOIN Workouts w ON w.id = we.workout_id
+     WHERE w.user_id = ? AND we.category = 'lifting'
+       AND (we.weight IS NOT NULL OR EXISTS (SELECT 1 FROM WorkoutSets ws WHERE ws.workout_exercise_id = we.id AND ws.weight IS NOT NULL))
+     ORDER BY we.exercise_name ASC`,
+    [userId]
+  );
+  return rows.map(r => r.exercise_name);
+}
+
+// Heaviest weight logged for this exercise on each date it was trained — a real
+// history, unlike the PRs table which only ever holds the current single best.
+async function getExerciseHistory(userId, exercise) {
+  const [rows] = await pool.query(
+    `SELECT w.date,
+            MAX(GREATEST(
+              COALESCE(we.weight, 0),
+              COALESCE((SELECT MAX(ws.weight) FROM WorkoutSets ws WHERE ws.workout_exercise_id = we.id), 0)
+            )) AS weight
+     FROM WorkoutExercises we JOIN Workouts w ON w.id = we.workout_id
+     WHERE w.user_id = ? AND we.exercise_name = ? AND we.category = 'lifting'
+     GROUP BY w.date
+     HAVING weight > 0
+     ORDER BY w.date ASC`,
+    [userId, exercise]
+  );
+  return rows;
+}
