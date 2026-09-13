@@ -34,6 +34,7 @@ const ACHIEVEMENTS = [
   { id: 'first_marathon',  title: 'Marathoner',      desc: 'Log a full marathon',             icon: '🥇', check: c => c.milestones.has('Fastest Marathon') },
   { id: 'first_century',   title: 'Century Rider',   desc: 'Log a 100-mile ride',             icon: '🚴', check: c => c.milestones.has('Fastest Century') },
   { id: 'first_mile_swim', title: 'Mile Swimmer',    desc: 'Log a timed mile swim',           icon: '🏊', check: c => c.milestones.has('Fastest Mile Swim') },
+  { id: 'globe_trotter',   title: 'The Globe Trotter', desc: 'Run, walk, or bike a combined 24,901 miles — the circumference of the Earth', icon: '🌍', check: c => c.globeMiles >= 24901 },
 ];
 
 async function computeAchievements(uid) {
@@ -46,12 +47,27 @@ async function computeAchievements(uid) {
   const [[mpRow]] = await pool.query('SELECT COUNT(*) as n FROM MealPlans WHERE user_id=? AND plan IS NOT NULL', [uid]).catch(() => [[{n:0}]]);
   const [[avRow]] = await pool.query('SELECT avatar_url FROM Users WHERE id=?', [uid]);
   const [cpRows] = await pool.query('SELECT DISTINCT milestone FROM CardioPRs WHERE user_id=?', [uid]).catch(() => [[]]);
+  const [[distRow]] = await pool.query(
+    `SELECT COALESCE(SUM(
+       CASE we.distance_unit
+         WHEN 'km' THEN we.distance * 0.621371
+         WHEN 'm'  THEN we.distance * 0.000621371
+         WHEN 'yd' THEN we.distance * 0.000568182
+         WHEN 'mi' THEN we.distance
+         ELSE 0
+       END
+     ), 0) AS miles
+     FROM WorkoutExercises we JOIN Workouts w ON w.id = we.workout_id
+     WHERE w.user_id = ? AND we.category = 'cardio' AND we.exercise_name IN ('Running','Walking','Biking')`,
+    [uid]
+  ).catch(() => [{ miles: 0 }]);
 
   const counts = {
     workouts: wRow.n, prs: prRow.n, photos: phRow.n,
     friends: frRow.n, messages: mgRow.n, meals: mpRow.n,
     hasAvatar: !!avRow?.avatar_url,
     milestones: new Set(cpRows.map(r => r.milestone)),
+    globeMiles: Number(distRow.miles) || 0,
   };
 
   return ACHIEVEMENTS.map(a => ({

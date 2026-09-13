@@ -69,7 +69,7 @@ export default function Dashboard() {
           <div style={{fontWeight:'700',fontSize:'14px',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><IconBarbell style={{width:'16px',height:'16px'}}/> Workout Plans</div>
           <div className="muted" style={{fontSize:'12px',marginTop:'2px'}}>{workoutPlanCount === null ? '…' : `${workoutPlanCount} saved`}</div>
         </Link>
-        <Link to="/meals" className="glass-card" style={{flex:1,textDecoration:'none',color:'inherit',padding:'14px',textAlign:'center'}}>
+        <Link to="/meals/plans" className="glass-card" style={{flex:1,textDecoration:'none',color:'inherit',padding:'14px',textAlign:'center'}}>
           <div style={{fontWeight:'700',fontSize:'14px',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px'}}><IconMeals style={{width:'16px',height:'16px'}}/> Meal Plans</div>
           <div className="muted" style={{fontSize:'12px',marginTop:'2px'}}>{mealPlanCount === null ? '…' : `${mealPlanCount} saved`}</div>
         </Link>

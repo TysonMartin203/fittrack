@@ -207,6 +207,18 @@ const ICONS = {
       <path d="M26 3.5 L26.8 5.2 L28.7 5.4 L27.3 6.7 L27.7 8.5 L26 7.5 L24.3 8.5 L24.7 6.7 L23.3 5.4 L25.2 5.2 Z" fill="white" transform="scale(0.7) translate(11.5 3)"/>
     </Icon>
   ),
+
+  // ── GLOBE TROTTER (cardio) ──
+  globe_trotter: () => (
+    <Icon>
+      <circle cx="16" cy="16" r="12" fill={c} opacity="0.15" stroke={c} strokeWidth="2"/>
+      <ellipse cx="16" cy="16" rx="5" ry="12" fill="none" stroke={c} strokeWidth="1.3" opacity="0.8"/>
+      <ellipse cx="16" cy="16" rx="12" ry="5" fill="none" stroke={c} strokeWidth="1.3" opacity="0.8"/>
+      <line x1="4" y1="16" x2="28" y2="16" stroke={c} strokeWidth="1.3" opacity="0.8"/>
+      <path d="M10 8 C13 12 19 12 22 8" fill="none" stroke={r} strokeWidth="1.5" strokeLinecap="round"/>
+      <path d="M10 24 C13 20 19 20 22 24" fill="none" stroke={r} strokeWidth="1.5" strokeLinecap="round"/>
+    </Icon>
+  ),
 };
 
 export default function AchievementIcon({ id, size = 36, active = true }) {

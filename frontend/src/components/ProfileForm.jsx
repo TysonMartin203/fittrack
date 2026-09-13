@@ -41,6 +41,10 @@ export default function ProfileForm({ profile, setProfile }) {
         </select>
       </div>
       <div className="field">
+        <label className="label">Daily Calorie Goal (optional)</label>
+        <input className="input" type="number" placeholder="e.g. 2200" value={profile.calorieGoal || ''} onChange={e=>setProfile(p=>({...p,calorieGoal:e.target.value}))}/>
+      </div>
+      <div className="field">
         <label className="label">Dietary Restrictions</label>
         <RestrictionPicker value={Array.isArray(profile.restrictions) ? profile.restrictions : []} onChange={r=>setProfile(p=>({...p,restrictions:r}))}/>
       </div>

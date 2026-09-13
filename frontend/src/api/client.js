@@ -58,6 +58,10 @@ export const api = {
   getConversation: (fid) => request('GET',  `/api/messages/${fid}`),
 
   listMealPlans:    ()     => request('GET',    '/api/meals'),
+  logMeal:          (b)    => request('POST',   '/api/meal-logs', b),
+  getMealsForDate:  (date) => request('GET',    `/api/meal-logs?date=${date}`),
+  getMealLogHistory: ()    => request('GET',    '/api/meal-logs/history'),
+  deleteLoggedMeal: (id)   => request('DELETE', `/api/meal-logs/${id}`),
   getMealPlan:      (id)   => request('GET',    `/api/meals/${id}`),
   renameMealPlan:   (id,b) => request('PUT',    `/api/meals/${id}/name`, b),
   toggleFavorite:   (id)   => request('PUT',    `/api/meals/${id}/favorite`, {}),

@@ -321,7 +321,7 @@ export default function Settings() {
         {[
           { label:'Dashboard',  path:'/dashboard' },
           { label:'Feed',       path:'/feed'       },
-          { label:'Meal Plans', path:'/meals'      },
+          { label:'Meal Plans', path:'/meals/plans' },
           { label:'Social',     path:'/social'     },
         ].map(({label,path}) => (
           <div key={path} className="settings-item" onClick={() => navigate(path)}>
