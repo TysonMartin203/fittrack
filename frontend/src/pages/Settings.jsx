@@ -101,6 +101,15 @@ export default function Settings() {
     updateUser({ notifyMessages: next });
     try { await api.updateAccountSettings({ notifyMessages: next }); } catch {}
   }
+
+  async function setWeightUnit(unit) {
+    updateUser({ weightUnit: unit });
+    try { await api.updateAccountSettings({ weightUnit: unit }); } catch {}
+  }
+  async function setDistanceUnit(unit) {
+    updateUser({ distanceUnit: unit });
+    try { await api.updateAccountSettings({ distanceUnit: unit }); } catch {}
+  }
   async function togglePush() {
     try {
       if (pushStatus === 'subscribed') { await disablePush(); setPushStatus('not-subscribed'); }
@@ -201,6 +210,21 @@ export default function Settings() {
           onSaved={(p)=>setMwSummaryCount(Object.values(p).filter(v => v && (!Array.isArray(v) || v.length>0)).length)}
         />
       )}
+
+      {/* Units */}
+      <div className="section">
+        <div className="section-header">
+          <span className="section-title">Units</span>
+        </div>
+        <div className="tab-row" style={{marginBottom:'10px'}}>
+          <button className={user?.weightUnit !== 'kg' ? 'tab active' : 'tab'} onClick={()=>setWeightUnit('lbs')}>Pounds (lbs)</button>
+          <button className={user?.weightUnit === 'kg' ? 'tab active' : 'tab'} onClick={()=>setWeightUnit('kg')}>Kilograms (kg)</button>
+        </div>
+        <div className="tab-row">
+          <button className={user?.distanceUnit !== 'km' ? 'tab active' : 'tab'} onClick={()=>setDistanceUnit('mi')}>Miles</button>
+          <button className={user?.distanceUnit === 'km' ? 'tab active' : 'tab'} onClick={()=>setDistanceUnit('km')}>Kilometers</button>
+        </div>
+      </div>
 
       {/* Appearance */}
       <div className="section">

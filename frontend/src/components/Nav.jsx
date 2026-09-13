@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { IconBarbell, IconCamera, IconFeed, IconPeople, IconMeals } from './Icons';
+import { IconBarbell, IconTrendingUp, IconFeed, IconPeople, IconMeals } from './Icons';
 
 const links = [
   { to: '/log',     label: 'Workouts', Icon: IconBarbell },
-  { to: '/photos',  label: 'Progress', Icon: IconCamera },
+  { to: '/photos',  label: 'Progress', Icon: IconTrendingUp },
   { to: '/feed',    label: 'Feed',   Icon: IconFeed },
   { to: '/social',  label: 'Social', Icon: IconPeople },
   { to: '/meals',   label: 'Meals',  Icon: IconMeals },

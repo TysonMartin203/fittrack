@@ -10,3 +10,12 @@ export function formatDuration(decimalMinutes) {
     ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
     : `${m}:${String(s).padStart(2,'0')}`;
 }
+
+// Compact display for large numbers (e.g. total volume lifted): 45231 -> "45.2K"
+export function formatCompact(n) {
+  const num = Number(n) || 0;
+  if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(num >= 10_000_000_000 ? 0 : 1)}B`;
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(num >= 10_000_000 ? 0 : 1)}M`;
+  if (num >= 1_000) return `${(num / 1_000).toFixed(num >= 10_000 ? 0 : 1)}K`;
+  return String(Math.round(num));
+}

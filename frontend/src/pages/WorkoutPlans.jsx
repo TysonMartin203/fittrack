@@ -16,10 +16,9 @@ function toFormExercise(ex) {
       calories: '', avgHeartRate: '', pace: '',
     };
   }
-  const repNote = ex.reps ? `Target: ${ex.reps} reps` : '';
   return {
     category: 'lifting', exerciseName: ex.exerciseName,
-    notes: [repNote, ex.notes].filter(Boolean).join(' — '),
+    notes: '',
     sets: ex.sets || '', reps: '', weight: '', perSetWeights: false, setsData: [],
   };
 }
@@ -33,6 +32,24 @@ function ExerciseRow({ ex, planId, dayIdx, exIdx, onSwap }) {
   const [showInfo, setShowInfo] = useState(false);
   const [info, setInfo] = useState(infoCache[ex.exerciseName] || null);
   const [loadingInfo, setLoadingInfo] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editName, setEditName] = useState(ex.exerciseName);
+  const [editSets, setEditSets] = useState(ex.sets || '');
+  const [editReps, setEditReps] = useState(ex.reps || '');
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  async function saveEdit() {
+    setSavingEdit(true);
+    try {
+      const res = await api.editPlanExercise({
+        exerciseName: editName.trim(), sets: editSets, reps: editReps, category: ex.category,
+        planId, dayIdx, exIdx,
+      });
+      onSwap(res.exercise);
+      setShowEdit(false);
+    } catch { /* leave panel open so they can retry */ }
+    finally { setSavingEdit(false); }
+  }
 
   async function doSwap(reason, val) {
     setSwapping(true);
@@ -70,12 +87,37 @@ function ExerciseRow({ ex, planId, dayIdx, exIdx, onSwap }) {
             {ex.category === 'cardio' ? (ex.durationMinutes ? formatDuration(ex.durationMinutes) : 'Cardio') : `${ex.sets} sets × ${ex.reps}`}
           </div>
         </div>
-        <button className="btn-ghost-sm" disabled={swapping} onClick={()=>setShowPanel(s=>!s)}>{swapping?'…':'↔ Swap'}</button>
+        <button className="btn-ghost-sm" disabled={savingEdit} onClick={()=>{setShowEdit(s=>!s); setShowPanel(false);}}>Edit</button>
+        <button className="btn-ghost-sm" disabled={swapping} onClick={()=>{setShowPanel(s=>!s); setShowEdit(false);}}>{swapping?'…':'↔ Swap'}</button>
       </div>
       {showInfo && (
         <p className="muted" style={{fontSize:'13px',padding:'2px 2px 4px'}}>
           {loadingInfo ? 'Loading…' : info}
         </p>
+      )}
+      {showEdit && (
+        <div style={{background:'var(--surface-tint)',border:'1px solid var(--border)',borderRadius:'10px',padding:'10px'}}>
+          <div className="field" style={{marginBottom:'8px'}}>
+            <label className="label">Exercise Name</label>
+            <input className="input" value={editName} onChange={e=>setEditName(e.target.value)} style={{fontSize:'13px',padding:'9px 12px'}}/>
+          </div>
+          {ex.category === 'lifting' && (
+            <div className="input-row" style={{marginBottom:'8px'}}>
+              <div className="input-group">
+                <label className="label">Sets</label>
+                <input className="input" type="number" min="1" value={editSets} onChange={e=>setEditSets(e.target.value)} style={{fontSize:'13px',padding:'9px 12px'}}/>
+              </div>
+              <div className="input-group">
+                <label className="label">Reps</label>
+                <input className="input" placeholder="e.g. 10 or 8-12" value={editReps} onChange={e=>setEditReps(e.target.value)} style={{fontSize:'13px',padding:'9px 12px'}}/>
+              </div>
+            </div>
+          )}
+          <div style={{display:'flex',gap:'8px'}}>
+            <button className="btn-accent-sm" style={{flex:1}} disabled={!editName.trim() || savingEdit} onClick={saveEdit}>{savingEdit?'Saving…':'Save'}</button>
+            <button className="btn-ghost-sm" onClick={()=>setShowEdit(false)}>Cancel</button>
+          </div>
+        </div>
       )}
       {showPanel && (
         <div style={{background:'var(--surface-tint)',border:'1px solid var(--border)',borderRadius:'10px',padding:'10px'}}>

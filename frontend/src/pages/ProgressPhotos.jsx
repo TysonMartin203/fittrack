@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import { formatDateStr } from '../dateUtils';
+import { formatCompact } from '../format';
+import { displayWeight, weightUnitLabel } from '../units';
 import ProgressChart from '../components/ProgressChart';
 import FireIcon from '../components/StreakFire';
 import { IconChevron, IconCamera } from '../components/Icons';
 
 export default function ProgressPhotos() {
+  const { user } = useAuth();
   const [photos, setPhotos] = useState([]);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
 
@@ -15,7 +19,7 @@ export default function ProgressPhotos() {
   const [history, setHistory] = useState(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  const [stats, setStats] = useState({ workouts: 0, prs: 0, streak: 0 });
+  const [stats, setStats] = useState({ workouts: 0, prs: 0, streak: 0, volume: 0 });
   const [showCompare, setShowCompare] = useState(false);
 
   useEffect(() => {
@@ -28,7 +32,8 @@ export default function ProgressPhotos() {
       api.getWorkouts().catch(() => []),
       api.getPRs().catch(() => []),
       api.getStreak().catch(() => ({ streak: 0 })),
-    ]).then(([w, p, s]) => setStats({ workouts: w.length, prs: p.length, streak: s.streak || 0 }));
+      api.getVolume().catch(() => ({ volume: 0 })),
+    ]).then(([w, p, s, v]) => setStats({ workouts: w.length, prs: p.length, streak: s.streak || 0, volume: v.volume || 0 }));
   }, []);
 
   useEffect(() => {
@@ -64,24 +69,11 @@ export default function ProgressPhotos() {
           </span>
           <span className="stat-label">Day Streak</span>
         </div>
-      </div>
-
-      {/* Strength progress chart */}
-      <section className="section">
-        <div className="section-header">
-          <span className="section-title">Strength Progress</span>
+        <div className="stat-card">
+          <span className="stat-num">{formatCompact(displayWeight(stats.volume, user?.weightUnit))}</span>
+          <span className="stat-label">Total {weightUnitLabel(user?.weightUnit)} Lifted</span>
         </div>
-        {exerciseList.length === 0 ? (
-          <p className="muted" style={{fontSize:'13px'}}>Log a few lifting workouts to see your progress here.</p>
-        ) : (
-          <div className="card-form">
-            <select className="input" value={selectedExercise} onChange={e=>setSelectedExercise(e.target.value)} style={{marginBottom:'14px'}}>
-              {exerciseList.map(ex => <option key={ex} value={ex}>{ex}</option>)}
-            </select>
-            {loadingHistory ? <div className="spinner"/> : <ProgressChart points={history || []} />}
-          </div>
-        )}
-      </section>
+      </div>
 
       {/* Photos preview */}
       <section className="section">
@@ -98,6 +90,23 @@ export default function ProgressPhotos() {
                 <img src={api.fileUrl(ph.file_path)} alt={ph.photo_date} style={{width:'88px',height:'88px',objectFit:'cover',borderRadius:'var(--r)',border:'1px solid var(--border)'}}/>
               </Link>
             ))}
+          </div>
+        )}
+      </section>
+
+      {/* Strength progress chart */}
+      <section className="section">
+        <div className="section-header">
+          <span className="section-title">Strength Progress</span>
+        </div>
+        {exerciseList.length === 0 ? (
+          <p className="muted" style={{fontSize:'13px'}}>Log a few lifting workouts to see your progress here.</p>
+        ) : (
+          <div className="card-form">
+            <select className="input" value={selectedExercise} onChange={e=>setSelectedExercise(e.target.value)} style={{marginBottom:'14px'}}>
+              {exerciseList.map(ex => <option key={ex} value={ex}>{ex}</option>)}
+            </select>
+            {loadingHistory ? <div className="spinner"/> : <ProgressChart points={history || []} unit={user?.weightUnit || 'lbs'} />}
           </div>
         )}
       </section>

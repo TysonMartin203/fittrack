@@ -7,6 +7,9 @@ import { IconLightning } from '../components/Icons';
 import FireIcon from '../components/StreakFire';
 import { enablePush, getPushStatus } from '../push';
 import SharePlanPanel from '../components/SharePlanPanel';
+import { closestComparison } from '../weightComparisons';
+import { formatCompact } from '../format';
+import { displayWeight, weightUnitLabel } from '../units';
 
 
 // ── Friends sub-tab (add, accept, list, DM, buzz) ──
@@ -179,17 +182,20 @@ function FriendsTab() {
 
 // ── Compete sub-tab (leaderboard, streak, challenges) ──
 function CompeteTab() {
+  const { user } = useAuth();
   const [board,      setBoard]      = useState(null);
   const [challenges, setChallenges] = useState([]);
   const [metric,     setMetric]     = useState('byWorkouts');
   const [showNew,    setShowNew]    = useState(false);
   const [form, setForm] = useState({ title:'', type:'most_workouts', exercise:'', startDate: today(), endDate: today() });
   const [error, setError] = useState('');
+  const [myVolume, setMyVolume] = useState(null);
 
   useEffect(() => { load(); }, []);
   function load() {
     api.getLeaderboard().then(setBoard).catch(console.error);
     api.getChallenges().then(setChallenges).catch(console.error);
+    api.getVolume().then(v => setMyVolume(v.volume)).catch(() => {});
   }
 
   async function createChallenge(e) {
@@ -227,6 +233,15 @@ function CompeteTab() {
             </span>
           </div>
         ))}
+        {metric === 'byVolume' && myVolume > 0 && (() => {
+          const ref = closestComparison(myVolume);
+          const wu = weightUnitLabel(user?.weightUnit);
+          return ref ? (
+            <p className="muted" style={{fontSize:'12px',marginTop:'10px',textAlign:'center'}}>
+              You've lifted {formatCompact(displayWeight(myVolume, user?.weightUnit))} {wu} all-time — that's about the same as {ref.name}!
+            </p>
+          ) : null;
+        })()}
       </section>
 
       <section className="section">

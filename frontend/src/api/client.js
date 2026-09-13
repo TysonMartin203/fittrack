@@ -85,6 +85,7 @@ export const api = {
   buzzFriend:     (friendId) => request('POST', `/api/social/buzz/${friendId}`, {}),
   getLeaderboard: ()         => request('GET',  '/api/social/leaderboard'),
   getStreak:      ()         => request('GET',  '/api/social/streak'),
+  getVolume:      ()         => request('GET',  '/api/social/volume'),
 
   createCrew:   (b)      => request('POST', '/api/crews', b),
   getCrews:     ()       => request('GET',  '/api/crews'),
@@ -120,6 +121,7 @@ export const api = {
   generateWorkoutPlan: (b)         => request('POST', '/api/workout-plans/generate', b),
   createCustomWorkoutPlan: (b)     => request('POST', '/api/workout-plans/custom', b),
   swapPlanExercise: (b)            => request('POST', '/api/workout-plans/swap-exercise', b),
+  editPlanExercise: (b)            => request('POST', '/api/workout-plans/edit-exercise', b),
   exerciseInfo:     (b)            => request('POST', '/api/workout-plans/exercise-info', b),
 
   fileUrl: (p) => {

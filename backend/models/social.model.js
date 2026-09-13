@@ -78,4 +78,21 @@ async function getLeaderboard(userId) {
   };
 }
 
-module.exports = { computeStreak, volumeThisWeek, workoutsThisWeek, getLeaderboard };
+async function volumeAllTime(userId) {
+  const [[row]] = await pool.query(
+    `SELECT
+       COALESCE(SUM(
+         CASE WHEN we.per_set_weights = 1 THEN (
+           SELECT COALESCE(SUM(COALESCE(ws.reps,0) * COALESCE(ws.weight,0)),0)
+           FROM WorkoutSets ws WHERE ws.workout_exercise_id = we.id
+         ) ELSE COALESCE(we.sets,0) * COALESCE(we.reps,0) * COALESCE(we.weight,0) END
+       ), 0) AS volume
+     FROM WorkoutExercises we
+     JOIN Workouts w ON w.id = we.workout_id
+     WHERE w.user_id = ? AND we.category = 'lifting'`,
+    [userId]
+  );
+  return Number(row.volume) || 0;
+}
+
+module.exports = { computeStreak, volumeThisWeek, volumeAllTime, workoutsThisWeek, getLeaderboard };

@@ -14,6 +14,8 @@ export function AuthProvider({ children }) {
       avatarUrl: data.avatarUrl || null, theme: data.theme || 'light',
       bio: data.bio || null,
       notifyBuzz: data.notifyBuzz !== false, notifyMessages: data.notifyMessages !== false,
+      weightUnit: data.weightUnit === 'kg' ? 'kg' : 'lbs',
+      distanceUnit: data.distanceUnit === 'km' ? 'km' : 'mi',
     };
     localStorage.setItem('fittrack_token', data.token);
     localStorage.setItem('fittrack_user', JSON.stringify(u));

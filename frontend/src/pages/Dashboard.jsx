@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { formatDateStr } from '../dateUtils';
 import { IconBarbell, IconMeals, IconWave } from '../components/Icons';
 import FireIcon from '../components/StreakFire';
+import { displayWeight, weightUnitLabel } from '../units';
 
 function Skeleton() {
   return (
@@ -112,7 +113,7 @@ export default function Dashboard() {
           return (
             <Card key={pr.id} className="list-item clickable" style={{animationDelay:`${i*.05}s`,animation:'fadeInUp .3s ease both'}} {...cardProps}>
               <span className="item-main">{pr.exercise}</span>
-              <span className="item-accent">{pr.display_value}</span>
+              <span className="item-accent">{pr.unit === 'lbs' ? `${displayWeight(pr.max_weight, user?.weightUnit)} ${weightUnitLabel(user?.weightUnit)}` : pr.display_value}</span>
             </Card>
           );
         })}

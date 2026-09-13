@@ -47,7 +47,7 @@ export default function ViewWorkout() {
             <div className="item-meta">
               {ex.category === 'cardio'
                 ? (ex.duration_minutes ? formatDuration(ex.duration_minutes) : 'Cardio') + (ex.distance ? ` · ${ex.distance} ${ex.distance_unit || ''}` : '')
-                : `${ex.sets} sets × ${ex.reps || (ex.sets_data?.length ? 'varied' : '')}${ex.weight ? ` @ ${ex.weight} lbs` : ''}`}
+                : `${ex.sets} sets × ${ex.reps || (ex.sets_data?.length ? 'varied' : '')}`}
               {ex.notes ? ` · ${ex.notes}` : ''}
             </div>
           </div>

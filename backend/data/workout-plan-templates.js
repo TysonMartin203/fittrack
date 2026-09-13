@@ -17,8 +17,8 @@ const TEMPLATES = [
       days: [
         workoutDay('Monday', 'Push', [
           lift('Bench Press', 4, '6-8'), lift('Overhead Press', 3, '8-10'),
-          lift('Incline Dumbbell Press', 3, '10-12'), lift('Lateral Raise', 3, '12-15'),
-          lift('Tricep Pushdown', 3, '12-15'), lift('Dip', 3, '10-12'),
+          lift('Incline Dumbbell Press', 3, '10-12'), lift('Dip', 3, '10-12'),
+          lift('Lateral Raise', 3, '12-15'), lift('Tricep Pushdown', 3, '12-15'),
         ]),
         workoutDay('Tuesday', 'Pull', [
           lift('Deadlift', 3, '5-6'), lift('Pull-Up', 4, '6-10'),
@@ -32,8 +32,8 @@ const TEMPLATES = [
         ]),
         workoutDay('Thursday', 'Push', [
           lift('Overhead Press', 4, '6-8'), lift('Incline Bench Press', 3, '8-10'),
-          lift('Cable Fly', 3, '12-15'), lift('Lateral Raise', 3, '12-15'),
-          lift('Overhead Tricep Extension', 3, '10-12'), lift('Push-Up', 3, '15-20'),
+          lift('Push-Up', 3, '15-20'), lift('Cable Fly', 3, '12-15'),
+          lift('Lateral Raise', 3, '12-15'), lift('Overhead Tricep Extension', 3, '10-12'),
         ]),
         workoutDay('Friday', 'Pull', [
           lift('Barbell Row', 4, '6-8'), lift('Lat Pulldown', 3, '8-10'),
@@ -73,7 +73,7 @@ const TEMPLATES = [
         workoutDay('Thursday', 'Upper', [
           lift('Incline Bench Press', 4, '6-8'), lift('Pull-Up', 4, '6-10'),
           lift('Dumbbell Shoulder Press', 3, '8-10'), lift('Seated Cable Row', 3, '10-12'),
-          lift('Hammer Curl', 3, '10-12'), lift('Dip', 3, '10-12'),
+          lift('Dip', 3, '10-12'), lift('Hammer Curl', 3, '10-12'),
         ]),
         workoutDay('Friday', 'Lower', [
           lift('Deadlift', 3, '5-6'), lift('Front Squat', 3, '8-10'),
@@ -128,7 +128,7 @@ const TEMPLATES = [
       days: [
         workoutDay('Monday', 'Chest', [
           lift('Bench Press', 4, '6-8'), lift('Incline Bench Press', 3, '8-10'),
-          lift('Cable Fly', 3, '12-15'), lift('Dumbbell Fly', 3, '12-15'), lift('Push-Up', 3, '15-20'),
+          lift('Push-Up', 3, '15-20'), lift('Cable Fly', 3, '12-15'), lift('Dumbbell Fly', 3, '12-15'),
         ]),
         workoutDay('Tuesday', 'Back', [
           lift('Deadlift', 3, '5-6'), lift('Pull-Up', 4, '6-10'), lift('Barbell Row', 3, '8-10'),
@@ -143,8 +143,8 @@ const TEMPLATES = [
           lift('Rear Delt Fly', 3, '12-15'), lift('Front Raise', 3, '12-15'), lift('Shrug', 3, '12-15'),
         ]),
         workoutDay('Friday', 'Arms', [
-          lift('Barbell Curl', 4, '10-12'), lift('Hammer Curl', 3, '10-12'),
-          lift('Tricep Pushdown', 4, '10-12'), lift('Skull Crusher', 3, '10-12'), lift('Cable Curl', 3, '12-15'),
+          lift('Barbell Curl', 4, '10-12'), lift('Tricep Pushdown', 4, '10-12'),
+          lift('Hammer Curl', 3, '10-12'), lift('Skull Crusher', 3, '10-12'), lift('Cable Curl', 3, '12-15'),
         ]),
         rest('Saturday'), rest('Sunday'),
       ],
@@ -191,7 +191,7 @@ const TEMPLATES = [
   { id: 'push-day', name: 'Push Day', description: 'Chest, shoulders, and triceps in one session', category: 'Push', icon: 'push', format: 'single',
     plan: { focus: 'Push', exercises: [
       lift('Bench Press', 4, '6-8'), lift('Overhead Press', 3, '8-10'), lift('Incline Dumbbell Press', 3, '10-12'),
-      lift('Lateral Raise', 3, '12-15'), lift('Tricep Pushdown', 3, '12-15'), lift('Dip', 3, '10-12'),
+      lift('Dip', 3, '10-12'), lift('Lateral Raise', 3, '12-15'), lift('Tricep Pushdown', 3, '12-15'),
     ] } },
   { id: 'pull-day', name: 'Pull Day', description: 'Back and biceps in one session', category: 'Pull', icon: 'pull', format: 'single',
     plan: { focus: 'Pull', exercises: [
@@ -242,15 +242,13 @@ const TEMPLATES = [
     ] } },
   { id: 'bodyweight-upper-single', name: 'Bodyweight Upper Body', description: 'Push-ups, dips, and pull-ups — upper body with zero equipment', category: 'Upper', icon: 'upper-lower', format: 'single',
     plan: { focus: 'Bodyweight Upper', exercises: [
-      lift('Push-Up', 4, 'AMRAP'), lift('Diamond Push-Up', 3, 'AMRAP'),
-      lift('Pull-Up', 4, 'AMRAP'), lift('Dip', 3, 'AMRAP'),
-      lift('Chin-Up', 3, 'AMRAP'),
+      lift('Push-Up', 4, 'AMRAP'), lift('Diamond Push-Up', 3, 'AMRAP'), lift('Dip', 3, 'AMRAP'),
+      lift('Pull-Up', 4, 'AMRAP'), lift('Chin-Up', 3, 'AMRAP'),
     ] } },
   { id: 'bodyweight-lower-single', name: 'Bodyweight Lower Body', description: 'Legs and glutes with just your bodyweight', category: 'Lower', icon: 'upper-lower', format: 'single',
     plan: { focus: 'Bodyweight Lower', exercises: [
-      lift('Bodyweight Squat', 4, '15-20'), lift('Jump Squat', 3, '10-12'),
-      lift('Walking Lunge', 3, '12 each leg'), lift('Pistol Squat', 3, '5-8 each leg'),
-      lift('Calf Raise', 4, '20-25'),
+      lift('Jump Squat', 3, '10-12'), lift('Pistol Squat', 3, '5-8 each leg'),
+      lift('Bodyweight Squat', 4, '15-20'), lift('Walking Lunge', 3, '12 each leg'), lift('Calf Raise', 4, '20-25'),
     ] } },
   { id: 'bodyweight-hiit', name: 'Bodyweight HIIT Burner', description: 'Fast-paced, no-equipment conditioning that also hammers your core', category: 'Cardio', icon: 'cardio', format: 'single',
     plan: { focus: 'Bodyweight HIIT', exercises: [

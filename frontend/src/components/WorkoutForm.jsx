@@ -1,8 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { LIFTING_EXERCISES, CARDIO_ACTIVITIES, DISTANCE_UNITS } from '../data/exercises';
 import { compressImage } from '../compressImage';
 import { today } from '../dateUtils';
 import { IconTrophy, IconCheck } from './Icons';
+import { useAuth } from '../context/AuthContext';
+import { displayWeight, toStorageWeight, weightUnitLabel } from '../units';
 
 function blankLiftingExercise() {
   return {
@@ -58,13 +60,16 @@ function LiftingNameInput({ value, onChange }) {
 }
 
 function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
+  const { user } = useAuth();
+  const weightUnit = user?.weightUnit || 'lbs';
+  const wLabel = weightUnitLabel(weightUnit);
   const update = (patch) => onChange(index, { ...ex, ...patch });
 
   function setCategory(category) {
     if (category === 'lifting') onChange(index, { ...blankLiftingExercise(), notes: ex.notes });
     else onChange(index, {
       category: 'cardio', exerciseName: '', customName: '', notes: ex.notes,
-      durationMinutes: '', distance: '', distanceUnit: 'mi', calories: '', avgHeartRate: '', pace: '',
+      durationMinutes: '', distance: '', distanceUnit: user?.distanceUnit || 'mi', calories: '', avgHeartRate: '', pace: '',
     });
   }
 
@@ -126,9 +131,9 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
                 onChange={e => update({ reps: e.target.value })} disabled={ex.perSetWeights} required={!ex.perSetWeights} />
             </div>
             <div className="input-group">
-              <label className="label">Weight (lbs)</label>
-              <input className="input" type="number" min="0" step="2.5" placeholder="135" value={ex.weight}
-                onChange={e => update({ weight: e.target.value })} disabled={ex.perSetWeights} required={!ex.perSetWeights} />
+              <label className="label">Weight ({wLabel})</label>
+              <input className="input" type="number" min="0" step={weightUnit==='kg'?'1':'2.5'} placeholder={weightUnit==='kg'?'60':'135'} value={displayWeight(ex.weight, weightUnit)}
+                onChange={e => update({ weight: toStorageWeight(e.target.value, weightUnit) })} disabled={ex.perSetWeights} required={!ex.perSetWeights} />
             </div>
           </div>
 
@@ -148,8 +153,8 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
                   <span className="set-row-label">Set {i + 1}</span>
                   <input className="input" type="number" min="1" placeholder="Reps" value={s.reps}
                     onChange={e => updateSetRow(i, { reps: e.target.value })} />
-                  <input className="input" type="number" min="0" step="2.5" placeholder="Weight" value={s.weight}
-                    onChange={e => updateSetRow(i, { weight: e.target.value })} />
+                  <input className="input" type="number" min="0" step={weightUnit==='kg'?'1':'2.5'} placeholder={`Weight (${wLabel})`} value={displayWeight(s.weight, weightUnit)}
+                    onChange={e => updateSetRow(i, { weight: toStorageWeight(e.target.value, weightUnit) })} />
                 </div>
               ))}
             </div>
@@ -235,12 +240,36 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
   );
 }
 
+const DRAFT_KEY = 'fittrack_workout_draft';
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function saveDraft(data) {
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify(data)); } catch { /* storage full or unavailable — not critical */ }
+}
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+}
+
 export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDelete, onRemovePhoto }) {
-  const [name,         setName]         = useState(initial?.name || '');
-  const [date,         setDate]         = useState(initial?.date || today());
-  const [notesBefore,  setNotesBefore]  = useState(initial?.notesBefore || '');
-  const [notesAfter,   setNotesAfter]   = useState(initial?.notesAfter || '');
-  const [exercises,    setExercises]    = useState(initial?.exercises?.length ? initial.exercises : [blankLiftingExercise()]);
+  const { user } = useAuth();
+  // Drafts only apply to a genuinely fresh log (not editing, not prefilled from a plan) —
+  // protects against losing everything if you navigate away mid-entry.
+  const isDraftable = mode === 'create' && !initial;
+  const draft = isDraftable ? loadDraft() : null;
+  const [usingDraft, setUsingDraft] = useState(!!draft);
+
+  const [name,         setName]         = useState(draft?.name ?? initial?.name ?? '');
+  const [date,         setDate]         = useState(draft?.date ?? initial?.date ?? today());
+  const [notesBefore,  setNotesBefore]  = useState(draft?.notesBefore ?? initial?.notesBefore ?? '');
+  const [notesAfter,   setNotesAfter]   = useState(draft?.notesAfter ?? initial?.notesAfter ?? '');
+  const [exercises,    setExercises]    = useState(
+    draft?.exercises?.length ? draft.exercises : (initial?.exercises?.length ? initial.exercises : [blankLiftingExercise()])
+  );
   const [photoFile,    setPhotoFile]    = useState(null);
   const [compressingPhoto, setCompressingPhoto] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(initial?.photoUrl || null);
@@ -250,6 +279,20 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
   const [result,       setResult]       = useState(null);
   const [loading,      setLoading]      = useState(false);
   const fileRef = useRef();
+
+  // Auto-save a draft as they type, so an accidental navigation away doesn't lose it.
+  useEffect(() => {
+    if (!isDraftable) return;
+    saveDraft({ name, date, notesBefore, notesAfter, exercises });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, date, notesBefore, notesAfter, exercises]);
+
+  function discardDraft() {
+    clearDraft();
+    setUsingDraft(false);
+    setName(''); setDate(today()); setNotesBefore(''); setNotesAfter('');
+    setExercises([blankLiftingExercise()]);
+  }
 
   async function confirmRemovePhoto(keep) {
     setShowRemovePhotoPopup(false);
@@ -325,6 +368,7 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
     try {
       const data = await onSubmit(payload, photoFile);
       setResult(data);
+      if (isDraftable) clearDraft();
       if (mode === 'create') {
         setName('');
         setExercises([blankLiftingExercise()]);
@@ -343,6 +387,13 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
 
   return (
     <form onSubmit={submit} className="form-stack">
+      {usingDraft && (
+        <div className="glass-card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px'}}>
+          <span style={{fontSize:'13px'}}>Resumed your unsaved workout.</span>
+          <button type="button" className="btn-ghost-sm" onClick={discardDraft}>Discard</button>
+        </div>
+      )}
+
       <div className="field">
         <label className="label">Workout Name (optional)</label>
         <input className="input" placeholder="e.g. Leg Day" value={name} onChange={e => setName(e.target.value)} />
@@ -406,7 +457,7 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
         <div className={`result-banner ${newPRs.length ? 'pr-banner' : ''}`}>
           {newPRs.length
             ? newPRs.map(p => (
-              <div key={p.exercise} style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconTrophy style={{width:'16px',height:'16px'}}/> New PR — {p.exercise}: {p.previousMax != null ? `${p.previousMax} → ` : ''}{p.newMax}{p.unit === 'lbs' ? ' lbs' : p.unit === 'reps' ? ' reps' : ''}</div>
+              <div key={p.exercise} style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconTrophy style={{width:'16px',height:'16px'}}/> New PR — {p.exercise}: {p.previousMax != null ? `${p.unit === 'lbs' ? displayWeight(p.previousMax, user?.weightUnit) : p.previousMax} → ` : ''}{p.unit === 'lbs' ? displayWeight(p.newMax, user?.weightUnit) : p.newMax}{p.unit === 'lbs' ? ` ${weightUnitLabel(user?.weightUnit)}` : p.unit === 'reps' ? ' reps' : ''}</div>
             ))
             : <span style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconCheck style={{width:'16px',height:'16px'}}/> Workout {mode === 'edit' ? 'updated' : 'logged'}!</span>}
         </div>

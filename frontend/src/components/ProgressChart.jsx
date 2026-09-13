@@ -1,6 +1,8 @@
 import { formatDateStr } from '../dateUtils';
+import { displayWeight } from '../units';
 
-export default function ProgressChart({ points, unit = 'lbs' }) {
+export default function ProgressChart({ points: rawPoints, unit = 'lbs' }) {
+  const points = (rawPoints || []).map(p => ({ ...p, weight: displayWeight(p.weight, unit) }));
   if (!points || points.length === 0) {
     return <p className="muted" style={{fontSize:'13px',textAlign:'center',padding:'30px 0'}}>No logged history for this exercise yet.</p>;
   }

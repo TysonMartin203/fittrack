@@ -38,7 +38,7 @@ async function useTemplate(req, res) {
 async function listPlans(req, res) {
   try {
     const [rows] = await pool.query(
-      'SELECT id, name, is_favorite, shared_from_username, created_at FROM WorkoutPlans WHERE user_id = ? ORDER BY created_at DESC',
+      'SELECT id, name, is_favorite, shared_from_username, created_at FROM WorkoutPlans WHERE user_id = ? ORDER BY is_favorite DESC, created_at DESC',
       [req.userId]
     );
     res.json(rows);
@@ -154,6 +154,8 @@ User stats:
 
 Choose a sensible split (e.g. Push/Pull/Legs, Upper/Lower, Full Body, or a bro split) based on their goal. If the notes mention an injury or limitation, avoid exercises that would aggravate it. Include rest days appropriately — this is a full week, so not every day should be a training day. For each exercise give sets and a rep range as a string (e.g. "8-10"). Use common gym exercise names.
 
+Order each day's exercises like a real trainer would program them: big compound lifts first while fresh, isolation moves last. Never put an isolation exercise for a muscle before a compound exercise that also heavily works that same muscle (e.g. don't put a tricep isolation move before Dips or Close-Grip Bench, since those already train triceps hard). When a day has more than one isolation exercise, don't cluster two exercises for the identical muscle back to back — alternate muscles when the split allows it (e.g. alternate biceps and triceps in an arm day, rather than all biceps then all triceps).
+
 Return ONLY valid JSON, no markdown. Structure:
 {
   "split_type": "e.g. Push Pull Legs",
@@ -212,6 +214,8 @@ Updated user stats:
 - Additional notes from the user (goals, injuries, preferences): ${notes || 'none'}
 
 Choose a sensible split based on their goal. If the notes mention an injury or limitation, avoid exercises that would aggravate it. Include rest days appropriately. For each exercise give sets and a rep range as a string (e.g. "8-10"). Use common gym exercise names.
+
+Order each day's exercises like a real trainer would: big compound lifts first while fresh, isolation moves last, and never an isolation move for a muscle placed before a compound that already works that same muscle hard. Don't cluster two same-muscle isolation exercises back to back — alternate muscles where the split allows it.
 
 Return ONLY valid JSON, no markdown. Same structure as before:
 {
@@ -296,6 +300,37 @@ Return ONLY JSON with just these fields, nothing else: { "exerciseName": "...", 
   }
 }
 
+// ── Directly edit an exercise's name/sets/reps — no AI, just a manual change ──
+async function editExercise(req, res) {
+  try {
+    const { exerciseName, sets, reps, category = 'lifting', planId, dayIdx, exIdx } = req.body;
+    if (!exerciseName?.trim()) return res.status(400).json({ error: 'exerciseName required' });
+    if (planId == null || exIdx == null) return res.status(400).json({ error: 'planId and exIdx required' });
+
+    const [[row]] = await pool.query('SELECT * FROM WorkoutPlans WHERE id = ? AND user_id = ?', [planId, req.userId]);
+    if (!row) return res.status(404).json({ error: 'Plan not found' });
+
+    const plan = typeof row.plan === 'string' ? JSON.parse(row.plan) : row.plan;
+    const exercise = { category, exerciseName: exerciseName.trim(), sets: sets || undefined, reps: reps || undefined, notes: '' };
+
+    if (dayIdx != null && plan.days) {
+      exercise.notes = plan.days[dayIdx].exercises[exIdx]?.notes || '';
+      plan.days[dayIdx].exercises[exIdx] = exercise;
+    } else if (plan.exercises) {
+      exercise.notes = plan.exercises[exIdx]?.notes || '';
+      plan.exercises[exIdx] = exercise;
+    } else {
+      return res.status(400).json({ error: 'Could not locate that exercise in the plan' });
+    }
+
+    await pool.query('UPDATE WorkoutPlans SET plan = ? WHERE id = ?', [JSON.stringify(plan), planId]);
+    res.json({ exercise });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Server error' });
+  }
+}
+
 // ── Short AI explanation of a single exercise (how to perform, what it targets) ──
 async function exerciseInfo(req, res) {
   try {
@@ -346,5 +381,5 @@ async function createCustom(req, res) {
 module.exports = {
   getTemplates, useTemplate,
   listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, sharePlan,
-  generate, regenerate, swapExercise, exerciseInfo, createCustom,
+  generate, regenerate, swapExercise, editExercise, exerciseInfo, createCustom,
 };

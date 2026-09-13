@@ -14,6 +14,7 @@ async function getFeed(userId, viewerId) {
      FROM FeedEvents fe
      JOIN Users u ON u.id = fe.user_id
      WHERE fe.type != 'template_pick'
+       AND (fe.type NOT IN ('workout','pr') OR EXISTS (SELECT 1 FROM Workouts w WHERE w.id = fe.ref_id))
        AND (fe.user_id = ?
         OR fe.user_id IN (
           SELECT IF(f.requester_id = ?, f.receiver_id, f.requester_id)

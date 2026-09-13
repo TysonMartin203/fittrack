@@ -95,6 +95,9 @@ export function IconClock({ className, style }) {
 export function IconSleep({ className, style }) {
   return <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M17 4a6 6 0 100 12 6 6 0 006-4.5A6 6 0 1117 4Z" fill="currentColor" opacity="0.15"/><path d="M17 4a6 6 0 100 12 6 6 0 006-4.5A6 6 0 1117 4Z"/><path d="M4 20l4-4M6 20h4M4 16h4" strokeWidth="1.5"/></svg>;
 }
+export function IconTrendingUp({ className, style }) {
+  return <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="14 6 21 6 21 13"/></svg>;
+}
 export function IconLogo({ className, style }) {
   return <svg className={className} style={style} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="6" y1="16" x2="26" y2="16" stroke="#E07A5F" strokeWidth="2.5" strokeLinecap="round"/><rect x="4" y="11" width="3" height="10" rx="1" fill="#E07A5F"/><rect x="2" y="13" width="2" height="6" rx="0.5" fill="#E07A5F"/><rect x="25" y="11" width="3" height="10" rx="1" fill="#E07A5F"/><rect x="28" y="13" width="2" height="6" rx="0.5" fill="#E07A5F"/></svg>;
 }

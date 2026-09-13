@@ -203,6 +203,14 @@ async function getWorkoutForViewing(id, viewerId) {
   await attachExercises(workout);
   workout.photo_path = null; // never expose the photo through the friend-view path
   workout.is_owner = isOwner;
+  if (!isOwner) {
+    // Keep the workout and set counts visible, but never the actual weight used —
+    // this is meant to stay a self-improvement app, not a place to compare numbers.
+    workout.exercises = workout.exercises.map(ex => {
+      const { weight, sets_data, ...rest } = ex;
+      return { ...rest, sets_data: (sets_data || []).map(s => ({ set_number: s.set_number, reps: s.reps })) };
+    });
+  }
   return workout;
 }
 
@@ -218,6 +226,14 @@ async function deleteWorkout(id, userId) {
     'DELETE FROM Workouts WHERE id = ? AND user_id = ?',
     [id, userId]
   );
+  if (result.affectedRows > 0) {
+    // Feed entries reference workouts loosely (not a real FK, since ref_id means
+    // different things per event type), so they don't cascade-delete on their own.
+    await pool.query(
+      `DELETE FROM FeedEvents WHERE user_id = ? AND ref_id = ? AND type IN ('workout','pr')`,
+      [userId, id]
+    ).catch(err => console.error('Feed cleanup failed:', err));
+  }
   return result.affectedRows > 0;
 }
 
