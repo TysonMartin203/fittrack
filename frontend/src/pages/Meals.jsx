@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import MealPlanIcon from '../components/MealPlanIcons';
-import { IconSparkle, IconX, IconCheck, IconEdit, IconDollar, IconChefHat, IconStar, IconTrash, IconClock, IconFlame } from '../components/Icons';
+import { IconSparkle, IconCheck, IconEdit, IconDollar, IconChefHat, IconStar, IconTrash, IconClock, IconFlame } from '../components/Icons';
 import ProfileGateModal from '../components/ProfileGateModal';
 import KitchenIllustration from '../components/KitchenIllustration';
 import RestrictionPicker from '../components/RestrictionPicker';
@@ -69,6 +70,7 @@ function ShoppingList({ plan }) {
 
 // ── Plan detail view ──
 function PlanDetail({ planId, profile, onBack, onUpdate }) {
+  const navigate = useNavigate();
   const [data,       setData]       = useState(null);
   const [tab,        setTab]        = useState('plan');
   const [editing,    setEditing]    = useState(false);
@@ -134,6 +136,16 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
       setRecipe(r => ({...r, [key]: data2.recipe}));
     } catch { setRecipe(r => ({...r, [key]: { steps: ['Could not load recipe. Try again.'], prep_time:'', cook_time:'' }})); }
     finally { setLoadingRec(l => ({...l, [key]: false})); }
+  }
+
+  function logThisMeal(meal, dayLabel) {
+    navigate('/meals/log', {
+      state: {
+        mealType: meal.type, name: meal.name,
+        calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat,
+        planLabel: dayLabel,
+      },
+    });
   }
 
   async function swapMeal(dayIdx, mealIdx, meal, reason, detail) {
@@ -294,7 +306,10 @@ function PlanDetail({ planId, profile, onBack, onUpdate }) {
                     </div>
                     <div style={{textAlign:'right',flexShrink:0,marginLeft:'12px'}}>
                       <div style={{fontWeight:'700',color:'var(--rose)',fontSize:'14px'}}>{meal.calories} cal</div>
-                      {meal.can_substitute && <button className="btn-ghost-sm" style={{marginTop:'4px',fontSize:'11px'}} disabled={swapping?.dayIdx===di&&swapping?.mealIdx===mi} onClick={()=>setSwapPanel(swapPanel?.dayIdx===di&&swapPanel?.mealIdx===mi ? null : {dayIdx:di, mealIdx:mi})}>{swapping?.dayIdx===di&&swapping?.mealIdx===mi?'…':'↔ Swap'}</button>}
+                      <div style={{display:'flex',gap:'6px',marginTop:'4px',justifyContent:'flex-end'}}>
+                        <button className="btn-ghost-sm" style={{fontSize:'11px'}} onClick={()=>logThisMeal(meal, `${day.day} ${meal.type}`)}>Log This</button>
+                        {meal.can_substitute && <button className="btn-ghost-sm" style={{fontSize:'11px'}} disabled={swapping?.dayIdx===di&&swapping?.mealIdx===mi} onClick={()=>setSwapPanel(swapPanel?.dayIdx===di&&swapPanel?.mealIdx===mi ? null : {dayIdx:di, mealIdx:mi})}>{swapping?.dayIdx===di&&swapping?.mealIdx===mi?'…':'↔ Swap'}</button>}
+                      </div>
                     </div>
                   </div>
                   <div style={{display:'flex',gap:'12px',fontSize:'12px',color:'var(--muted)',marginBottom:'8px'}}>

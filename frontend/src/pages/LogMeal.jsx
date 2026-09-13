@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { api } from '../api/client';
 import { today, formatDateStr } from '../dateUtils';
 import { IconTrash, IconCamera } from '../components/Icons';
@@ -8,13 +8,16 @@ import { compressImage } from '../compressImage';
 const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
 export default function LogMeal() {
+  const location = useLocation();
+  const prefill = location.state; // { mealType, name, calories, protein, carbs, fat } when arriving from a meal plan
+
   const [date, setDate] = useState(today());
-  const [mealType, setMealType] = useState('Breakfast');
-  const [name, setName] = useState('');
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fat, setFat] = useState('');
+  const [mealType, setMealType] = useState(prefill?.mealType && MEAL_TYPES.includes(prefill.mealType) ? prefill.mealType : 'Breakfast');
+  const [name, setName] = useState(prefill?.name || '');
+  const [calories, setCalories] = useState(prefill?.calories != null ? String(prefill.calories) : '');
+  const [protein, setProtein] = useState(prefill?.protein != null ? String(prefill.protein) : '');
+  const [carbs, setCarbs] = useState(prefill?.carbs != null ? String(prefill.carbs) : '');
+  const [fat, setFat] = useState(prefill?.fat != null ? String(prefill.fat) : '');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -89,6 +92,9 @@ export default function LogMeal() {
         <h2 className="page-title" style={{marginBottom:0}}>Log a Meal</h2>
         <Link to="/meals" className="link-small">← Meals</Link>
       </div>
+      {prefill?.planLabel && (
+        <p className="muted" style={{fontSize:'13px',marginTop:'-12px',marginBottom:'16px'}}>From plan: {prefill.planLabel}</p>
+      )}
 
       <div className="card-form">
         <form onSubmit={submit} className="form-stack">

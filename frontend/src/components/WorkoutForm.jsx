@@ -123,17 +123,17 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
             <div className="input-group">
               <label className="label">Sets</label>
               <input className="input" type="number" min="1" placeholder="3" value={ex.sets}
-                onChange={e => updateSetsCount(e.target.value)} required />
+                onChange={e => updateSetsCount(e.target.value)} />
             </div>
             <div className="input-group">
               <label className="label">Reps</label>
               <input className="input" type="number" min="1" placeholder="8" value={ex.reps}
-                onChange={e => update({ reps: e.target.value })} disabled={ex.perSetWeights} required={!ex.perSetWeights} />
+                onChange={e => update({ reps: e.target.value })} disabled={ex.perSetWeights} />
             </div>
             <div className="input-group">
               <label className="label">Weight ({wLabel})</label>
               <input className="input" type="number" min="0" step={weightUnit==='kg'?'1':'2.5'} placeholder={weightUnit==='kg'?'60':'135'} value={displayWeight(ex.weight, weightUnit)}
-                onChange={e => update({ weight: toStorageWeight(e.target.value, weightUnit) })} disabled={ex.perSetWeights} required={!ex.perSetWeights} />
+                onChange={e => update({ weight: toStorageWeight(e.target.value, weightUnit) })} disabled={ex.perSetWeights} />
             </div>
           </div>
 
@@ -179,24 +179,23 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
           <p className="muted" style={{ margin: '0 0 4px', fontSize: '12px' }}>All fields below are optional.</p>
           <div className="input-row">
             <div className="input-group">
-              <label className="label">Duration</label>
-              <div style={{display:'flex',gap:'6px',alignItems:'center'}}>
-                <input className="input" type="number" min="0" placeholder="30" style={{flex:1}}
+              <label className="label">Duration (min : sec)</label>
+              <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
+                <input className="input" type="number" min="0" placeholder="20" style={{flex:1,textAlign:'right'}}
                   value={ex.durationMinutes === '' || ex.durationMinutes == null ? '' : Math.floor(Number(ex.durationMinutes))}
                   onChange={e => {
                     const mm = e.target.value === '' ? '' : Number(e.target.value);
                     const ss = ex.durationMinutes === '' || ex.durationMinutes == null ? 0 : Math.round((Number(ex.durationMinutes) - Math.floor(Number(ex.durationMinutes))) * 60);
                     update({ durationMinutes: mm === '' && !ss ? '' : +((mm || 0) + ss / 60).toFixed(3) });
                   }} />
-                <span className="muted" style={{fontSize:'13px'}}>min</span>
-                <input className="input" type="number" min="0" max="59" placeholder="00" style={{flex:1}}
-                  value={ex.durationMinutes === '' || ex.durationMinutes == null ? '' : Math.round((Number(ex.durationMinutes) - Math.floor(Number(ex.durationMinutes))) * 60)}
+                <span style={{fontWeight:'700',color:'var(--muted)'}}>:</span>
+                <input className="input" type="number" min="0" max="59" placeholder="47" style={{flex:1}}
+                  value={ex.durationMinutes === '' || ex.durationMinutes == null ? '' : String(Math.round((Number(ex.durationMinutes) - Math.floor(Number(ex.durationMinutes))) * 60)).padStart(2,'0')}
                   onChange={e => {
                     const ss = e.target.value === '' ? 0 : Math.min(59, Number(e.target.value));
                     const mm = ex.durationMinutes === '' || ex.durationMinutes == null ? 0 : Math.floor(Number(ex.durationMinutes));
                     update({ durationMinutes: +(mm + ss / 60).toFixed(3) });
                   }} />
-                <span className="muted" style={{fontSize:'13px'}}>sec</span>
               </div>
             </div>
             <div className="input-group">
