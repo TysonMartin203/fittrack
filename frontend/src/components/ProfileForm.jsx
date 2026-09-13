@@ -45,6 +45,11 @@ export default function ProfileForm({ profile, setProfile }) {
         <input className="input" type="number" placeholder="e.g. 2200" value={profile.calorieGoal || ''} onChange={e=>setProfile(p=>({...p,calorieGoal:e.target.value}))}/>
       </div>
       <div className="field">
+        <label className="label">Palm Width (inches, optional)</label>
+        <input className="input" type="number" step="0.1" placeholder="e.g. 3.5" value={profile.palmWidth || ''} onChange={e=>setProfile(p=>({...p,palmWidth:e.target.value}))}/>
+        <p className="muted" style={{fontSize:'12px',marginTop:'4px'}}>Measured straight across your palm, not including your thumb. Used to help the AI judge portion sizes when you scan a food photo with your hand in frame.</p>
+      </div>
+      <div className="field">
         <label className="label">Dietary Restrictions</label>
         <RestrictionPicker value={Array.isArray(profile.restrictions) ? profile.restrictions : []} onChange={r=>setProfile(p=>({...p,restrictions:r}))}/>
       </div>

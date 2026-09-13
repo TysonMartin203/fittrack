@@ -1,4 +1,11 @@
 const { logMeal, getMealsForDate, getMealHistory, deleteMeal, getDailyTotals } = require('../models/meallog.model');
+const { getProfile } = require('../models/profile.model');
+const Anthropic = require('@anthropic-ai/sdk');
+
+function getClient() {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
 
 const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
@@ -50,4 +57,54 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { create, listForDate, history, remove };
+// Identify a food photo and estimate calories/macros. The photo itself is never
+// saved — only used for this one-time recognition — so no upload/storage plumbing needed.
+async function recognize(req, res) {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No photo provided' });
+    const client = getClient();
+
+    const profile = await getProfile(req.userId).catch(() => null);
+    const palmWidth = profile?.palmWidth || null;
+
+    const scaleNote = palmWidth
+      ? `The user's palm width (straight across, not including thumb) is ${palmWidth} inches. If a hand is visible in the photo, use it as a scale reference to judge the size of the food more accurately.`
+      : `No hand-scale reference is available, so estimate portion size using typical plate/bowl/utensil sizes visible in the photo.`;
+
+    const prompt = `Identify the food in this photo and estimate its nutrition. ${scaleNote}
+
+Return ONLY valid JSON, no markdown, in this exact structure:
+{
+  "name": "short description of the food, e.g. 'Grilled chicken breast with rice and broccoli'",
+  "calories": number,
+  "protein": number (grams),
+  "carbs": number (grams),
+  "fat": number (grams),
+  "confidence": "high" | "medium" | "low"
+}
+
+These are estimates from a photo, not a lab measurement — give your best reasonable guess rather than refusing. If multiple distinct food items are visible, combine them into one entry describing the whole plate.`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 500,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: req.file.mimetype, data: req.file.buffer.toString('base64') } },
+          { type: 'text', text: prompt },
+        ],
+      }],
+    });
+
+    let text = message.content[0].text.trim();
+    text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+    const result = JSON.parse(text);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not read that photo: ' + err.message });
+  }
+}
+
+module.exports = { create, listForDate, history, remove, recognize };

@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { today, formatDateStr } from '../dateUtils';
-import { IconTrash } from '../components/Icons';
+import { IconTrash, IconCamera } from '../components/Icons';
+import { compressImage } from '../compressImage';
 
 const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
@@ -17,6 +18,9 @@ export default function LogMeal() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState('');
+  const fileRef = useRef();
 
   const [meals, setMeals] = useState([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
@@ -34,6 +38,28 @@ export default function LogMeal() {
       .then(d => { setMeals(d.meals); setTotals(d.totals); })
       .catch(console.error)
       .finally(() => setLoadingDay(false));
+  }
+
+  async function scanPhoto(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setScanning(true); setScanError('');
+    try {
+      const compressed = await compressImage(file, { maxDimension: 1024, quality: 0.8 });
+      const fd = new FormData();
+      fd.append('photo', compressed);
+      const result = await api.recognizeFood(fd);
+      setName(result.name || '');
+      setCalories(result.calories != null ? String(result.calories) : '');
+      setProtein(result.protein != null ? String(result.protein) : '');
+      setCarbs(result.carbs != null ? String(result.carbs) : '');
+      setFat(result.fat != null ? String(result.fat) : '');
+    } catch (err) {
+      setScanError(err.message || 'Could not read that photo — try a clearer shot or enter it manually.');
+    } finally {
+      setScanning(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
   }
 
   async function submit(e) {
@@ -77,6 +103,15 @@ export default function LogMeal() {
                 <button type="button" key={t} className={mealType===t?'tab active':'tab'} onClick={()=>setMealType(t)}>{t}</button>
               ))}
             </div>
+          </div>
+          <div className="field">
+            <label className="label">Scan a Photo (optional)</label>
+            <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={scanPhoto} style={{display:'none'}} id="food-photo-input"/>
+            <label htmlFor="food-photo-input" className="btn-secondary" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',cursor:'pointer'}}>
+              <IconCamera style={{width:'16px',height:'16px'}}/> {scanning ? 'Reading photo…' : 'Take or Choose a Photo'}
+            </label>
+            {scanError && <p className="form-error" style={{marginTop:'8px'}}>{scanError}</p>}
+            <p className="muted" style={{fontSize:'12px',marginTop:'6px'}}>Fills in the fields below automatically — double check them before logging, since it's an estimate.</p>
           </div>
           <div className="field">
             <label className="label">What did you eat?</label>
