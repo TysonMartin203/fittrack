@@ -3,7 +3,7 @@ const multer = require('multer');
 const path   = require('path');
 const auth = require('../middleware/auth');
 const UPLOADS_DIR = require('../config/uploadsDir');
-const { create, update, list, getOne, getView, removePhoto, remove } = require('../controllers/workout.controller');
+const { create, update, list, getOne, getView, removePhoto, remove, parseVoice } = require('../controllers/workout.controller');
 
 const storage = multer.diskStorage({
   destination: UPLOADS_DIR,
@@ -24,6 +24,7 @@ router.get('/',       list);
 router.get('/:id',    getOne);
 router.get('/:id/view', getView);
 router.delete('/:id/photo', removePhoto);
+router.post('/parse-voice', parseVoice);
 router.put('/:id',    uploader.single('photo'), update);
 router.delete('/:id', remove);
 module.exports = router;

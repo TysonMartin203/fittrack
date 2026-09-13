@@ -5,6 +5,34 @@ const GOALS = ['Cut (Lose Fat)', 'Bulk (Gain Muscle)', 'Maintain', 'Recomp'];
 const ACTIVITY_LEVELS = [
   'Not Active', 'Lightly Active', 'Moderately Active', 'Pretty Active', 'Very Active', 'Super Active',
 ];
+// Rough calories-per-lb-of-bodyweight-per-day estimate for total daily energy use at each activity level.
+const ACTIVITY_MULTIPLIERS = {
+  'Not Active': 12, 'Lightly Active': 13.5, 'Moderately Active': 15,
+  'Pretty Active': 16.5, 'Very Active': 18, 'Super Active': 20,
+};
+const CALORIE_MIN = 1200; // a floor so the calculator never suggests something unsafely low
+const CALORIE_MAX = 6000;
+
+function calculateCalorieGoal(profile) {
+  const weight = Number(profile.weight);
+  if (!weight || weight <= 0) return null;
+  const mult = ACTIVITY_MULTIPLIERS[profile.activityLevel] || ACTIVITY_MULTIPLIERS['Moderately Active'];
+  const tdee = weight * mult;
+
+  const goalWeight = Number(profile.goalWeight);
+  const timeline = Number(profile.timeline);
+  let adjustment = 0;
+  if (goalWeight > 0 && timeline > 0) {
+    const weeklyRateLbs = (goalWeight - weight) / timeline;
+    adjustment = (weeklyRateLbs * 3500) / 7; // ~3500 cal per lb of bodyweight
+  } else if (profile.goal === 'Cut (Lose Fat)') {
+    adjustment = -500;
+  } else if (profile.goal === 'Bulk (Gain Muscle)') {
+    adjustment = 350;
+  }
+
+  return Math.max(CALORIE_MIN, Math.min(CALORIE_MAX, Math.round(tdee + adjustment)));
+}
 
 export { GOALS, ACTIVITY_LEVELS };
 
@@ -42,7 +70,17 @@ export default function ProfileForm({ profile, setProfile }) {
       </div>
       <div className="field">
         <label className="label">Daily Calorie Goal (optional)</label>
-        <input className="input" type="number" placeholder="e.g. 2200" value={profile.calorieGoal || ''} onChange={e=>setProfile(p=>({...p,calorieGoal:e.target.value}))}/>
+        <div style={{display:'flex',gap:'8px'}}>
+          <input className="input" type="number" min={CALORIE_MIN} max={CALORIE_MAX} style={{flex:1}} value={profile.calorieGoal || ''} onChange={e=>setProfile(p=>({...p,calorieGoal:e.target.value}))}/>
+          <button type="button" className="btn-ghost-sm" style={{flexShrink:0}} disabled={!profile.weight}
+            onClick={()=>{
+              const calc = calculateCalorieGoal(profile);
+              if (calc != null) setProfile(p=>({...p,calorieGoal:String(calc)}));
+            }}>
+            Calculate for Me
+          </button>
+        </div>
+        {!profile.weight && <p className="muted" style={{fontSize:'12px',marginTop:'4px'}}>Fill in your weight above to use the calculator.</p>}
       </div>
       <div className="field">
         <label className="label">Palm Width (inches, optional)</label>

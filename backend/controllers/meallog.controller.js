@@ -69,7 +69,7 @@ async function recognize(req, res) {
 
     const scaleNote = palmWidth
       ? `The user's palm width (straight across, not including thumb) is ${palmWidth} inches. If a hand is visible in the photo, use it as a scale reference to judge the size of the food more accurately.`
-      : `No hand-scale reference is available, so estimate portion size using typical plate/bowl/utensil sizes visible in the photo.`;
+      : `The user hasn't recorded their exact palm width. If a hand is visible in the photo, still use it as a rough scale reference — assume an average adult palm width of about 3.5 inches. Otherwise, estimate portion size using typical plate/bowl/utensil sizes visible in the photo.`;
 
     const prompt = `Identify the food in this photo and estimate its nutrition. ${scaleNote}
 
@@ -107,4 +107,41 @@ These are estimates from a photo, not a lab measurement — give your best reaso
   }
 }
 
-module.exports = { create, listForDate, history, remove, recognize };
+// Parse a spoken description of a meal into structured fields — reuses the
+// same "estimate, don't refuse" approach as the photo recognizer, just from text.
+async function parseVoice(req, res) {
+  try {
+    const { transcript } = req.body;
+    if (!transcript?.trim()) return res.status(400).json({ error: 'No transcript provided' });
+    const client = getClient();
+
+    const prompt = `The user spoke this description of a meal they ate: "${transcript.trim()}"
+
+Turn it into structured nutrition data. Return ONLY valid JSON, no markdown, in this exact structure:
+{
+  "name": "short description of the food",
+  "mealType": "Breakfast" | "Lunch" | "Dinner" | "Snack" (guess based on context, default "Snack" if unclear),
+  "calories": number,
+  "protein": number (grams),
+  "carbs": number (grams),
+  "fat": number (grams)
+}
+
+Give your best reasonable estimate rather than refusing, even if the description is vague or casual.`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 400,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    let text = message.content[0].text.trim();
+    text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+    res.json(JSON.parse(text));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not parse that: ' + err.message });
+  }
+}
+
+module.exports = { create, listForDate, history, remove, recognize, parseVoice };

@@ -3,7 +3,9 @@ import { LIFTING_EXERCISES, CARDIO_ACTIVITIES, DISTANCE_UNITS } from '../data/ex
 import { compressImage } from '../compressImage';
 import { today } from '../dateUtils';
 import { IconTrophy, IconCheck } from './Icons';
+import VoiceNoteButton from './VoiceNoteButton';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../api/client';
 import { displayWeight, toStorageWeight, weightUnitLabel } from '../units';
 
 function blankLiftingExercise() {
@@ -313,6 +315,32 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
   function addExercise() {
     setExercises(prev => [...prev, blankLiftingExercise()]);
   }
+
+  const [voiceLoading, setVoiceLoading] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
+  async function handleWorkoutVoice(text) {
+    setVoiceLoading(true); setVoiceError('');
+    try {
+      const { exercises: parsed } = await api.parseWorkoutVoice({ transcript: text });
+      const mapped = parsed.map(p => p.category === 'cardio' ? {
+        category: 'cardio', exerciseName: p.exerciseName || '', notes: '',
+        durationMinutes: p.durationMinutes || '', distance: p.distance || '',
+        distanceUnit: p.distanceUnit || user?.distanceUnit || 'mi',
+        calories: '', avgHeartRate: '', pace: '',
+      } : {
+        category: 'lifting', exerciseName: p.exerciseName || '', notes: '',
+        sets: p.sets || '', reps: p.reps || '', weight: p.weight || '', perSetWeights: false, setsData: [],
+      });
+      setExercises(prev => {
+        const isBlankDefault = prev.length === 1 && !prev[0].exerciseName && !prev[0].sets && !prev[0].weight;
+        return isBlankDefault ? mapped : [...prev, ...mapped];
+      });
+    } catch (err) {
+      setVoiceError(err.message || 'Could not process that — try again or enter it manually.');
+    } finally {
+      setVoiceLoading(false);
+    }
+  }
   async function onPhoto(e) {
     const f = e.target.files[0];
     if (!f) return;
@@ -406,6 +434,13 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
       <div className="field">
         <label className="label">Notes before workout (optional)</label>
         <textarea className="input" rows={2} placeholder="How are you feeling going in?" value={notesBefore} onChange={e => setNotesBefore(e.target.value)} />
+      </div>
+
+      <div className="field">
+        <label className="label">Or Say Your Workout (optional)</label>
+        <VoiceNoteButton label="Describe Your Exercises" onTranscript={handleWorkoutVoice}/>
+        {voiceLoading && <p className="muted" style={{fontSize:'12px',marginTop:'6px'}}>Working it out…</p>}
+        {voiceError && <p className="form-error" style={{marginTop:'6px'}}>{voiceError}</p>}
       </div>
 
       {exercises.map((ex, i) => (

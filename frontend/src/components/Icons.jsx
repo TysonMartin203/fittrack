@@ -101,6 +101,9 @@ export function IconTrendingUp({ className, style }) {
 export function IconUtensils({ className, style }) {
   return <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2v7a2 2 0 0 0 2 2v11M6 2v9M9 2v9M14 2c-1.5 2-2 4-2 6.5 0 2 1 3.5 2 4V22"/></svg>;
 }
+export function IconMic({ className, style }) {
+  return <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M9 21h6"/></svg>;
+}
 export function IconLogo({ className, style }) {
   return <svg className={className} style={style} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="6" y1="16" x2="26" y2="16" stroke="#E07A5F" strokeWidth="2.5" strokeLinecap="round"/><rect x="4" y="11" width="3" height="10" rx="1" fill="#E07A5F"/><rect x="2" y="13" width="2" height="6" rx="0.5" fill="#E07A5F"/><rect x="25" y="11" width="3" height="10" rx="1" fill="#E07A5F"/><rect x="28" y="13" width="2" height="6" rx="0.5" fill="#E07A5F"/></svg>;
 }

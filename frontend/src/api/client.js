@@ -35,6 +35,7 @@ export const api = {
   getUserProfile: (id) => request('GET', `/api/users/${id}/profile`),
 
   logWorkout:    (payload, photoFile) => uploadFile('/api/workouts', workoutFormData(payload, photoFile)),
+  parseWorkoutVoice: (b) => request('POST', '/api/workouts/parse-voice', b),
   updateWorkout: (id, payload, photoFile) => uploadFile(`/api/workouts/${id}`, workoutFormData(payload, photoFile), 'PUT'),
   getWorkouts:   ()   => request('GET',    '/api/workouts'),
   getWorkout:    (id) => request('GET',    `/api/workouts/${id}`),
@@ -60,6 +61,7 @@ export const api = {
   listMealPlans:    ()     => request('GET',    '/api/meals'),
   logMeal:          (b)    => request('POST',   '/api/meal-logs', b),
   recognizeFood:    (fd)   => uploadFile('/api/meal-logs/recognize', fd),
+  parseMealVoice:   (b)    => request('POST', '/api/meal-logs/parse-voice', b),
   getMealsForDate:  (date) => request('GET',    `/api/meal-logs?date=${date}`),
   getMealLogHistory: ()    => request('GET',    '/api/meal-logs/history'),
   deleteLoggedMeal: (id)   => request('DELETE', `/api/meal-logs/${id}`),

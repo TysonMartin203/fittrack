@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../api/client';
 import { today, formatDateStr } from '../dateUtils';
-import { IconTrash, IconCamera } from '../components/Icons';
+import { IconTrash, IconCamera, IconWave } from '../components/Icons';
 import { compressImage } from '../compressImage';
+import VoiceNoteButton from '../components/VoiceNoteButton';
 
 const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
@@ -23,6 +24,8 @@ export default function LogMeal() {
   const [error, setError] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState('');
+  const [voiceLoading, setVoiceLoading] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
   const fileRef = useRef();
 
   const [meals, setMeals] = useState([]);
@@ -62,6 +65,23 @@ export default function LogMeal() {
     } finally {
       setScanning(false);
       if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
+  async function handleVoiceTranscript(text) {
+    setVoiceLoading(true); setVoiceError('');
+    try {
+      const result = await api.parseMealVoice({ transcript: text });
+      setName(result.name || '');
+      if (result.mealType && MEAL_TYPES.includes(result.mealType)) setMealType(result.mealType);
+      setCalories(result.calories != null ? String(result.calories) : '');
+      setProtein(result.protein != null ? String(result.protein) : '');
+      setCarbs(result.carbs != null ? String(result.carbs) : '');
+      setFat(result.fat != null ? String(result.fat) : '');
+    } catch (err) {
+      setVoiceError(err.message || 'Could not process that — try again or enter it manually.');
+    } finally {
+      setVoiceLoading(false);
     }
   }
 
@@ -112,12 +132,22 @@ export default function LogMeal() {
           </div>
           <div className="field">
             <label className="label">Scan a Photo (optional)</label>
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={scanPhoto} style={{display:'none'}} id="food-photo-input"/>
+            <div className="glass-card" style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'10px',border:'1px solid var(--accent)'}}>
+              <IconWave style={{width:'22px',height:'22px',color:'var(--accent)',flexShrink:0}}/>
+              <p style={{fontSize:'13px',fontWeight:'600',margin:0}}>Place your open hand flat next to the food before you snap the photo — it's the key to a more accurate size estimate.</p>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" onChange={scanPhoto} style={{display:'none'}} id="food-photo-input"/>
             <label htmlFor="food-photo-input" className="btn-secondary" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',cursor:'pointer'}}>
               <IconCamera style={{width:'16px',height:'16px'}}/> {scanning ? 'Reading photo…' : 'Take or Choose a Photo'}
             </label>
             {scanError && <p className="form-error" style={{marginTop:'8px'}}>{scanError}</p>}
             <p className="muted" style={{fontSize:'12px',marginTop:'6px'}}>Fills in the fields below automatically — double check them before logging, since it's an estimate.</p>
+          </div>
+          <div className="field">
+            <label className="label">Or Say It (optional)</label>
+            <VoiceNoteButton label="Describe What You Ate" onTranscript={handleVoiceTranscript}/>
+            {voiceLoading && <p className="muted" style={{fontSize:'12px',marginTop:'6px'}}>Working it out…</p>}
+            {voiceError && <p className="form-error" style={{marginTop:'6px'}}>{voiceError}</p>}
           </div>
           <div className="field">
             <label className="label">What did you eat?</label>

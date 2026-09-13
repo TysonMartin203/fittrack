@@ -3,10 +3,16 @@ const path = require('path');
 const { savePhoto } = require('../models/photo.model');
 const pool = require('../config/db');
 const UPLOADS_DIR = require('../config/uploadsDir');
+const Anthropic = require('@anthropic-ai/sdk');
 const {
   createWorkout, updateWorkout, getWorkouts, getWorkoutById, getWorkoutForViewing,
   deleteWorkout, deleteWorkoutPhoto,
 } = require('../models/workout.model');
+
+function getClient() {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
 
 function parsePayload(req) {
   // Body arrives as multipart/form-data with a JSON "data" field
@@ -150,4 +156,43 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { create, update, list, getOne, getView, removePhoto, remove };
+// Parse a spoken description of a workout into one or more structured exercises.
+async function parseVoice(req, res) {
+  try {
+    const { transcript } = req.body;
+    if (!transcript?.trim()) return res.status(400).json({ error: 'No transcript provided' });
+    const client = getClient();
+
+    const prompt = `The user spoke this description of a workout: "${transcript.trim()}"
+
+Turn it into one or more structured exercise entries. Return ONLY valid JSON, no markdown — an array of objects, each in this exact structure:
+{
+  "category": "lifting" | "cardio",
+  "exerciseName": "e.g. Bench Press, or Running",
+  "sets": number or null (lifting only),
+  "reps": number or null (lifting only, use the highest number mentioned if a range was given),
+  "weight": number or null (lifting only, in lbs),
+  "durationMinutes": number or null (cardio only),
+  "distance": number or null (cardio only),
+  "distanceUnit": "mi" | "km" or null (cardio only)
+}
+
+If the person describes multiple exercises, return one object per exercise, in the order mentioned. If a detail wasn't mentioned, use null for it rather than guessing.`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 800,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    let text = message.content[0].text.trim();
+    text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+    const result = JSON.parse(text);
+    res.json({ exercises: Array.isArray(result) ? result : [result] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not parse that: ' + err.message });
+  }
+}
+
+module.exports = { create, update, list, getOne, getView, removePhoto, remove, parseVoice };
