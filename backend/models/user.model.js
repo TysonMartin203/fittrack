@@ -17,7 +17,7 @@ async function findByEmail(email) {
 
 async function findByUsername(username) {
   const [rows] = await pool.query(
-    'SELECT id, username, email FROM Users WHERE username = ?',
+    'SELECT * FROM Users WHERE username = ?',
     [username]
   );
   return rows[0] || null;

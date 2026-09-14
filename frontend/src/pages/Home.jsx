@@ -70,8 +70,8 @@ export default function Home() {
               </div>
             )}
             <div className="field">
-              <label className="label">Email</label>
-              <input className="input" type="email" placeholder="you@email.com" value={form.email} onChange={set('email')} required />
+              <label className="label">{mode === 'login' ? 'Email or Username' : 'Email'}</label>
+              <input className="input" type={mode === 'login' ? 'text' : 'email'} placeholder={mode === 'login' ? 'you@email.com or username' : 'you@email.com'} value={form.email} onChange={set('email')} required />
             </div>
             <div className="field">
               <label className="label">Password</label>
@@ -86,12 +86,16 @@ export default function Home() {
             </button>
           </form>
 
-          <div style={{display:'flex',alignItems:'center',gap:'10px',margin:'18px 0'}}>
-            <div style={{flex:1,height:'1px',background:'var(--border)'}}/>
-            <span className="muted" style={{fontSize:'12px'}}>or</span>
-            <div style={{flex:1,height:'1px',background:'var(--border)'}}/>
-          </div>
-          <GoogleSignInButton onCredential={handleGoogleCredential} onError={setError}/>
+          {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+            <>
+              <div style={{display:'flex',alignItems:'center',gap:'10px',margin:'18px 0'}}>
+                <div style={{flex:1,height:'1px',background:'var(--border)'}}/>
+                <span className="muted" style={{fontSize:'12px'}}>or</span>
+                <div style={{flex:1,height:'1px',background:'var(--border)'}}/>
+              </div>
+              <GoogleSignInButton onCredential={handleGoogleCredential} onError={setError}/>
+            </>
+          )}
         </div>
       </div>
     </div>

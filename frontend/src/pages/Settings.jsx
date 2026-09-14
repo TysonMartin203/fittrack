@@ -158,6 +158,17 @@ export default function Settings() {
         </button>
       </div>
 
+      {/* Appearance */}
+      <div className="section">
+        <div className="section-header">
+          <span className="section-title">Appearance</span>
+        </div>
+        <div className="tab-row">
+          <button className={user?.theme !== 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('light')} style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconSun style={{width:'15px',height:'15px'}}/> Light</button>
+          <button className={user?.theme === 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('dark')} style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconMoon style={{width:'15px',height:'15px'}}/> Dark</button>
+        </div>
+      </div>
+
       {/* Notifications */}
       <div className="section">
         <div className="section-header">
@@ -225,17 +236,6 @@ export default function Settings() {
         <div className="tab-row">
           <button className={user?.distanceUnit !== 'km' ? 'tab active' : 'tab'} onClick={()=>setDistanceUnit('mi')}>Miles</button>
           <button className={user?.distanceUnit === 'km' ? 'tab active' : 'tab'} onClick={()=>setDistanceUnit('km')}>Kilometers</button>
-        </div>
-      </div>
-
-      {/* Appearance */}
-      <div className="section">
-        <div className="section-header">
-          <span className="section-title">Appearance</span>
-        </div>
-        <div className="tab-row">
-          <button className={user?.theme !== 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('light')} style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconSun style={{width:'15px',height:'15px'}}/> Light</button>
-          <button className={user?.theme === 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('dark')} style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconMoon style={{width:'15px',height:'15px'}}/> Dark</button>
         </div>
       </div>
 

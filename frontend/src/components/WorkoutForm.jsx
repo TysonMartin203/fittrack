@@ -301,9 +301,14 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
   const [loading,      setLoading]      = useState(false);
   const fileRef = useRef();
 
-  // Auto-save a draft as they type, so an accidental navigation away doesn't lose it.
+  // Auto-save a draft as they type, so an accidental navigation away doesn't lose it —
+  // but not if the form is still completely blank, since there'd be nothing to protect.
   useEffect(() => {
     if (!isDraftable) return;
+    const hasContent = name || notesBefore || notesAfter || exercises.some(e =>
+      e.exerciseName || e.sets || e.reps || e.weight || e.durationMinutes || e.distance || e.notes || e.customName
+    );
+    if (!hasContent) return;
     saveDraft({ name, date, notesBefore, notesAfter, exercises });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, date, notesBefore, notesAfter, exercises]);

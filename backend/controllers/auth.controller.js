@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const pool   = require('../config/db');
 const { OAuth2Client } = require('google-auth-library');
 const {
-  createUser, findByEmail, findByGoogleId, linkGoogleId, createGoogleUser,
+  createUser, findByEmail, findByUsername, findByGoogleId, linkGoogleId, createGoogleUser,
 } = require('../models/user.model');
 
 const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID) : null;
@@ -79,8 +79,11 @@ async function login(req, res) {
   try {
     const { email, password } = req.body;
     if (!email || !password)
-      return res.status(400).json({ error: 'Email and password required' });
-    const user = await findByEmail(email);
+      return res.status(400).json({ error: 'Email/username and password required' });
+    const identifier = String(email).trim();
+    const user = identifier.includes('@')
+      ? await findByEmail(identifier)
+      : (await findByUsername(identifier)) || (await findByEmail(identifier));
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
     if (!user.password_hash)
       return res.status(401).json({ error: 'This account uses Google sign-in — use the Google button instead.' });
