@@ -29,6 +29,10 @@ function workoutFormData(payload, photoFile) {
 export const api = {
   register:      (b) => request('POST', '/api/auth/register', b),
   login:         (b) => request('POST', '/api/auth/login', b),
+  googleAuth:    (credential) => request('POST', '/api/auth/google', { credential }),
+  forgotPassword: (email) => request('POST', '/api/auth/forgot-password', { email }),
+  resetPassword: (token, password) => request('POST', '/api/auth/reset-password', { token, password }),
+  completeTutorial: () => request('POST', '/api/auth/tutorial-done', {}),
   uploadAvatar:  (fd) => uploadFile('/api/auth/avatar', fd),
   updateTheme:   (theme) => request('PUT', '/api/auth/theme', { theme }),
   updateAccountSettings: (b) => request('PUT', '/api/auth/settings', b),
@@ -70,6 +74,8 @@ export const api = {
   toggleFavorite:   (id)   => request('PUT',    `/api/meals/${id}/favorite`, {}),
   deleteMealPlan:   (id)   => request('DELETE', `/api/meals/${id}`),
   generateMealPlan: (b)    => request('POST',   '/api/meals/generate', b),
+  generateSingleMeal: (b)  => request('POST',   '/api/meals/generate-single', b),
+  generateDayPlan: (b)     => request('POST',   '/api/meals/generate-day', b),
   swapMeal:         (b)    => request('POST',   '/api/meals/swap', b),
 
   getAchievements: () => request('GET', '/api/achievements'),

@@ -169,9 +169,10 @@ Turn it into one or more structured exercise entries. Return ONLY valid JSON, no
 {
   "category": "lifting" or "cardio" (lowercase, exactly one of these two words),
   "exerciseName": "e.g. Bench Press for lifting. For cardio, use exactly one of: Running, Biking, Swimming, Walking, Rowing, Elliptical, Stair Climber, Jump Rope, Hiking, HIIT, Other",
-  "sets": number or null (lifting only),
+  "sets": number or null (lifting only — omit/null if perSets is used instead),
   "reps": number or null (lifting only, use the highest number mentioned if a range was given — note: speech-to-text sometimes mishears 'rep' as 'wrap', treat 'wrap/wraps' as 'rep/reps'),
-  "weight": number or null (lifting only, in lbs),
+  "weight": number or null (lifting only, in lbs — omit/null if perSets is used instead),
+  "perSets": [{"reps": number, "weight": number}, ...] or null (lifting only — use this INSTEAD of sets/reps/weight when the person describes different reps and/or weight for different sets of the same exercise, e.g. "first set 10 at 135, second set 8 at 155, third set 6 at 175" — one array entry per set, in the order mentioned),
   "durationMinutes": number or null (cardio only),
   "distance": number or null (cardio only),
   "distanceUnit": "mi" or "km" or null (cardio only)
@@ -181,7 +182,7 @@ If the person describes multiple exercises, return one object per exercise, in t
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 800,
+      max_tokens: 1200,
       messages: [{ role: 'user', content: prompt }],
     });
 

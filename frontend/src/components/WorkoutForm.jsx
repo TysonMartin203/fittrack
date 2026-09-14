@@ -4,6 +4,7 @@ import { compressImage } from '../compressImage';
 import { today } from '../dateUtils';
 import { IconTrophy, IconCheck } from './Icons';
 import VoiceNoteButton from './VoiceNoteButton';
+import VoiceAppendButton from './VoiceAppendButton';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { displayWeight, toStorageWeight, weightUnitLabel } from '../units';
@@ -91,6 +92,7 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
   const { user } = useAuth();
   const weightUnit = user?.weightUnit || 'lbs';
   const wLabel = weightUnitLabel(weightUnit);
+  const [showCardioDetails, setShowCardioDetails] = useState(false);
   const update = (patch) => onChange(index, { ...ex, ...patch });
 
   function setCategory(category) {
@@ -205,11 +207,11 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
             </div>
           )}
           <p className="muted" style={{ margin: '0 0 4px', fontSize: '12px' }}>All fields below are optional.</p>
+          <div className="field">
+            <label className="label">Duration (min:sec)</label>
+            <TimeInput minutesDecimal={ex.durationMinutes} onChange={v => update({ durationMinutes: v })} />
+          </div>
           <div className="input-row">
-            <div className="input-group">
-              <label className="label">Duration (min:sec)</label>
-              <TimeInput minutesDecimal={ex.durationMinutes} onChange={v => update({ durationMinutes: v })} />
-            </div>
             <div className="input-group">
               <label className="label">Distance</label>
               <input className="input" type="number" min="0" step="0.01" placeholder="3.1" value={ex.distance}
@@ -222,28 +224,36 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
               </select>
             </div>
           </div>
-          <div className="input-row">
-            <div className="input-group">
-              <label className="label">Calories</label>
-              <input className="input" type="number" min="0" placeholder="300" value={ex.calories}
-                onChange={e => update({ calories: e.target.value })} />
+          <button type="button" className="btn-ghost-sm" onClick={() => setShowCardioDetails(s => !s)} style={{marginBottom: showCardioDetails ? '10px' : 0}}>
+            {showCardioDetails ? '− Fewer details' : '+ More details (calories, heart rate, pace)'}
+          </button>
+          {showCardioDetails && (
+            <div className="input-row">
+              <div className="input-group">
+                <label className="label">Calories</label>
+                <input className="input" type="number" min="0" placeholder="300" value={ex.calories}
+                  onChange={e => update({ calories: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label className="label">Avg heart rate</label>
+                <input className="input" type="number" min="0" placeholder="150" value={ex.avgHeartRate}
+                  onChange={e => update({ avgHeartRate: e.target.value })} />
+              </div>
+              <div className="input-group">
+                <label className="label">Pace</label>
+                <input className="input" placeholder="9:40/mi" value={ex.pace}
+                  onChange={e => update({ pace: e.target.value })} />
+              </div>
             </div>
-            <div className="input-group">
-              <label className="label">Avg heart rate</label>
-              <input className="input" type="number" min="0" placeholder="150" value={ex.avgHeartRate}
-                onChange={e => update({ avgHeartRate: e.target.value })} />
-            </div>
-            <div className="input-group">
-              <label className="label">Pace</label>
-              <input className="input" placeholder="9:40/mi" value={ex.pace}
-                onChange={e => update({ pace: e.target.value })} />
-            </div>
-          </div>
+          )}
         </>
       )}
 
       <div className="field">
-        <label className="label">Exercise notes (optional)</label>
+        <label className="label" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          Exercise notes (optional)
+          <VoiceAppendButton onAppend={text => update({ notes: ex.notes ? `${ex.notes} ${text}` : text })}/>
+        </label>
         <textarea className="input" rows={2} placeholder="How did it feel?" value={ex.notes}
           onChange={e => update({ notes: e.target.value })} />
       </div>
@@ -328,12 +338,22 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
 
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [voiceError, setVoiceError] = useState('');
+  // Loose match so "lateral raises" (spoken plural) matches "Lateral Raise" (canonical singular),
+  // and similarly for any other minor spoken variation.
+  function normalizeExerciseName(s) {
+    return String(s || '').toLowerCase().trim().replace(/s$/, '');
+  }
+
   async function handleWorkoutVoice(text) {
     setVoiceLoading(true); setVoiceError('');
     try {
       // Speech recognition frequently mishears "rep(s)" as "wrap(s)" — normalize before sending.
       const cleaned = text.replace(/\bwraps?\b/gi, m => m.toLowerCase() === 'wrap' ? 'rep' : 'reps');
       const { exercises: parsed } = await api.parseWorkoutVoice({ transcript: cleaned });
+      if (!parsed || parsed.length === 0) {
+        setVoiceError('Could not make that out — please try again.');
+        return;
+      }
 
       setExercises(prev => {
         const isBlankDefault = prev.length === 1 && !prev[0].exerciseName && !prev[0].sets && !prev[0].weight && !prev[0].durationMinutes;
@@ -342,14 +362,24 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
         parsed.forEach(p => {
           const isCardio = String(p.category || '').toLowerCase().startsWith('cardio');
           const matchedActivity = isCardio ? CARDIO_ACTIVITIES.find(a => a.toLowerCase() === String(p.exerciseName || '').toLowerCase()) : null;
-          const pName = isCardio ? (matchedActivity || p.exerciseName || '') : (p.exerciseName || '');
+          // For lifting, prefer the canonical list name on a loose match, so voice input stays
+          // consistent with the picker/autocomplete rather than introducing near-duplicate names.
+          const canonicalLift = !isCardio
+            ? LIFTING_EXERCISES.find(e => normalizeExerciseName(e) === normalizeExerciseName(p.exerciseName))
+            : null;
+          const pName = isCardio ? (matchedActivity || p.exerciseName || '') : (canonicalLift || p.exerciseName || '');
 
           // If this exercise is already in the list (e.g. prefilled from a workout plan with
-          // sets/reps still blank), fill in the spoken details there instead of adding a duplicate.
+          // sets/reps still blank, or "lateral raises" spoken when "Lateral Raise" is already there),
+          // fill in the spoken details there instead of adding a duplicate.
           const existingIdx = next.findIndex(e =>
             e.category === (isCardio ? 'cardio' : 'lifting') &&
-            (e.exerciseName || '').toLowerCase() === pName.toLowerCase() && pName
+            normalizeExerciseName(e.exerciseName) === normalizeExerciseName(pName) && pName
           );
+
+          // Different reps/weight called out per set ("first set 10 at 135, second set 8 at 155")
+          const hasPerSets = !isCardio && Array.isArray(p.perSets) && p.perSets.length > 1;
+          const perSetsData = hasPerSets ? p.perSets.map(s => ({ reps: s.reps || '', weight: s.weight || '' })) : null;
 
           if (existingIdx !== -1) {
             next[existingIdx] = isCardio ? {
@@ -357,6 +387,9 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
               durationMinutes: p.durationMinutes ?? next[existingIdx].durationMinutes,
               distance: p.distance ?? next[existingIdx].distance,
               distanceUnit: p.distanceUnit || next[existingIdx].distanceUnit,
+            } : hasPerSets ? {
+              ...next[existingIdx],
+              perSetWeights: true, setsData: perSetsData, sets: String(perSetsData.length),
             } : {
               ...next[existingIdx],
               sets: p.sets ?? next[existingIdx].sets,
@@ -371,6 +404,12 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
               distanceUnit: p.distanceUnit || user?.distanceUnit || 'mi',
               calories: '', avgHeartRate: '', pace: '',
             }];
+          } else if (hasPerSets) {
+            next = [...next, {
+              category: 'lifting', exerciseName: pName, notes: '',
+              sets: String(perSetsData.length), reps: '', weight: '',
+              perSetWeights: true, setsData: perSetsData,
+            }];
           } else {
             next = [...next, {
               category: 'lifting', exerciseName: pName, notes: '',
@@ -382,7 +421,8 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
         return next.length ? next : [blankLiftingExercise()];
       });
     } catch (err) {
-      setVoiceError(err.message || 'Could not process that — try again or enter it manually.');
+      console.error(err);
+      setVoiceError('Sorry, I couldn\'t catch that — please try again.');
     } finally {
       setVoiceLoading(false);
     }
@@ -478,7 +518,10 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
       </div>
 
       <div className="field">
-        <label className="label">Notes before workout (optional)</label>
+        <label className="label" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          Notes before workout (optional)
+          <VoiceAppendButton onAppend={text => setNotesBefore(prev => prev ? `${prev} ${text}` : text)}/>
+        </label>
         <textarea className="input" rows={2} placeholder="How are you feeling going in?" value={notesBefore} onChange={e => setNotesBefore(e.target.value)} />
       </div>
 
@@ -500,7 +543,10 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
       <button type="button" className="btn-secondary" onClick={addExercise}>+ Add Exercise</button>
 
       <div className="field">
-        <label className="label">Notes after workout (optional)</label>
+        <label className="label" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          Notes after workout (optional)
+          <VoiceAppendButton onAppend={text => setNotesAfter(prev => prev ? `${prev} ${text}` : text)}/>
+        </label>
         <textarea className="input" rows={2} placeholder="How'd it go?" value={notesAfter} onChange={e => setNotesAfter(e.target.value)} />
       </div>
 

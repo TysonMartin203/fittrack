@@ -16,10 +16,12 @@ export function AuthProvider({ children }) {
       notifyBuzz: data.notifyBuzz !== false, notifyMessages: data.notifyMessages !== false,
       weightUnit: data.weightUnit === 'kg' ? 'kg' : 'lbs',
       distanceUnit: data.distanceUnit === 'km' ? 'km' : 'mi',
+      tutorialDone: !!data.tutorialDone,
     };
     localStorage.setItem('fittrack_token', data.token);
     localStorage.setItem('fittrack_user', JSON.stringify(u));
     setUser(u);
+    return u;
   }
 
   function updateUser(updates) {

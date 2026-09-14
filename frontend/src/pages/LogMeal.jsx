@@ -79,7 +79,8 @@ export default function LogMeal() {
       setCarbs(result.carbs != null ? String(result.carbs) : '');
       setFat(result.fat != null ? String(result.fat) : '');
     } catch (err) {
-      setVoiceError(err.message || 'Could not process that — try again or enter it manually.');
+      console.error(err);
+      setVoiceError('Sorry, I couldn\'t catch that — please try again.');
     } finally {
       setVoiceLoading(false);
     }

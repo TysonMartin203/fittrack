@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { IconLogo } from '../components/Icons';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 
 export default function Home() {
   const [mode,    setMode]    = useState('login');
   const [form,    setForm]    = useState({ username: '', email: '', password: '' });
   const [error,   setError]   = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { user, login } = useAuth();
   const navigate  = useNavigate();
+
+  // Already signed in — this route is for logged-out visitors only.
+  if (user) return <Navigate to="/dashboard" replace />;
 
   const set = f => e => setForm(p => ({ ...p, [f]: e.target.value }));
 
@@ -22,7 +26,20 @@ export default function Home() {
         ? await api.login({ email: form.email, password: form.password })
         : await api.register({ username: form.username, email: form.email, password: form.password });
       login(data);
-      navigate('/dashboard');
+      navigate(data.isNewUser ? '/tutorial' : '/dashboard');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogleCredential(credential) {
+    setError(''); setLoading(true);
+    try {
+      const data = await api.googleAuth(credential);
+      login(data);
+      navigate(data.isNewUser ? '/tutorial' : '/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -60,11 +77,21 @@ export default function Home() {
               <label className="label">Password</label>
               <input className="input" type="password" placeholder="••••••••" value={form.password} onChange={set('password')} required />
             </div>
+            {mode === 'login' && (
+              <Link to="/forgot-password" className="link-small" style={{alignSelf:'flex-end',marginTop:'-6px'}}>Forgot password?</Link>
+            )}
             {error && <p className="form-error">{error}</p>}
             <button className="btn-primary" type="submit" disabled={loading} style={{marginTop:'4px'}}>
               {loading ? 'Loading…' : mode === 'login' ? 'Log In' : 'Create Account'}
             </button>
           </form>
+
+          <div style={{display:'flex',alignItems:'center',gap:'10px',margin:'18px 0'}}>
+            <div style={{flex:1,height:'1px',background:'var(--border)'}}/>
+            <span className="muted" style={{fontSize:'12px'}}>or</span>
+            <div style={{flex:1,height:'1px',background:'var(--border)'}}/>
+          </div>
+          <GoogleSignInButton onCredential={handleGoogleCredential} onError={setError}/>
         </div>
       </div>
     </div>

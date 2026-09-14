@@ -2,7 +2,8 @@ const router = require('express').Router();
 const auth   = require('../middleware/auth');
 const {
   listPlans, getPlan, renamePlan, toggleFavorite, deletePlan,
-  generate, regenerate, swap, getRecipe, getTemplates, getTemplateById, useTemplate, sharePlan, createCustom
+  generate, regenerate, swap, getRecipe, getTemplates, getTemplateById, useTemplate, sharePlan, createCustom,
+  generateSingleMeal, generateDayPlan,
 } = require('../controllers/meal.controller');
 
 router.use(auth);
@@ -18,6 +19,8 @@ router.post('/:id/share',        sharePlan);
 router.post('/:id/regenerate',   regenerate);
 router.post('/custom',           createCustom);
 router.post('/generate',         generate);
+router.post('/generate-single',  generateSingleMeal);
+router.post('/generate-day',     generateDayPlan);
 router.post('/swap',             swap);
 router.post('/recipe',           getRecipe);
 module.exports = router;

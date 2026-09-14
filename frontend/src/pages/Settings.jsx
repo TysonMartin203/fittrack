@@ -333,6 +333,13 @@ export default function Settings() {
         ))}
       </div>
 
+      <div className="settings-group" style={{marginBottom:'16px'}}>
+        <div className="settings-item" onClick={() => navigate('/tutorial')}>
+          <span className="settings-label">Replay Tutorial</span>
+          <IconChevron style={{width:'18px',height:'18px',color:'var(--muted)'}}/>
+        </div>
+      </div>
+
       <div className="settings-group">
         <div className="settings-item" onClick={() => { logout(); navigate('/'); }}>
           <span className="settings-label" style={{color:'var(--danger)'}}>Log Out</span>

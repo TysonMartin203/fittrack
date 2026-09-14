@@ -27,7 +27,7 @@ export function useVoiceNote() {
       setTranscript(finalText + interim);
     };
     recognition.onerror = (e) => {
-      setError(e.error === 'not-allowed' ? 'Microphone access denied — check your browser settings.' : 'Could not hear you clearly — try again.');
+      setError(e.error === 'not-allowed' ? 'Microphone access denied — check your browser settings.' : 'Sorry, I couldn\'t hear that clearly — please try again.');
     };
     recognition.onend = () => setListening(false);
 

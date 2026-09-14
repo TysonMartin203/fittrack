@@ -4,6 +4,9 @@ import { useAuth } from './context/AuthContext';
 import Header     from './components/Header';
 import Nav        from './components/Nav';
 import Home       from './pages/Home';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword  from './pages/ResetPassword';
+import Tutorial   from './pages/Tutorial';
 import Dashboard  from './pages/Dashboard';
 import LogWorkout from './pages/LogWorkout';
 import WorkoutsHub from './pages/WorkoutsHub';
@@ -31,7 +34,10 @@ function Private({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/"          element={<Navigate to="/dashboard" replace />} />
+      <Route path="/"          element={<Home />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password"  element={<ResetPassword />} />
+      <Route path="/tutorial"  element={<Private><Tutorial /></Private>} />
       <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
       <Route path="/log"       element={<Private><WorkoutsHub /></Private>} />
       <Route path="/log/new"   element={<Private><LogWorkout /></Private>} />

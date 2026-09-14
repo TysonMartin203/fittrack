@@ -1,7 +1,63 @@
 const jwt    = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const pool   = require('../config/db');
-const { createUser, findByEmail } = require('../models/user.model');
+const { OAuth2Client } = require('google-auth-library');
+const {
+  createUser, findByEmail, findByGoogleId, linkGoogleId, createGoogleUser,
+} = require('../models/user.model');
+
+const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID) : null;
+
+function issueSession(res, user, extra = {}) {
+  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  res.json({
+    token, userId: user.id, username: user.username, email: user.email,
+    avatarUrl: user.avatar_url || null, theme: user.theme || 'light',
+    bio: user.bio || null,
+    notifyBuzz: user.notify_buzz == null ? true : !!user.notify_buzz,
+    notifyMessages: user.notify_messages == null ? true : !!user.notify_messages,
+    weightUnit: user.weight_unit || 'lbs',
+    distanceUnit: user.distance_unit || 'mi',
+    tutorialDone: !!user.tutorial_done,
+    ...extra,
+  });
+}
+
+async function googleAuth(req, res) {
+  try {
+    if (!googleClient) return res.status(503).json({ error: 'Google sign-in is not configured yet.' });
+    const { credential } = req.body;
+    if (!credential) return res.status(400).json({ error: 'Missing Google credential' });
+
+    const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: process.env.GOOGLE_CLIENT_ID });
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name } = payload;
+    if (!email) return res.status(400).json({ error: 'Google account has no email' });
+
+    let user = await findByGoogleId(googleId);
+    let isNew = false;
+
+    if (!user) {
+      // Not linked yet — if an account with this email already exists (signed up the normal
+      // way), link Google to it instead of creating a duplicate account.
+      const existing = await findByEmail(email);
+      if (existing) {
+        await linkGoogleId(existing.id, googleId);
+        user = existing;
+      } else {
+        const created = await createGoogleUser({ email, googleId, name });
+        const [[row]] = await pool.query('SELECT * FROM Users WHERE id = ?', [created.id]);
+        user = row;
+        isNew = true;
+      }
+    }
+
+    issueSession(res, user, { isNewUser: isNew });
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ error: 'Could not verify Google sign-in' });
+  }
+}
 
 async function register(req, res) {
   try {
@@ -10,7 +66,7 @@ async function register(req, res) {
       return res.status(400).json({ error: 'All fields required' });
     const id = await createUser({ username, email, password });
     const token = jwt.sign({ userId: id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ token, userId: id, username, email, theme: 'light', bio: null, notifyBuzz: true, notifyMessages: true, weightUnit: 'lbs', distanceUnit: 'mi' });
+    res.status(201).json({ token, userId: id, username, email, theme: 'light', bio: null, notifyBuzz: true, notifyMessages: true, weightUnit: 'lbs', distanceUnit: 'mi', tutorialDone: false, isNewUser: true });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY')
       return res.status(409).json({ error: 'Username or email already taken' });
@@ -26,18 +82,11 @@ async function login(req, res) {
       return res.status(400).json({ error: 'Email and password required' });
     const user = await findByEmail(email);
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user.password_hash)
+      return res.status(401).json({ error: 'This account uses Google sign-in — use the Google button instead.' });
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(401).json({ error: 'Invalid credentials' });
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({
-      token, userId: user.id, username: user.username, email: user.email,
-      avatarUrl: user.avatar_url || null, theme: user.theme || 'light',
-      bio: user.bio || null,
-      notifyBuzz: user.notify_buzz == null ? true : !!user.notify_buzz,
-      notifyMessages: user.notify_messages == null ? true : !!user.notify_messages,
-      weightUnit: user.weight_unit || 'lbs',
-      distanceUnit: user.distance_unit || 'mi',
-    });
+    issueSession(res, user);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -87,4 +136,62 @@ async function updateSettings(req, res) {
   }
 }
 
-module.exports = { register, login, uploadAvatar, updateTheme, updateSettings };
+const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../config/email');
+
+async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const user = await findByEmail(email);
+    // Always respond the same way whether or not the account exists, so this
+    // endpoint can't be used to check which emails have accounts.
+    if (user && user.password_hash) {
+      const token = crypto.randomBytes(32).toString('hex');
+      const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await pool.query('UPDATE Users SET reset_token = ?, reset_token_expires = ? WHERE id = ?', [token, expires, user.id]);
+      const base = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const resetUrl = `${base}/reset-password?token=${token}`;
+      try {
+        await sendPasswordResetEmail(user.email, resetUrl);
+      } catch (emailErr) {
+        console.error('Password reset email failed:', emailErr.message);
+        if (emailErr.message === 'Email sending is not configured yet.')
+          return res.status(503).json({ error: 'Password reset emails are not configured yet.' });
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function resetPassword(req, res) {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ error: 'Token and new password required' });
+    const [[user]] = await pool.query(
+      'SELECT * FROM Users WHERE reset_token = ? AND reset_token_expires > NOW()', [token]
+    );
+    if (!user) return res.status(400).json({ error: 'This reset link is invalid or has expired.' });
+    const hash = await bcrypt.hash(password, 12);
+    await pool.query('UPDATE Users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?', [hash, user.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function completeTutorial(req, res) {
+  try {
+    await pool.query('UPDATE Users SET tutorial_done = 1 WHERE id = ?', [req.userId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+module.exports = { register, login, googleAuth, uploadAvatar, updateTheme, updateSettings, forgotPassword, resetPassword, completeTutorial };

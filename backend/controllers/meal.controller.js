@@ -98,12 +98,12 @@ async function generate(req, res) {
     const prompt = `You are a certified nutritionist and personal trainer. Create a budget-friendly 7-day meal plan as JSON.
 
 CRITICAL BUDGET RULES:
-- Reuse proteins across multiple days (buy a whole chicken breast pack and use across 3 days)
-- Use the same base ingredients in different ways throughout the week
+- Reuse proteins and staple ingredients across the week (e.g. a rotisserie chicken or a pack of chicken thighs used in 3 different meals) so the grocery list stays short and affordable
 - Prioritize affordable proteins: eggs, canned tuna, chicken thighs, ground turkey, beans, lentils
 - Use seasonal/affordable produce: carrots, cabbage, bananas, apples, frozen vegetables
-- Staple grains: oats, rice, pasta, bread — use repeatedly
+- Staple grains: oats, rice, pasta, bread — use repeatedly across different meals
 - Keep weekly grocery cost under $75-100 for one person
+- Balance this with variety: reusing an INGREDIENT across the week is good (keeps cost down), but avoid serving the same or a near-identical MEAL back-to-back or on consecutive days — vary the preparation, seasoning, or pairing so it doesn't feel repetitive day to day, even when the underlying ingredients are shared
 
 User stats:
 - Current weight: ${weight || 'not provided'} lbs
@@ -417,7 +417,101 @@ async function sharePlan(req, res) {
   }
 }
 
+// Generate just one meal — for "I need an idea for lunch right now" rather than a whole week.
+async function generateSingleMeal(req, res) {
+  try {
+    const client = getClient();
+    const { mealType = 'Lunch', weight, goal, calorieGoal = '', restrictions = [], dislikes = '', wantedFoods = '', appliances = [], craving = '' } = req.body;
+    const applianceText = appliances.length > 0 ? appliances.join(', ') : 'stovetop, oven, microwave (assume basic)';
+
+    const prompt = `You are a certified nutritionist. Suggest ONE ${mealType.toLowerCase()} idea as JSON.
+
+User context:
+- Goal: ${goal || 'not provided'}
+- Daily calorie goal: ${calorieGoal || 'not specified'}
+- Dietary restrictions: ${restrictions.length > 0 ? restrictions.join(', ') : 'none'}
+- Foods to avoid: ${dislikes || 'none'}
+- Foods to include: ${wantedFoods || 'none'}
+- Available appliances: ${applianceText}
+- What they're in the mood for: ${craving || 'no particular craving — surprise them with something popular and easy'}
+
+Keep it affordable and only use the listed appliances. Default to universally popular, crowd-pleasing food unless a craving was given.
+
+Return ONLY valid JSON, no markdown:
+{ "type": "${mealType}", "name": "Meal name", "calories": number, "protein": number, "carbs": number, "fat": number, "ingredients": ["2 eggs","1 cup oats"] }`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6', max_tokens: 500,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    let text = message.content[0].text.trim();
+    text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+    res.json(JSON.parse(text));
+  } catch (err) {
+    console.error(err);
+    if (err.message === 'ANTHROPIC_API_KEY not set')
+      return res.status(503).json({ error: 'AI meal planning not configured yet.' });
+    res.status(500).json({ error: 'Failed to generate: ' + err.message });
+  }
+}
+
+// Generate a single day's worth of meals — saved the same way a full week plan is,
+// just with one day, so it reuses the existing plan-viewing UI.
+async function generateDayPlan(req, res) {
+  try {
+    await ensureTable();
+    const client = getClient();
+    const { weight, goalWeight, goal, activityLevel = '', calorieGoal = '', restrictions = [], dislikes = '', wantedFoods = '', appliances = [], notes = '', planName = 'Today\'s Plan' } = req.body;
+    const applianceText = appliances.length > 0 ? appliances.join(', ') : 'stovetop, oven, microwave (assume basic)';
+
+    const prompt = `You are a certified nutritionist. Create ONE day of meals (Breakfast, Lunch, Dinner, one Snack) as JSON.
+
+User stats:
+- Current weight: ${weight || 'not provided'} lbs
+- Goal weight: ${goalWeight || 'not provided'} lbs
+- Goal: ${goal || 'not provided'}
+- Activity level: ${activityLevel || 'not provided'}
+- Daily calorie goal (if given, target this closely): ${calorieGoal || 'not specified — estimate based on the stats above'}
+- Dietary restrictions: ${restrictions.length > 0 ? restrictions.join(', ') : 'none'}
+- Foods to avoid: ${dislikes || 'none'}
+- Foods to include: ${wantedFoods || 'none'}
+- Available appliances: ${applianceText}
+- Additional notes: ${notes || 'none'}
+
+Keep it affordable and only use the listed appliances. Default to universally popular, crowd-pleasing meals unless the user requested specific foods.
+
+Return ONLY valid JSON, no markdown:
+{
+  "daily_calories": number,
+  "macros": { "protein": number, "carbs": number, "fat": number },
+  "days": [{ "day": "Today", "meals": [
+    { "type": "Breakfast", "name": "...", "calories": number, "protein": number, "carbs": number, "fat": number, "ingredients": ["..."], "can_substitute": true }
+  ]}]
+}`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-6', max_tokens: 2000,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    let text = message.content[0].text.trim();
+    text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+    const plan = JSON.parse(text);
+
+    const [result] = await pool.query(
+      'INSERT INTO MealPlans (user_id, name, profile, plan) VALUES (?, ?, ?, ?)',
+      [req.userId, planName, JSON.stringify(req.body), JSON.stringify(plan)]
+    );
+    res.json({ plan, planId: result.insertId, planName });
+  } catch (err) {
+    console.error(err);
+    if (err.message === 'ANTHROPIC_API_KEY not set')
+      return res.status(503).json({ error: 'AI meal planning not configured yet.' });
+    res.status(500).json({ error: 'Failed to generate: ' + err.message });
+  }
+}
+
 module.exports = {
   listPlans, getPlan, renamePlan, toggleFavorite, deletePlan, generate, regenerate, swap,
   getRecipe, getTemplates, getTemplateById, useTemplate, sharePlan, createCustom,
+  generateSingleMeal, generateDayPlan,
 };

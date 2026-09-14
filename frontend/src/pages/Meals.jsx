@@ -501,6 +501,7 @@ function CustomPlanBuilder({ onBack, onCreated }) {
 }
 
 export default function Meals() {
+  const navigate = useNavigate();
   const [view,       setView]       = useState('list');
   const [showGate,   setShowGate]   = useState(false);
   const [plans,      setPlans]      = useState([]);
@@ -510,6 +511,10 @@ export default function Meals() {
   const [generating, setGenerating] = useState(false);
   const [error,      setError]      = useState('');
   const [profile,    setProfile]    = useState({ weight:'',goalWeight:'',goal:GOALS[2],timeline:'',restrictions:[],dislikes:'',wantedFoods:'',appliances:[],notes:'',planName:'My Meal Plan' });
+  const [planScope,  setPlanScope]  = useState('week'); // week | day | single
+  const [singleMealType, setSingleMealType] = useState('Lunch');
+  const [craving,    setCraving]    = useState('');
+  const [singleResult, setSingleResult] = useState(null);
 
   useEffect(() => {
     loadPlans();
@@ -523,16 +528,39 @@ export default function Meals() {
 
   async function generate(e) {
     e.preventDefault();
-    setError(''); setGenerating(true);
+    setError(''); setGenerating(true); setSingleResult(null);
     try {
-      const data = await api.generateMealPlan(profile);
-      const { planName, ...profileToSave } = profile;
-      api.saveProfile(profileToSave).catch(()=>{});
-      loadPlans();
-      setActivePlan(data.planId);
-      setView('detail');
-    } catch (err) { setError(err.message||'Failed to generate plan.'); }
+      if (planScope === 'single') {
+        const data = await api.generateSingleMeal({ ...profile, mealType: singleMealType, craving });
+        setSingleResult(data);
+      } else if (planScope === 'day') {
+        const data = await api.generateDayPlan({ ...profile, planName: profile.planName || "Today's Plan" });
+        const { planName, ...profileToSave } = profile;
+        api.saveProfile(profileToSave).catch(()=>{});
+        loadPlans();
+        setActivePlan(data.planId);
+        setView('detail');
+      } else {
+        const data = await api.generateMealPlan(profile);
+        const { planName, ...profileToSave } = profile;
+        api.saveProfile(profileToSave).catch(()=>{});
+        loadPlans();
+        setActivePlan(data.planId);
+        setView('detail');
+      }
+    } catch (err) { setError(err.message||'Failed to generate.'); }
     finally { setGenerating(false); }
+  }
+
+  function logSingleMeal() {
+    navigate('/meals/log', {
+      state: {
+        mealType: singleResult.type, name: singleResult.name,
+        calories: singleResult.calories, protein: singleResult.protein,
+        carbs: singleResult.carbs, fat: singleResult.fat,
+        planLabel: 'AI suggestion',
+      },
+    });
   }
 
   async function toggleFav(e, id) {
@@ -570,31 +598,78 @@ export default function Meals() {
 
   // New plan form
   if (view === 'new') {
+    if (singleResult) {
+      return (
+        <div className="page">
+          <button className="btn-ghost" onClick={()=>{setSingleResult(null);}} style={{marginBottom:'16px'}}>← Back</button>
+          <h2 className="page-title">{singleResult.type}</h2>
+          <div className="card-form" style={{marginBottom:'16px'}}>
+            <div style={{fontWeight:'700',fontSize:'17px',marginBottom:'8px'}}>{singleResult.name}</div>
+            <div style={{fontSize:'13px',color:'var(--muted)',marginBottom:'12px'}}>
+              {singleResult.calories} cal · {singleResult.protein}g protein · {singleResult.carbs}g carbs · {singleResult.fat}g fat
+            </div>
+            {singleResult.ingredients?.length > 0 && (
+              <ul style={{fontSize:'13px',paddingLeft:'18px',margin:0}}>
+                {singleResult.ingredients.map((ing,i) => <li key={i}>{ing}</li>)}
+              </ul>
+            )}
+          </div>
+          <div style={{display:'flex',gap:'10px'}}>
+            <button className="btn-primary" style={{flex:1}} onClick={logSingleMeal}>Log This Meal</button>
+            <button className="btn-secondary" style={{flex:1}} disabled={generating} onClick={generate}>{generating?'…':'Try Another'}</button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="page">
         <button className="btn-ghost" onClick={()=>setView('list')} style={{marginBottom:'16px'}}>← Back</button>
         <h2 className="page-title">New Meal Plan</h2>
         {error && <p className="form-error" style={{marginBottom:'16px'}}>{error}</p>}
 
+        <div className="tab-row" style={{marginBottom:'16px'}}>
+          {[['week','Full Week'],['day','Just Today'],['single','Single Meal']].map(([id,label]) => (
+            <button key={id} type="button" className={planScope===id?'tab active':'tab'} onClick={()=>setPlanScope(id)}>{label}</button>
+          ))}
+        </div>
+
         <form onSubmit={generate} className="form-stack">
-          <div className="card-form">
-            <div className="field" style={{marginBottom:'12px'}}>
-              <label className="label">Plan Name</label>
-              <input className="input" placeholder="e.g. Summer Cut Plan" value={profile.planName} onChange={e=>setProfile(p=>({...p,planName:e.target.value}))} required/>
-            </div>
-            <div className="input-row">
-              <div className="input-group"><label className="label">Current Weight (lbs)</label><input className="input" type="number" placeholder="185" value={profile.weight} onChange={e=>setProfile(p=>({...p,weight:e.target.value}))}/></div>
-              <div className="input-group"><label className="label">Goal Weight (lbs)</label><input className="input" type="number" placeholder="175" value={profile.goalWeight} onChange={e=>setProfile(p=>({...p,goalWeight:e.target.value}))}/></div>
-            </div>
-            <div className="input-row" style={{marginTop:'12px'}}>
-              <div className="input-group"><label className="label">Goal</label>
-                <select className="input" value={profile.goal} onChange={e=>setProfile(p=>({...p,goal:e.target.value}))}>
-                  {GOALS.map(g=><option key={g}>{g}</option>)}
-                </select>
+          {planScope === 'single' ? (
+            <div className="card-form">
+              <div className="field" style={{marginBottom:'12px'}}>
+                <label className="label">Meal</label>
+                <div className="tab-row">
+                  {['Breakfast','Lunch','Dinner','Snack'].map(t => (
+                    <button type="button" key={t} className={singleMealType===t?'tab active':'tab'} onClick={()=>setSingleMealType(t)}>{t}</button>
+                  ))}
+                </div>
               </div>
-              <div className="input-group"><label className="label">Timeline (weeks)</label><input className="input" type="number" placeholder="12" value={profile.timeline} onChange={e=>setProfile(p=>({...p,timeline:e.target.value}))}/></div>
+              <div className="field">
+                <label className="label">In the mood for anything? (optional)</label>
+                <input className="input" placeholder="e.g. something spicy, quick, uses chicken" value={craving} onChange={e=>setCraving(e.target.value)}/>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="card-form">
+              <div className="field" style={{marginBottom:'12px'}}>
+                <label className="label">Plan Name</label>
+                <input className="input" placeholder="e.g. Summer Cut Plan" value={profile.planName} onChange={e=>setProfile(p=>({...p,planName:e.target.value}))} required/>
+              </div>
+              <div className="input-row">
+                <div className="input-group"><label className="label">Current Weight (lbs)</label><input className="input" type="number" placeholder="185" value={profile.weight} onChange={e=>setProfile(p=>({...p,weight:e.target.value}))}/></div>
+                <div className="input-group"><label className="label">Goal Weight (lbs)</label><input className="input" type="number" placeholder="175" value={profile.goalWeight} onChange={e=>setProfile(p=>({...p,goalWeight:e.target.value}))}/></div>
+              </div>
+              <div className="input-row" style={{marginTop:'12px'}}>
+                <div className="input-group"><label className="label">Goal</label>
+                  <select className="input" value={profile.goal} onChange={e=>setProfile(p=>({...p,goal:e.target.value}))}>
+                    {GOALS.map(g=><option key={g}>{g}</option>)}
+                  </select>
+                </div>
+                {planScope === 'week' && <div className="input-group"><label className="label">Timeline (weeks)</label><input className="input" type="number" placeholder="12" value={profile.timeline} onChange={e=>setProfile(p=>({...p,timeline:e.target.value}))}/></div>}
+              </div>
+            </div>
+          )}
 
           <div className="card-form">
             <label className="label" style={{display:'block',marginBottom:'10px'}}>Dietary Restrictions</label>
@@ -605,11 +680,13 @@ export default function Meals() {
             <div className="form-stack">
               <div className="field"><label className="label">Foods You Dislike</label><input className="input" placeholder="e.g. mushrooms, cilantro" value={profile.dislikes} onChange={e=>setProfile(p=>({...p,dislikes:e.target.value}))}/></div>
               <div className="field"><label className="label">Foods You Really Want</label><input className="input" placeholder="e.g. salmon, sweet potatoes" value={profile.wantedFoods} onChange={e=>setProfile(p=>({...p,wantedFoods:e.target.value}))}/></div>
-              <div className="field">
-                <label className="label">Notes for the AI (goals, injuries, preferences)</label>
-                <textarea className="input" rows={3} placeholder="e.g. trying to hit 150g protein a day, recovering from a wrist injury, cooking for one"
-                  value={profile.notes} onChange={e=>setProfile(p=>({...p,notes:e.target.value}))} />
-              </div>
+              {planScope !== 'single' && (
+                <div className="field">
+                  <label className="label">Notes for the AI (goals, injuries, preferences)</label>
+                  <textarea className="input" rows={3} placeholder="e.g. trying to hit 150g protein a day, recovering from a wrist injury, cooking for one"
+                    value={profile.notes} onChange={e=>setProfile(p=>({...p,notes:e.target.value}))} />
+                </div>
+              )}
             </div>
           </div>
 
@@ -620,10 +697,11 @@ export default function Meals() {
 
           <button className="btn-primary" type="submit" disabled={generating}>
             <span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'}}>
-              <IconSparkle style={{width:'16px',height:'16px'}}/>{generating?'Generating 7-Day Plan…':'Generate AI Meal Plan'}
+              <IconSparkle style={{width:'16px',height:'16px'}}/>
+              {generating ? 'Generating…' : planScope==='single' ? 'Suggest a Meal' : planScope==='day' ? 'Generate Today\'s Plan' : 'Generate AI Meal Plan'}
             </span>
           </button>
-          {generating && <p className="muted" style={{textAlign:'center',fontSize:'12px'}}>This takes about 15-20 seconds…</p>}
+          {generating && <p className="muted" style={{textAlign:'center',fontSize:'12px'}}>This takes about {planScope==='single'?'a few':'15-20'} seconds…</p>}
         </form>
       </div>
     );
