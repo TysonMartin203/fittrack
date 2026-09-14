@@ -1,7 +1,9 @@
 const jwt    = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const pool   = require('../config/db');
 const { OAuth2Client } = require('google-auth-library');
+const { sendPasswordResetEmail } = require('../config/email');
 const {
   createUser, findByEmail, findByUsername, findByGoogleId, linkGoogleId, createGoogleUser,
 } = require('../models/user.model');
@@ -19,6 +21,7 @@ function issueSession(res, user, extra = {}) {
     weightUnit: user.weight_unit || 'lbs',
     distanceUnit: user.distance_unit || 'mi',
     tutorialDone: !!user.tutorial_done,
+    isAdmin: !!user.is_admin,
     ...extra,
   });
 }
@@ -64,9 +67,11 @@ async function register(req, res) {
     const { username, email, password } = req.body;
     if (!username || !email || !password)
       return res.status(400).json({ error: 'All fields required' });
+    if (password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters.' });
     const id = await createUser({ username, email, password });
     const token = jwt.sign({ userId: id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ token, userId: id, username, email, theme: 'light', bio: null, notifyBuzz: true, notifyMessages: true, weightUnit: 'lbs', distanceUnit: 'mi', tutorialDone: false, isNewUser: true });
+    res.status(201).json({ token, userId: id, username, email, theme: 'light', bio: null, notifyBuzz: true, notifyMessages: true, weightUnit: 'lbs', distanceUnit: 'mi', tutorialDone: false, isNewUser: true, isAdmin: false });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY')
       return res.status(409).json({ error: 'Username or email already taken' });
@@ -85,8 +90,22 @@ async function login(req, res) {
       ? await findByEmail(identifier)
       : (await findByUsername(identifier)) || (await findByEmail(identifier));
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-    if (!user.password_hash)
-      return res.status(401).json({ error: 'This account uses Google sign-in — use the Google button instead.' });
+    if (!user.password_hash) {
+      if (user.google_id) return res.status(401).json({ error: 'This account uses Google sign-in — use the Google button instead.' });
+      // Password was cleared (e.g. by an admin) — automatically start the reset flow
+      // rather than leaving them stuck with no way back in.
+      try {
+        const token = crypto.randomBytes(32).toString('hex');
+        const expires = new Date(Date.now() + 60 * 60 * 1000);
+        await pool.query('UPDATE Users SET reset_token = ?, reset_token_expires = ? WHERE id = ?', [token, expires, user.id]);
+        const base = process.env.FRONTEND_URL || 'http://localhost:5173';
+        await sendPasswordResetEmail(user.email, `${base}/reset-password?token=${token}`);
+        return res.status(401).json({ error: 'Your password needs to be reset — check your email for a link to set a new one.' });
+      } catch (emailErr) {
+        console.error('Auto reset-email failed:', emailErr.message);
+        return res.status(401).json({ error: 'Your password was reset by an admin. Use "Forgot password?" to set a new one.' });
+      }
+    }
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(401).json({ error: 'Invalid credentials' });
     issueSession(res, user);
@@ -138,9 +157,6 @@ async function updateSettings(req, res) {
     res.status(500).json({ error: 'Server error' });
   }
 }
-
-const crypto = require('crypto');
-const { sendPasswordResetEmail } = require('../config/email');
 
 async function forgotPassword(req, res) {
   try {
@@ -197,4 +213,59 @@ async function completeTutorial(req, res) {
   }
 }
 
-module.exports = { register, login, googleAuth, uploadAvatar, updateTheme, updateSettings, forgotPassword, resetPassword, completeTutorial };
+async function changePassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+    const [[user]] = await pool.query('SELECT * FROM Users WHERE id = ?', [req.userId]);
+    if (user.password_hash) {
+      if (!currentPassword) return res.status(400).json({ error: 'Current password required.' });
+      const match = await bcrypt.compare(currentPassword, user.password_hash);
+      if (!match) return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+    const hash = await bcrypt.hash(newPassword, 12);
+    await pool.query('UPDATE Users SET password_hash = ? WHERE id = ?', [hash, req.userId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function changeEmail(req, res) {
+  try {
+    const { newEmail, currentPassword } = req.body;
+    if (!newEmail) return res.status(400).json({ error: 'New email required.' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) return res.status(400).json({ error: 'That email address doesn\'t look valid.' });
+    const [[user]] = await pool.query('SELECT * FROM Users WHERE id = ?', [req.userId]);
+    if (user.password_hash) {
+      if (!currentPassword) return res.status(400).json({ error: 'Current password required.' });
+      const match = await bcrypt.compare(currentPassword, user.password_hash);
+      if (!match) return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+    const existing = await findByEmail(newEmail);
+    if (existing && existing.id !== req.userId) return res.status(409).json({ error: 'That email is already in use.' });
+    await pool.query('UPDATE Users SET email = ? WHERE id = ?', [newEmail, req.userId]);
+    res.json({ success: true, email: newEmail });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function changeUsername(req, res) {
+  try {
+    const { newUsername } = req.body;
+    if (!newUsername || newUsername.trim().length < 2) return res.status(400).json({ error: 'Username must be at least 2 characters.' });
+    const clean = newUsername.trim();
+    const existing = await findByUsername(clean);
+    if (existing && existing.id !== req.userId) return res.status(409).json({ error: 'That username is already taken.' });
+    await pool.query('UPDATE Users SET username = ? WHERE id = ?', [clean, req.userId]);
+    res.json({ success: true, username: clean });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+module.exports = { register, login, googleAuth, uploadAvatar, updateTheme, updateSettings, forgotPassword, resetPassword, completeTutorial, changePassword, changeEmail, changeUsername };

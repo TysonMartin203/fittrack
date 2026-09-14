@@ -17,6 +17,7 @@ export function AuthProvider({ children }) {
       weightUnit: data.weightUnit === 'kg' ? 'kg' : 'lbs',
       distanceUnit: data.distanceUnit === 'km' ? 'km' : 'mi',
       tutorialDone: !!data.tutorialDone,
+      isAdmin: !!data.isAdmin,
     };
     localStorage.setItem('fittrack_token', data.token);
     localStorage.setItem('fittrack_user', JSON.stringify(u));

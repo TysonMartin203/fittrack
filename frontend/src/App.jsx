@@ -7,6 +7,7 @@ import Home       from './pages/Home';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword  from './pages/ResetPassword';
 import Tutorial   from './pages/Tutorial';
+import Admin       from './pages/Admin';
 import Dashboard  from './pages/Dashboard';
 import LogWorkout from './pages/LogWorkout';
 import WorkoutsHub from './pages/WorkoutsHub';
@@ -25,6 +26,7 @@ import Meals      from './pages/Meals';
 import MealsHub   from './pages/MealsHub';
 import LogMeal    from './pages/LogMeal';
 import MealHistory from './pages/MealHistory';
+import CalorieTracker from './pages/CalorieTracker';
 
 function Private({ children }) {
   const { user } = useAuth();
@@ -38,6 +40,7 @@ function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password"  element={<ResetPassword />} />
       <Route path="/tutorial"  element={<Private><Tutorial /></Private>} />
+      <Route path="/admin"     element={<Private><Admin /></Private>} />
       <Route path="/dashboard" element={<Private><Dashboard /></Private>} />
       <Route path="/log"       element={<Private><WorkoutsHub /></Private>} />
       <Route path="/log/new"   element={<Private><LogWorkout /></Private>} />
@@ -56,6 +59,7 @@ function AppRoutes() {
       <Route path="/meals/plans" element={<Private><Meals /></Private>} />
       <Route path="/meals/log" element={<Private><LogMeal /></Private>} />
       <Route path="/meals/history" element={<Private><MealHistory /></Private>} />
+      <Route path="/meals/calories" element={<Private><CalorieTracker /></Private>} />
     </Routes>
   );
 }

@@ -461,10 +461,12 @@ async function generateDayPlan(req, res) {
   try {
     await ensureTable();
     const client = getClient();
-    const { weight, goalWeight, goal, activityLevel = '', calorieGoal = '', restrictions = [], dislikes = '', wantedFoods = '', appliances = [], notes = '', planName = 'Today\'s Plan' } = req.body;
+    const { weight, goalWeight, goal, activityLevel = '', calorieGoal = '', restrictions = [], dislikes = '', wantedFoods = '', appliances = [], notes = '', planName, numDays = 1 } = req.body;
+    const days = Math.max(1, Math.min(3, Number(numDays) || 1));
     const applianceText = appliances.length > 0 ? appliances.join(', ') : 'stovetop, oven, microwave (assume basic)';
+    const dayLabels = days === 1 ? ['Today'] : Array.from({ length: days }, (_, i) => `Day ${i + 1}`);
 
-    const prompt = `You are a certified nutritionist. Create ONE day of meals (Breakfast, Lunch, Dinner, one Snack) as JSON.
+    const prompt = `You are a certified nutritionist. Create ${days} day${days>1?'s':''} of meals (Breakfast, Lunch, Dinner, one Snack per day) as JSON. Day labels, in order: ${dayLabels.join(', ')}.
 
 User stats:
 - Current weight: ${weight || 'not provided'} lbs
@@ -478,30 +480,31 @@ User stats:
 - Available appliances: ${applianceText}
 - Additional notes: ${notes || 'none'}
 
-Keep it affordable and only use the listed appliances. Default to universally popular, crowd-pleasing meals unless the user requested specific foods.
+Keep it affordable and only use the listed appliances. Default to universally popular, crowd-pleasing meals unless the user requested specific foods.${days > 1 ? ' Reuse proteins and staple ingredients across the days to keep the grocery list short, but avoid repeating the same or a near-identical meal on consecutive days.' : ''}
 
 Return ONLY valid JSON, no markdown:
 {
   "daily_calories": number,
   "macros": { "protein": number, "carbs": number, "fat": number },
-  "days": [{ "day": "Today", "meals": [
+  "days": [{ "day": "${dayLabels[0]}", "meals": [
     { "type": "Breakfast", "name": "...", "calories": number, "protein": number, "carbs": number, "fat": number, "ingredients": ["..."], "can_substitute": true }
-  ]}]
+  ]}${days>1 ? ', { "day": "..." , "meals": [...] }' : ''}]
 }`;
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-6', max_tokens: 2000,
+      model: 'claude-sonnet-4-6', max_tokens: days > 1 ? 4000 : 2000,
       messages: [{ role: 'user', content: prompt }],
     });
     let text = message.content[0].text.trim();
     text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
     const plan = JSON.parse(text);
+    const finalName = planName || (days === 1 ? "Today's Plan" : `${days}-Day Plan`);
 
     const [result] = await pool.query(
       'INSERT INTO MealPlans (user_id, name, profile, plan) VALUES (?, ?, ?, ?)',
-      [req.userId, planName, JSON.stringify(req.body), JSON.stringify(plan)]
+      [req.userId, finalName, JSON.stringify(req.body), JSON.stringify(plan)]
     );
-    res.json({ plan, planId: result.insertId, planName });
+    res.json({ plan, planId: result.insertId, planName: finalName });
   } catch (err) {
     console.error(err);
     if (err.message === 'ANTHROPIC_API_KEY not set')

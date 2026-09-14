@@ -30,6 +30,7 @@ app.use('/api/friends',      require('./routes/friend.routes'));
 app.use('/api/messages',     require('./routes/message.routes'));
 app.use('/api/meals',        require('./routes/meal.routes'));
 app.use('/api/meal-logs',    require('./routes/meallog.routes'));
+app.use('/api/admin',        require('./routes/admin.routes'));
 app.use('/api/achievements', require('./routes/achievement.routes'));
 app.use('/api/push',         require('./routes/push.routes'));
 app.use('/api/feed',         require('./routes/feed.routes'));

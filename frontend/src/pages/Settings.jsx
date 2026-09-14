@@ -46,6 +46,52 @@ export default function Settings() {
   const [pushStatus,   setPushStatus]   = useState('unknown');
   const [mwSummaryCount, setMwSummaryCount] = useState(0);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showAccount, setShowAccount] = useState(null); // 'username' | 'email' | 'password' | null
+  const [usernameInput, setUsernameInput] = useState(user?.username || '');
+  const [emailInput, setEmailInput] = useState(user?.email || '');
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [accountError, setAccountError] = useState('');
+  const [accountSuccess, setAccountSuccess] = useState('');
+  const [savingAccount, setSavingAccount] = useState(false);
+
+  async function saveUsername(e) {
+    e.preventDefault();
+    setAccountError(''); setAccountSuccess(''); setSavingAccount(true);
+    try {
+      const res = await api.changeUsername({ newUsername: usernameInput });
+      updateUser({ username: res.username });
+      setAccountSuccess('Username updated.');
+      setShowAccount(null);
+    } catch (err) { setAccountError(err.message); }
+    finally { setSavingAccount(false); }
+  }
+
+  async function saveEmail(e) {
+    e.preventDefault();
+    setAccountError(''); setAccountSuccess(''); setSavingAccount(true);
+    try {
+      const res = await api.changeEmail({ newEmail: emailInput, currentPassword: currentPw });
+      updateUser({ email: res.email });
+      setAccountSuccess('Email updated.');
+      setShowAccount(null); setCurrentPw('');
+    } catch (err) { setAccountError(err.message); }
+    finally { setSavingAccount(false); }
+  }
+
+  async function savePassword(e) {
+    e.preventDefault();
+    setAccountError(''); setAccountSuccess('');
+    if (newPw !== confirmPw) { setAccountError("New passwords don't match."); return; }
+    setSavingAccount(true);
+    try {
+      await api.changePassword({ currentPassword: currentPw, newPassword: newPw });
+      setAccountSuccess('Password updated.');
+      setShowAccount(null); setCurrentPw(''); setNewPw(''); setConfirmPw('');
+    } catch (err) { setAccountError(err.message); }
+    finally { setSavingAccount(false); }
+  }
 
   const initials  = user?.username?.slice(0,2).toUpperCase() || 'FT';
   const avatarUrl = user?.avatarUrl ? api.fileUrl(user.avatarUrl) : null;
@@ -156,6 +202,81 @@ export default function Settings() {
         <button className="btn-ghost-sm" style={{marginTop:'8px'}} onClick={saveBio} disabled={savingBio}>
           {savingBio ? 'Saving…' : 'Save Bio'}
         </button>
+      </div>
+
+      {/* Account */}
+      <div className="section">
+        <div className="section-header">
+          <span className="section-title">Account</span>
+        </div>
+        {accountSuccess && <p className="form-success" style={{marginBottom:'8px'}}>{accountSuccess}</p>}
+
+        <div className="list-item clickable" onClick={()=>{setShowAccount(s=>s==='username'?null:'username'); setAccountError('');}}>
+          <div style={{flex:1}}>
+            <div className="item-main">Username</div>
+            <div className="item-meta">{user?.username}</div>
+          </div>
+          <IconChevron style={{width:'16px',height:'16px',color:'var(--muted)'}}/>
+        </div>
+        {showAccount === 'username' && (
+          <form onSubmit={saveUsername} className="card-form form-stack" style={{marginBottom:'10px'}}>
+            <div className="field">
+              <label className="label">New Username</label>
+              <input className="input" value={usernameInput} onChange={e=>setUsernameInput(e.target.value)} required/>
+            </div>
+            {accountError && <p className="form-error">{accountError}</p>}
+            <button className="btn-primary" type="submit" disabled={savingAccount}>{savingAccount?'Saving…':'Save Username'}</button>
+          </form>
+        )}
+
+        <div className="list-item clickable" onClick={()=>{setShowAccount(s=>s==='email'?null:'email'); setAccountError('');}}>
+          <div style={{flex:1}}>
+            <div className="item-main">Email</div>
+            <div className="item-meta">{user?.email}</div>
+          </div>
+          <IconChevron style={{width:'16px',height:'16px',color:'var(--muted)'}}/>
+        </div>
+        {showAccount === 'email' && (
+          <form onSubmit={saveEmail} className="card-form form-stack" style={{marginBottom:'10px'}}>
+            <div className="field">
+              <label className="label">New Email</label>
+              <input className="input" type="email" value={emailInput} onChange={e=>setEmailInput(e.target.value)} required/>
+            </div>
+            <div className="field">
+              <label className="label">Current Password</label>
+              <input className="input" type="password" value={currentPw} onChange={e=>setCurrentPw(e.target.value)} placeholder="Leave blank if you use Google sign-in"/>
+            </div>
+            {accountError && <p className="form-error">{accountError}</p>}
+            <button className="btn-primary" type="submit" disabled={savingAccount}>{savingAccount?'Saving…':'Save Email'}</button>
+          </form>
+        )}
+
+        <div className="list-item clickable" onClick={()=>{setShowAccount(s=>s==='password'?null:'password'); setAccountError('');}}>
+          <div style={{flex:1}}>
+            <div className="item-main">Password</div>
+            <div className="item-meta">Change your password</div>
+          </div>
+          <IconChevron style={{width:'16px',height:'16px',color:'var(--muted)'}}/>
+        </div>
+        {showAccount === 'password' && (
+          <form onSubmit={savePassword} className="card-form form-stack">
+            <div className="field">
+              <label className="label">Current Password</label>
+              <input className="input" type="password" value={currentPw} onChange={e=>setCurrentPw(e.target.value)} placeholder="Leave blank if you use Google sign-in"/>
+            </div>
+            <div className="field">
+              <label className="label">New Password</label>
+              <input className="input" type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} required/>
+            </div>
+            <div className="field">
+              <label className="label">Confirm New Password</label>
+              <input className="input" type="password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} required/>
+              {confirmPw && newPw !== confirmPw && <p className="form-error" style={{fontSize:'12px',marginTop:'4px'}}>Passwords don't match.</p>}
+            </div>
+            {accountError && <p className="form-error">{accountError}</p>}
+            <button className="btn-primary" type="submit" disabled={savingAccount || (confirmPw && newPw !== confirmPw)}>{savingAccount?'Saving…':'Save Password'}</button>
+          </form>
+        )}
       </div>
 
       {/* Appearance */}
@@ -339,6 +460,15 @@ export default function Settings() {
           <IconChevron style={{width:'18px',height:'18px',color:'var(--muted)'}}/>
         </div>
       </div>
+
+      {user?.isAdmin && (
+        <div className="settings-group" style={{marginBottom:'16px'}}>
+          <div className="settings-item" onClick={() => navigate('/admin')}>
+            <span className="settings-label" style={{color:'var(--accent)',fontWeight:'700'}}>Admin Panel</span>
+            <IconChevron style={{width:'18px',height:'18px',color:'var(--muted)'}}/>
+          </div>
+        </div>
+      )}
 
       <div className="settings-group">
         <div className="settings-item" onClick={() => { logout(); navigate('/'); }}>

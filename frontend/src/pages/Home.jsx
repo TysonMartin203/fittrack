@@ -7,7 +7,7 @@ import GoogleSignInButton from '../components/GoogleSignInButton';
 
 export default function Home() {
   const [mode,    setMode]    = useState('login');
-  const [form,    setForm]    = useState({ username: '', email: '', password: '' });
+  const [form,    setForm]    = useState({ username: '', email: '', password: '', confirmPassword: '' });
   const [error,   setError]   = useState('');
   const [loading, setLoading] = useState(false);
   const { user, login } = useAuth();
@@ -20,7 +20,12 @@ export default function Home() {
 
   async function submit(e) {
     e.preventDefault();
-    setError(''); setLoading(true);
+    setError('');
+    if (mode === 'register' && form.password !== form.confirmPassword) {
+      setError("Passwords don't match.");
+      return;
+    }
+    setLoading(true);
     try {
       const data = mode === 'login'
         ? await api.login({ email: form.email, password: form.password })
@@ -75,13 +80,22 @@ export default function Home() {
             </div>
             <div className="field">
               <label className="label">Password</label>
-              <input className="input" type="password" placeholder="••••••••" value={form.password} onChange={set('password')} required />
+              <input className="input" type="password" placeholder="••••••••" value={form.password} onChange={set('password')} required minLength={mode === 'register' ? 8 : undefined} />
             </div>
+            {mode === 'register' && (
+              <div className="field">
+                <label className="label">Confirm Password</label>
+                <input className="input" type="password" placeholder="••••••••" value={form.confirmPassword} onChange={set('confirmPassword')} required />
+                {form.confirmPassword && form.password !== form.confirmPassword && (
+                  <p className="form-error" style={{fontSize:'12px',marginTop:'4px'}}>Passwords don't match.</p>
+                )}
+              </div>
+            )}
             {mode === 'login' && (
               <Link to="/forgot-password" className="link-small" style={{alignSelf:'flex-end',marginTop:'-6px'}}>Forgot password?</Link>
             )}
             {error && <p className="form-error">{error}</p>}
-            <button className="btn-primary" type="submit" disabled={loading} style={{marginTop:'4px'}}>
+            <button className="btn-primary" type="submit" disabled={loading || (mode === 'register' && form.confirmPassword && form.password !== form.confirmPassword)} style={{marginTop:'4px'}}>
               {loading ? 'Loading…' : mode === 'login' ? 'Log In' : 'Create Account'}
             </button>
           </form>

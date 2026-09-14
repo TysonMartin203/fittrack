@@ -3,8 +3,8 @@ const common = { width: 20, height: 20, viewBox: '0 0 24 24' };
 function FireIcon(props) {
   return (
     <svg {...common} {...props}>
-      <path d="M12 2.5c.5 3-2.5 4-2.5 7a2.5 2.5 0 0 0 5 0c0-1-.5-1.5-.5-1.5.8 1 1.5 2.3 1.5 3.7A4.5 4.5 0 0 1 11 16.2c0 0-5.5-2-5.5-7.3C5.5 5.5 8.5 4 12 2.5Z" fill="#E07A5F"/>
-      <path d="M9.5 15.5a2.5 2.5 0 0 0 5 0c0-1.1-1-2-1-2s-.2.6-.7.9c.2-.9-.3-1.7-.8-2.2-.2 1.4-1.3 1.8-1.7 2.6-.3.5-.8.8-.8.7Z" fill="#F2CC8F"/>
+      <path d="M12.5 1.8c1.2 3.4-1.1 5-2.7 6.8-1.7 1.9-2.6 3.9-2.6 6.1a4.8 4.8 0 0 0 9.6 0c0-1.6-.6-2.7-1.2-3.6-.2 1.3-.9 2-1.6 2.4.6-2.2-.3-3.6-1.2-4.9-.7-1-1.3-2-1.1-3.3-.6.5-1.1 1.2-1.1 2.1 0 1.1.7 1.7 1.2 2.5-1.4-.3-2.4-1.4-2.6-3.1-.2-1.7.5-3.3 2.3-5Z" fill="#E07A5F"/>
+      <path d="M12.2 21.2a3.3 3.3 0 0 1-3.3-3.3c0-1.5.9-2.3 1.5-3.3.1 1 .5 1.6 1 2 .1-1.2.7-1.9 1.3-2.6.4 1.1.1 1.9-.1 2.7.5-.2.9-.6 1.1-1.1.5.7.8 1.4.8 2.3a3.3 3.3 0 0 1-3.3 3.3Z" fill="#F2CC8F"/>
     </svg>
   );
 }
@@ -12,9 +12,15 @@ function FireIcon(props) {
 function FlexIcon(props) {
   return (
     <svg {...common} {...props}>
-      <path d="M4 15c0-2 1-3 2.5-3.3-.4-1.5.3-3 1.8-3.5 1.6-.5 3 .3 3.6 1.6.7-.7 1.8-1 2.9-.5 1.4.6 1.9 2.2 1.4 3.5 1.3.1 2.3 1 2.3 2.4 0 3-3 5.3-7.3 5.3S4 18 4 15Z"
-        fill="#E07A5F" stroke="#E07A5F" strokeWidth="0.8"/>
-      <circle cx="9" cy="10.5" r="1" fill="#3D405B"/>
+      {/* Bent arm: upper arm/shoulder, forearm bending up to a fist, bicep bulge at the elbow */}
+      <g transform="rotate(15 15 18)">
+        <rect x="12.5" y="8" width="5.5" height="14" rx="2.75" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
+      </g>
+      <g transform="rotate(-60 9 12)">
+        <rect x="7" y="4" width="4.4" height="11" rx="2.2" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
+      </g>
+      <circle cx="6.3" cy="7.3" r="3" fill="#E9A98C" stroke="#B85C43" strokeWidth="0.6"/>
+      <circle cx="12.5" cy="11.5" r="4.8" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
     </svg>
   );
 }
@@ -22,11 +28,16 @@ function FlexIcon(props) {
 function ClapIcon(props) {
   return (
     <svg {...common} {...props}>
-      <path d="M9 13.5 6.5 9a1.4 1.4 0 0 1 2.4-1.4L11 11" stroke="#E07A5F" strokeWidth="1.6" strokeLinecap="round" fill="none"/>
-      <path d="M11 11.5 9.3 7.8a1.3 1.3 0 0 1 2.3-1.1l2 3.8" stroke="#8F5D5D" strokeWidth="1.6" strokeLinecap="round" fill="none"/>
-      <path d="M13.6 10.6 12.5 7.3a1.2 1.2 0 0 1 2.2-.9l1.8 3.6" stroke="#E07A5F" strokeWidth="1.6" strokeLinecap="round" fill="none"/>
-      <path d="M8.5 13c-1.5 1-2 2.8-1 4.4 1.2 1.9 3.6 2.4 5.6 1.2l3.4-2.1c1.6-1 2.1-3 1.2-4.6-.8-1.4-2.5-1.9-4-1.2"
-        fill="#E07A5F" stroke="#8F5D5D" strokeWidth="0.8"/>
+      {/* Two hands meeting with motion lines above, reading as a clap */}
+      <g transform="rotate(-15 8 12)">
+        <rect x="4.5" y="8" width="7" height="9" rx="3.2" fill="#E9A98C" stroke="#B85C43" strokeWidth="0.6"/>
+        <rect x="3" y="10.5" width="3" height="4.5" rx="1.5" fill="#E9A98C" stroke="#B85C43" strokeWidth="0.6"/>
+      </g>
+      <g transform="rotate(15 16 12)">
+        <rect x="12.5" y="8" width="7" height="9" rx="3.2" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
+        <rect x="18" y="10.5" width="3" height="4.5" rx="1.5" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
+      </g>
+      <path d="M9 4.5 L9.6 6.3 M12 3.8 L12 5.7 M15 4.5 L14.4 6.3" stroke="#8F5D5D" strokeWidth="1.1" strokeLinecap="round"/>
     </svg>
   );
 }

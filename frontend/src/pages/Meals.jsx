@@ -437,9 +437,20 @@ function CustomPlanBuilder({ onBack, onCreated }) {
       <button className="btn-ghost" onClick={onBack} style={{marginBottom:'16px'}}>← Back</button>
       <h2 className="page-title">Build Your Own Plan</h2>
       <div className="card-form" style={{marginBottom:'16px'}}>
-        <div className="field">
+        <div className="field" style={{marginBottom:'12px'}}>
           <label className="label">Plan Name</label>
           <input className="input" value={planName} onChange={e=>setPlanName(e.target.value)} />
+        </div>
+        <div className="field">
+          <label className="label">Plan Length</label>
+          <div className="tab-row">
+            {[[1,'1 Day'],[3,'3 Days'],[7,'Full Week']].map(([n,label]) => (
+              <button key={n} type="button" className={days.length===n?'tab active':'tab'}
+                onClick={()=>{ setDays(DAY_NAMES.slice(0,n).map(d=>({day:d,meals:[]}))); setDayIdx(0); }}>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -533,8 +544,8 @@ export default function Meals() {
       if (planScope === 'single') {
         const data = await api.generateSingleMeal({ ...profile, mealType: singleMealType, craving });
         setSingleResult(data);
-      } else if (planScope === 'day') {
-        const data = await api.generateDayPlan({ ...profile, planName: profile.planName || "Today's Plan" });
+      } else if (planScope === 'day' || planScope === '3day') {
+        const data = await api.generateDayPlan({ ...profile, numDays: planScope === '3day' ? 3 : 1 });
         const { planName, ...profileToSave } = profile;
         api.saveProfile(profileToSave).catch(()=>{});
         loadPlans();
@@ -629,7 +640,7 @@ export default function Meals() {
         {error && <p className="form-error" style={{marginBottom:'16px'}}>{error}</p>}
 
         <div className="tab-row" style={{marginBottom:'16px'}}>
-          {[['week','Full Week'],['day','Just Today'],['single','Single Meal']].map(([id,label]) => (
+          {[['week','Full Week'],['3day','3 Days'],['day','Just Today'],['single','Single Meal']].map(([id,label]) => (
             <button key={id} type="button" className={planScope===id?'tab active':'tab'} onClick={()=>setPlanScope(id)}>{label}</button>
           ))}
         </div>
@@ -698,7 +709,7 @@ export default function Meals() {
           <button className="btn-primary" type="submit" disabled={generating}>
             <span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'}}>
               <IconSparkle style={{width:'16px',height:'16px'}}/>
-              {generating ? 'Generating…' : planScope==='single' ? 'Suggest a Meal' : planScope==='day' ? 'Generate Today\'s Plan' : 'Generate AI Meal Plan'}
+              {generating ? 'Generating…' : planScope==='single' ? 'Suggest a Meal' : planScope==='day' ? 'Generate Today\'s Plan' : planScope==='3day' ? 'Generate 3-Day Plan' : 'Generate AI Meal Plan'}
             </span>
           </button>
           {generating && <p className="muted" style={{textAlign:'center',fontSize:'12px'}}>This takes about {planScope==='single'?'a few':'15-20'} seconds…</p>}
