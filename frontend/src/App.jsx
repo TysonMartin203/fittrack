@@ -73,6 +73,8 @@ export default function App() {
   if (!user) {
     return (
       <Routes>
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password"  element={<ResetPassword />} />
         <Route path="*" element={<Home />} />
       </Routes>
     );
