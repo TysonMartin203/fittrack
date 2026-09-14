@@ -33,4 +33,4 @@ async function unreact(req, res) {
   }
 }
 
-module.exports = { list, react, unreact, VALID_REACTIONS };
+module.exports = { list, react, unreact };

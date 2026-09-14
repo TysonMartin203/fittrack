@@ -54,7 +54,7 @@ async function maybeUpdatePR({ userId, exercise, weight, date, workoutId = null,
   return { isNewPR: false, previousMax: existing.max_weight, newMax: existing.max_weight };
 }
 
-module.exports = { getAllPRs, getPRForExercise, maybeUpdatePR, getLoggedExercises, getExerciseHistory };
+module.exports = { getAllPRs, maybeUpdatePR, getLoggedExercises, getExerciseHistory };
 
 // Every lifting exercise the user has ever logged a weight for — for the progress-chart dropdown.
 async function getLoggedExercises(userId) {

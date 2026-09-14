@@ -158,4 +158,4 @@ async function getChallengeProgress(challengeId, userId) {
   return { ...challenge, unit, leaderboard };
 }
 
-module.exports = { createChallenge, listChallenges, joinChallenge, getChallengeProgress, labelFor };
+module.exports = { createChallenge, listChallenges, joinChallenge, getChallengeProgress };

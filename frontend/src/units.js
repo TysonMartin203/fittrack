@@ -13,18 +13,3 @@ export function toStorageWeight(value, unit) {
   if (isNaN(n)) return '';
   return unit === 'kg' ? Math.round((n / 0.453592) * 10) / 10 : n;
 }
-
-export function displayDistance(miles, unit) {
-  if (miles == null || miles === '') return '';
-  const n = Number(miles);
-  if (isNaN(n)) return '';
-  return unit === 'km' ? Math.round(n * 1.60934 * 100) / 100 : n;
-}
-export function distanceUnitLabel(unit) { return unit === 'km' ? 'km' : 'mi'; }
-
-export function toStorageDistance(value, unit) {
-  if (value == null || value === '') return '';
-  const n = Number(value);
-  if (isNaN(n)) return '';
-  return unit === 'km' ? Math.round((n / 1.60934) * 100) / 100 : n;
-}

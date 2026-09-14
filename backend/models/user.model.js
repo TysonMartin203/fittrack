@@ -63,5 +63,5 @@ async function createGoogleUser({ email, googleId, name }) {
 
 module.exports = {
   createUser, findByEmail, findByUsername, findById,
-  findByGoogleId, linkGoogleId, createGoogleUser, generateUniqueUsername,
+  findByGoogleId, linkGoogleId, createGoogleUser,
 };

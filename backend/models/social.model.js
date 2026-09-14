@@ -97,9 +97,7 @@ async function volumeForPeriod(userId, period) {
   return Number(row.volume) || 0;
 }
 
-// Backward-compatible helpers some other code paths still call directly.
-async function volumeThisWeek(userId) { return volumeForPeriod(userId, 'week'); }
-async function workoutsThisWeek(userId) { return workoutsForPeriod(userId, 'week'); }
+// volumeAllTime is used directly by the /api/social/volume route (Progress tab's all-time stat).
 async function volumeAllTime(userId) { return volumeForPeriod(userId, 'lifetime'); }
 
 // Leaderboard across the user + their accepted friends, for one specific metric+period.
@@ -126,6 +124,5 @@ async function getLeaderboard(userId, metric = 'workouts', period = 'week') {
 }
 
 module.exports = {
-  computeStreak, computeWeeklyStreak, volumeThisWeek, volumeAllTime, workoutsThisWeek,
-  workoutsForPeriod, volumeForPeriod, getLeaderboard,
+  computeStreak, volumeAllTime, getLeaderboard,
 };

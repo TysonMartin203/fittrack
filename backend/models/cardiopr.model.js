@@ -113,4 +113,4 @@ async function getCardioPRs(userId) {
   return rows.map(r => ({ ...r, formatted: formatTime(r.best_seconds) }));
 }
 
-module.exports = { maybeUpdateCardioPR, getCardioPRs, formatTime, CARDIO_MILESTONES };
+module.exports = { maybeUpdateCardioPR, getCardioPRs };

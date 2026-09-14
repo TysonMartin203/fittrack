@@ -121,5 +121,5 @@ async function sendMessage(crewId, userId, message) {
 
 module.exports = {
   createCrew, getMyCrews, getCrew, inviteMember, getCrewInvites, respondCrewInvite,
-  getMessages, sendMessage, isCrewMember,
+  getMessages, sendMessage,
 };
