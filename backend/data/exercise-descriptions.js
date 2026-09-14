@@ -21,6 +21,11 @@ const EXERCISE_DESCRIPTIONS = {
   'Hyperextension': 'Strengthens the lower back and glutes. Performed on a hyperextension bench, hinging at the hips and raising the torso.',
   'Chest Supported Row': 'A row variation performed lying chest-down on an incline bench, removing lower-back strain and isolating the back muscles.',
   'Reverse Pec Deck': 'Targets the rear delts and upper back by reversing the pec deck motion — pulling the arms backward against resistance.',
+  'Rack Pull': 'A partial deadlift starting from knee height or above, letting you overload the top portion of the pull with heavier weight.',
+  'Straight Arm Pulldown': 'Isolates the lats by pulling a bar down from overhead to your thighs with straight arms, hinging at the shoulder only.',
+  'Inverted Row': 'A bodyweight row done lying under a bar or rings, pulling your chest up toward it — a great pull-up alternative or accessory.',
+  'Good Morning': 'A hip-hinge exercise for the hamstrings and lower back. With the bar on your shoulders, hinge forward at the hips keeping your back flat.',
+  'Landmine Press': 'A shoulder press variation using a barbell anchored in a landmine attachment, pressing at an angle that\'s easier on the shoulders than a straight overhead press.',
   // Shoulders
   'Overhead Press': 'A compound shoulder exercise. Press the bar or dumbbells from shoulder height straight overhead without arching your lower back excessively.',
   'Dumbbell Shoulder Press': 'Like the overhead press but with dumbbells, allowing a more natural range of motion for each arm.',
@@ -54,6 +59,9 @@ const EXERCISE_DESCRIPTIONS = {
   'Glute Kickback Machine': 'Isolates one glute at a time by kicking a padded lever back against resistance.',
   'Hip Abductor (Outer Thigh)': 'Targets the outer thigh and hip muscles by pushing the legs outward against resistance.',
   'Hip Adductor (Inner Thigh)': 'Targets the inner thigh muscles by pressing the legs together against resistance.',
+  'Goblet Squat': 'A beginner-friendly squat holding a single dumbbell or kettlebell at your chest, which also helps keep your torso upright.',
+  'Box Squat': 'A squat performed sitting back onto a box before standing back up, which teaches a controlled hip-hinge and lets you pause at depth.',
+  'Nordic Curl': 'An intense bodyweight hamstring exercise — kneeling with your ankles anchored, lower your torso forward under control using just your hamstrings.',
   // Biceps
   'Barbell Curl': 'A classic bicep exercise. Curl a barbell from your thighs up to your shoulders, keeping your elbows fixed at your sides.',
   'Dumbbell Curl': 'Like the barbell curl but with dumbbells, allowing each arm to move independently.',
@@ -63,6 +71,8 @@ const EXERCISE_DESCRIPTIONS = {
   'Concentration Curl': 'A seated single-arm curl with your elbow braced against your inner thigh for strict bicep isolation.',
   'Cable Curl': 'A curl performed with a cable for constant tension on the biceps throughout the movement.',
   'Incline Dumbbell Curl': 'Performed lying back on an incline bench, which stretches the biceps more at the bottom of the curl.',
+  'Zottman Curl': 'A curl variation turning palm-down at the top — curl up palms-up, rotate, then lower palms-down, working the biceps and forearms both.',
+  'Spider Curl': 'A strict curl performed chest-down on an incline bench, removing any swing and isolating the biceps hard.',
   // Triceps
   'Tricep Pushdown': 'Isolates the triceps using a cable machine. Push a bar or rope down until your arms are fully extended.',
   'Skull Crusher': 'Targets the triceps by lowering a bar or dumbbells toward your forehead while lying on a bench, then extending back up.',
@@ -72,6 +82,7 @@ const EXERCISE_DESCRIPTIONS = {
   'Assisted Dip Machine': 'A machine that counterbalances part of your bodyweight, making dips more accessible while you build strength.',
   'Kickback': 'A single-arm tricep isolation move, extending a dumbbell backward with your upper arm held stationary.',
   'Diamond Push-Up': 'A push-up variation with hands close together forming a diamond shape, emphasizing the triceps.',
+  'Bench Dip': 'A tricep exercise done with your hands on a bench behind you, lowering and raising your body using your arms.',
   // Core
   'Plank': 'A core stability exercise. Hold a straight-body position on your forearms and toes, keeping your hips level.',
   'Crunch': 'A basic abdominal exercise curling your shoulders up off the floor toward your knees.',
@@ -87,6 +98,8 @@ const EXERCISE_DESCRIPTIONS = {
   'Side Plank': 'Targets the obliques. Hold your body in a straight line on one forearm, hips lifted off the ground.',
   'V-Up': 'A full-range ab exercise lifting your torso and legs simultaneously to form a V shape.',
   'Flutter Kicks': 'A lower-ab exercise alternating small up-and-down leg kicks while lying on your back.',
+  'Dead Bug': 'A core stability exercise lying on your back, slowly extending opposite arm and leg while keeping your lower back flat on the floor.',
+  'Pallof Press': 'An anti-rotation core exercise. Hold a cable or band at your chest and press it straight out, resisting the urge to twist.',
   // Olympic / Power
   'Clean and Jerk': 'A two-part Olympic lift: pulling the bar from the floor to your shoulders (clean), then driving it overhead (jerk).',
   'Snatch': 'A technical Olympic lift moving the bar from the floor to overhead in one continuous motion.',

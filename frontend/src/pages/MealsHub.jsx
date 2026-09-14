@@ -23,11 +23,11 @@ export default function MealsHub() {
         </Link>
       </div>
 
-      <Link to="/meals/history" className="list-item clickable" style={{textDecoration:'none',color:'inherit'}}>
-        <IconClock style={{width:'20px',height:'20px',color:'var(--accent)',flexShrink:0}}/>
-        <div style={{flex:1}}>
-          <div className="item-main">Meal History</div>
-          <div className="item-meta">See everything you've logged</div>
+      <Link to="/meals/history" className="glass-card" style={{...CARD_STYLE, flexDirection:'row', justifyContent:'center', padding:'20px 16px'}}>
+        <IconClock style={{width:'28px',height:'28px',color:'var(--accent)'}}/>
+        <div style={{textAlign:'left'}}>
+          <div style={{fontWeight:'700',fontSize:'16px'}}>Meal History</div>
+          <div className="muted" style={{fontSize:'13px'}}>See everything you've logged</div>
         </div>
       </Link>
     </div>

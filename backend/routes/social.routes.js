@@ -7,7 +7,8 @@ router.use(auth);
 router.post('/buzz/:friendId', buzz);
 router.get('/leaderboard', async (req, res) => {
   try {
-    res.json(await getLeaderboard(req.userId));
+    const { metric = 'workouts', period = 'week' } = req.query;
+    res.json(await getLeaderboard(req.userId, metric, period));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

@@ -167,17 +167,17 @@ async function parseVoice(req, res) {
 
 Turn it into one or more structured exercise entries. Return ONLY valid JSON, no markdown — an array of objects, each in this exact structure:
 {
-  "category": "lifting" | "cardio",
-  "exerciseName": "e.g. Bench Press, or Running",
+  "category": "lifting" or "cardio" (lowercase, exactly one of these two words),
+  "exerciseName": "e.g. Bench Press for lifting. For cardio, use exactly one of: Running, Biking, Swimming, Walking, Rowing, Elliptical, Stair Climber, Jump Rope, Hiking, HIIT, Other",
   "sets": number or null (lifting only),
-  "reps": number or null (lifting only, use the highest number mentioned if a range was given),
+  "reps": number or null (lifting only, use the highest number mentioned if a range was given — note: speech-to-text sometimes mishears 'rep' as 'wrap', treat 'wrap/wraps' as 'rep/reps'),
   "weight": number or null (lifting only, in lbs),
   "durationMinutes": number or null (cardio only),
   "distance": number or null (cardio only),
-  "distanceUnit": "mi" | "km" or null (cardio only)
+  "distanceUnit": "mi" or "km" or null (cardio only)
 }
 
-If the person describes multiple exercises, return one object per exercise, in the order mentioned. If a detail wasn't mentioned, use null for it rather than guessing.`;
+If the person describes multiple exercises, return one object per exercise, in the order mentioned. If a detail wasn't mentioned, use null for it rather than guessing. Classify running/walking/biking/swimming/rowing/hiking/jump rope/elliptical/stair-climbing/HIIT-style descriptions as "cardio"; classify named strength exercises (bench press, squat, curl, etc.) as "lifting".`;
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',

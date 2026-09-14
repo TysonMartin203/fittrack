@@ -25,7 +25,62 @@ async function computeStreak(userId) {
   return streak;
 }
 
-async function volumeThisWeek(userId) {
+// Consecutive-week streak (Mon-Sun) — one workout anywhere in a week keeps it alive.
+// Ends this week or last week, so a streak isn't zeroed out just because this week isn't over yet.
+async function computeWeeklyStreak(userId) {
+  const [rows] = await pool.query(
+    'SELECT DISTINCT date FROM Workouts WHERE user_id = ? ORDER BY date DESC LIMIT 1000',
+    [userId]
+  );
+  if (!rows.length) return 0;
+
+  function mondayOf(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00Z');
+    const day = d.getUTCDay(); // 0=Sun .. 6=Sat
+    const diff = day === 0 ? 6 : day - 1; // days since Monday
+    d.setUTCDate(d.getUTCDate() - diff);
+    return d.getTime();
+  }
+
+  const weekMs = 7 * 86400000;
+  const weekSet = new Set(rows.map(r => mondayOf(r.date)));
+
+  const now = new Date(); now.setUTCHours(0, 0, 0, 0);
+  const nowDay = now.getUTCDay();
+  const diffToMonday = nowDay === 0 ? 6 : nowDay - 1;
+  const thisMonday = new Date(now); thisMonday.setUTCDate(now.getUTCDate() - diffToMonday);
+  const thisMondayMs = thisMonday.getTime();
+
+  let cursor = weekSet.has(thisMondayMs) ? thisMondayMs : weekSet.has(thisMondayMs - weekMs) ? thisMondayMs - weekMs : null;
+  if (cursor === null) return 0;
+
+  let streak = 0;
+  while (weekSet.has(cursor)) {
+    streak++;
+    cursor -= weekMs;
+  }
+  return streak;
+}
+
+function periodFilter(period) {
+  switch (period) {
+    case 'month':    return "AND w.date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')";
+    case 'year':     return "AND w.date >= DATE_FORMAT(CURDATE(), '%Y-01-01')";
+    case 'lifetime': return '';
+    case 'week':
+    default:         return 'AND w.date >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)'; // Monday-start
+  }
+}
+
+async function workoutsForPeriod(userId, period) {
+  const [[row]] = await pool.query(
+    `SELECT COUNT(*) AS n FROM Workouts w WHERE w.user_id = ? ${periodFilter(period)}`,
+    [userId]
+  );
+  return row.n;
+}
+
+async function volumeForPeriod(userId, period) {
   const [[row]] = await pool.query(
     `SELECT
        COALESCE(SUM(
@@ -36,24 +91,19 @@ async function volumeThisWeek(userId) {
        ), 0) AS volume
      FROM WorkoutExercises we
      JOIN Workouts w ON w.id = we.workout_id
-     WHERE w.user_id = ? AND we.category = 'lifting'
-       AND w.date >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)`,
+     WHERE w.user_id = ? AND we.category = 'lifting' ${periodFilter(period)}`,
     [userId]
   );
   return Number(row.volume) || 0;
 }
 
-async function workoutsThisWeek(userId) {
-  const [[row]] = await pool.query(
-    `SELECT COUNT(*) AS n FROM Workouts
-     WHERE user_id = ? AND date >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)`,
-    [userId]
-  );
-  return row.n;
-}
+// Backward-compatible helpers some other code paths still call directly.
+async function volumeThisWeek(userId) { return volumeForPeriod(userId, 'week'); }
+async function workoutsThisWeek(userId) { return workoutsForPeriod(userId, 'week'); }
+async function volumeAllTime(userId) { return volumeForPeriod(userId, 'lifetime'); }
 
-// Leaderboard across the user + their accepted friends
-async function getLeaderboard(userId) {
+// Leaderboard across the user + their accepted friends, for one specific metric+period.
+async function getLeaderboard(userId, metric = 'workouts', period = 'week') {
   const [friendRows] = await pool.query(
     `SELECT u.id, u.username FROM Friends f
      JOIN Users u ON u.id = IF(f.requester_id = ?, f.receiver_id, f.requester_id)
@@ -63,36 +113,19 @@ async function getLeaderboard(userId) {
   const [[me]] = await pool.query('SELECT id, username FROM Users WHERE id = ?', [userId]);
   const people = [me, ...friendRows];
 
-  const results = await Promise.all(people.map(async (p) => ({
-    id: p.id,
-    username: p.username,
-    workoutsThisWeek: await workoutsThisWeek(p.id),
-    volumeThisWeek: await volumeThisWeek(p.id),
-    streak: await computeStreak(p.id),
-  })));
+  const results = await Promise.all(people.map(async (p) => {
+    let value;
+    if (metric === 'volume') value = await volumeForPeriod(p.id, period);
+    else if (metric === 'streak') value = period === 'weekly' ? await computeWeeklyStreak(p.id) : await computeStreak(p.id);
+    else value = await workoutsForPeriod(p.id, period);
+    return { id: p.id, username: p.username, value };
+  }));
 
-  return {
-    byWorkouts: [...results].sort((a, b) => b.workoutsThisWeek - a.workoutsThisWeek),
-    byVolume: [...results].sort((a, b) => b.volumeThisWeek - a.volumeThisWeek),
-    byStreak: [...results].sort((a, b) => b.streak - a.streak),
-  };
+  results.sort((a, b) => b.value - a.value);
+  return results;
 }
 
-async function volumeAllTime(userId) {
-  const [[row]] = await pool.query(
-    `SELECT
-       COALESCE(SUM(
-         CASE WHEN we.per_set_weights = 1 THEN (
-           SELECT COALESCE(SUM(COALESCE(ws.reps,0) * COALESCE(ws.weight,0)),0)
-           FROM WorkoutSets ws WHERE ws.workout_exercise_id = we.id
-         ) ELSE COALESCE(we.sets,0) * COALESCE(we.reps,0) * COALESCE(we.weight,0) END
-       ), 0) AS volume
-     FROM WorkoutExercises we
-     JOIN Workouts w ON w.id = we.workout_id
-     WHERE w.user_id = ? AND we.category = 'lifting'`,
-    [userId]
-  );
-  return Number(row.volume) || 0;
-}
-
-module.exports = { computeStreak, volumeThisWeek, volumeAllTime, workoutsThisWeek, getLeaderboard };
+module.exports = {
+  computeStreak, computeWeeklyStreak, volumeThisWeek, volumeAllTime, workoutsThisWeek,
+  workoutsForPeriod, volumeForPeriod, getLeaderboard,
+};

@@ -126,11 +126,13 @@ export default function Settings() {
 
       {/* Avatar */}
       <div className="profile-section">
-        <div className="profile-avatar-large" onClick={() => fileRef.current?.click()}>
-          {avatarUrl
-            ? <img src={avatarUrl} alt="avatar" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-            : <span className="profile-avatar-initials-lg">{initials}</span>
-          }
+        <div className="profile-avatar-wrap" onClick={() => fileRef.current?.click()}>
+          <div className="profile-avatar-large">
+            {avatarUrl
+              ? <img src={avatarUrl} alt="avatar" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+              : <span className="profile-avatar-initials-lg">{initials}</span>
+            }
+          </div>
           <div className="avatar-edit-badge">
             <IconEdit style={{width:'11px',height:'11px',color:'#fff'}}/>
           </div>

@@ -90,7 +90,7 @@ export const api = {
   unreact:    (id)      => request('DELETE', `/api/feed/${id}/react`),
 
   buzzFriend:     (friendId) => request('POST', `/api/social/buzz/${friendId}`, {}),
-  getLeaderboard: ()         => request('GET',  '/api/social/leaderboard'),
+  getLeaderboard: (metric='workouts', period='week') => request('GET', `/api/social/leaderboard?metric=${metric}&period=${period}`),
   getStreak:      ()         => request('GET',  '/api/social/streak'),
   getVolume:      ()         => request('GET',  '/api/social/volume'),
 
@@ -107,6 +107,7 @@ export const api = {
   createChallenge: (b)   => request('POST', '/api/challenges', b),
   getChallenges:   ()    => request('GET',  '/api/challenges'),
   joinChallenge:   (id)  => request('POST', `/api/challenges/${id}/join`, {}),
+  getChallengeProgress: (id) => request('GET', `/api/challenges/${id}/progress`),
 
   sendInvite:   (b)   => request('POST', '/api/invites', b),
   getInvites:   ()    => request('GET',  '/api/invites'),

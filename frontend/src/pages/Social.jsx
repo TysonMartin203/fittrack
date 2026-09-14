@@ -185,17 +185,29 @@ function CompeteTab() {
   const { user } = useAuth();
   const [board,      setBoard]      = useState(null);
   const [challenges, setChallenges] = useState([]);
-  const [metric,     setMetric]     = useState('byWorkouts');
+  const [metric,     setMetric]     = useState('workouts'); // workouts | volume | streak
+  const [period,     setPeriod]     = useState('week');     // week|month|year|lifetime, or daily|weekly for streak
   const [showNew,    setShowNew]    = useState(false);
   const [form, setForm] = useState({ title:'', type:'most_workouts', exercise:'', startDate: today(), endDate: today() });
   const [error, setError] = useState('');
   const [myVolume, setMyVolume] = useState(null);
 
-  useEffect(() => { load(); }, []);
-  function load() {
-    api.getLeaderboard().then(setBoard).catch(console.error);
+  useEffect(() => { load(); }, [metric, period]);
+  useEffect(() => {
     api.getChallenges().then(setChallenges).catch(console.error);
     api.getVolume().then(v => setMyVolume(v.volume)).catch(() => {});
+  }, []);
+
+  function load() {
+    api.getLeaderboard(metric, period).then(setBoard).catch(console.error);
+  }
+  function reloadChallenges() {
+    api.getChallenges().then(setChallenges).catch(console.error);
+  }
+
+  function switchMetric(m) {
+    setMetric(m);
+    setPeriod(m === 'streak' ? 'daily' : 'week');
   }
 
   async function createChallenge(e) {
@@ -204,24 +216,44 @@ function CompeteTab() {
       await api.createChallenge(form);
       setShowNew(false);
       setForm({ title:'', type:'most_workouts', exercise:'', startDate: today(), endDate: today() });
-      load();
+      reloadChallenges();
     } catch (err) { setError(err.message); }
   }
 
   async function join(id) {
     await api.joinChallenge(id);
-    load();
+    reloadChallenges();
   }
 
-  const rows = board?.[metric] || [];
+  const [viewingChallenge, setViewingChallenge] = useState(null);
+  const [progressData, setProgressData] = useState(null);
+  const [progressError, setProgressError] = useState('');
+
+  async function viewChallenge(id) {
+    setViewingChallenge(id);
+    setProgressData(null);
+    setProgressError('');
+    try {
+      const data = await api.getChallengeProgress(id);
+      setProgressData(data);
+    } catch (err) { setProgressError(err.message); }
+  }
+
+  const rows = board || [];
+  const periodOptions = metric === 'streak' ? [['daily','Daily'],['weekly','Weekly']] : [['week','Week'],['month','Month'],['year','Year'],['lifetime','Lifetime']];
 
   return (
     <div>
       <section className="section">
         <div className="section-header"><span className="section-title">Leaderboard</span></div>
+        <div className="tab-row" style={{marginBottom:'8px'}}>
+          {[['workouts','Workouts'],['volume','Volume'],['streak','Streak']].map(([id,label]) => (
+            <button key={id} className={metric===id?'tab active':'tab'} onClick={()=>switchMetric(id)}>{label}</button>
+          ))}
+        </div>
         <div className="tab-row" style={{marginBottom:'12px'}}>
-          {[['byWorkouts','Workouts'],['byVolume','Volume'],['byStreak','Streak']].map(([id,label]) => (
-            <button key={id} className={metric===id?'tab active':'tab'} onClick={()=>setMetric(id)}>{label}</button>
+          {periodOptions.map(([id,label]) => (
+            <button key={id} className={period===id?'tab active':'tab'} onClick={()=>setPeriod(id)} style={{fontSize:'12px',padding:'6px 12px'}}>{label}</button>
           ))}
         </div>
         {!board ? <div className="spinner"/> : rows.map((r, i) => (
@@ -229,11 +261,15 @@ function CompeteTab() {
             <span style={{width:'22px',color:'var(--muted)',fontWeight:'700',fontSize:'13px'}}>{i+1}</span>
             <Link to={`/profile/${r.id}`} className="item-main" style={{flex:1,color:'inherit',textDecoration:'none'}}>{r.username}</Link>
             <span className="item-accent">
-              {metric==='byWorkouts' ? `${r.workoutsThisWeek}` : metric==='byVolume' ? `${r.volumeThisWeek.toLocaleString()} lbs` : <span style={{display:'inline-flex',alignItems:'center',gap:'4px'}}>{r.streak} <FireIcon size={14}/></span>}
+              {metric==='volume'
+                ? `${formatCompact(displayWeight(r.value, user?.weightUnit))} ${weightUnitLabel(user?.weightUnit)}`
+                : metric==='streak'
+                ? <span style={{display:'inline-flex',alignItems:'center',gap:'4px'}}>{r.value} <FireIcon size={14}/></span>
+                : r.value}
             </span>
           </div>
         ))}
-        {metric === 'byVolume' && myVolume > 0 && (() => {
+        {metric === 'volume' && myVolume > 0 && (() => {
           const ref = closestComparison(myVolume);
           const wu = weightUnitLabel(user?.weightUnit);
           return ref ? (
@@ -250,57 +286,92 @@ function CompeteTab() {
           <button className="link-small" style={{background:'none',border:'none',cursor:'pointer'}} onClick={()=>setShowNew(s=>!s)}>{showNew ? 'Cancel' : '+ New'}</button>
         </div>
 
-        {showNew && (
+        {viewingChallenge ? (
           <div className="card-form">
-            <form onSubmit={createChallenge} className="form-stack">
-              <div className="field">
-                <label className="label">Title</label>
-                <input className="input" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Most workouts in March" required />
-              </div>
-              <div className="field">
-                <label className="label">Type</label>
-                <select className="input" value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}>
-                  <option value="most_workouts">Most workouts</option>
-                  <option value="pr_gain">Biggest PR gain on an exercise</option>
-                </select>
-              </div>
-              {form.type === 'pr_gain' && (
-                <div className="field">
-                  <label className="label">Exercise</label>
-                  <input className="input" value={form.exercise} onChange={e=>setForm(f=>({...f,exercise:e.target.value}))} placeholder="Squat" required />
-                </div>
-              )}
-              <div className="input-row">
-                <div className="input-group">
-                  <label className="label">Start</label>
-                  <input className="input" type="date" value={form.startDate} onChange={e=>setForm(f=>({...f,startDate:e.target.value}))} required/>
-                </div>
-                <div className="input-group">
-                  <label className="label">End</label>
-                  <input className="input" type="date" value={form.endDate} onChange={e=>setForm(f=>({...f,endDate:e.target.value}))} required/>
-                </div>
-              </div>
-              {error && <p className="form-error">{error}</p>}
-              <button className="btn-primary" type="submit">Create Challenge</button>
-            </form>
+            <button className="btn-ghost-sm" style={{marginBottom:'12px'}} onClick={()=>setViewingChallenge(null)}>← Back to challenges</button>
+            {progressError ? <p className="form-error">{progressError}</p> : !progressData ? <div className="spinner"/> : (
+              <>
+                <div style={{fontWeight:'700',fontSize:'16px',marginBottom:'4px'}}>{progressData.title}</div>
+                <p className="muted" style={{fontSize:'12px',marginBottom:'14px'}}>{formatDateStr(progressData.start_date)} – {formatDateStr(progressData.end_date)}</p>
+                {progressData.leaderboard.map((r, i) => (
+                  <div key={r.id} className="list-item" style={{marginBottom:'6px'}}>
+                    <span style={{width:'22px',color:'var(--muted)',fontWeight:'700',fontSize:'13px'}}>{i+1}</span>
+                    <Link to={`/profile/${r.id}`} className="item-main" style={{flex:1,color:'inherit',textDecoration:'none'}}>{r.username}</Link>
+                    <span className="item-accent">{r.progress.toLocaleString()} {progressData.unit}</span>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
-        )}
+        ) : (
+          <>
+            {showNew && (
+              <div className="card-form">
+                <form onSubmit={createChallenge} className="form-stack">
+                  <div className="field">
+                    <label className="label">Title</label>
+                    <input className="input" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Most workouts in March" required />
+                  </div>
+                  <div className="field">
+                    <label className="label">Type</label>
+                    <select className="input" value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value,exercise:''}))}>
+                      <option value="most_workouts">Most workouts</option>
+                      <option value="total_volume">Most total volume lifted</option>
+                      <option value="pr_gain">Biggest PR gain on an exercise</option>
+                      <option value="bodyweight_reps">Most reps in one set (bodyweight)</option>
+                      <option value="most_distance">Most cardio distance</option>
+                      <option value="most_calories">Most calories burned</option>
+                      <option value="most_meals_logged">Most meals logged</option>
+                    </select>
+                  </div>
+                  {(form.type === 'pr_gain' || form.type === 'bodyweight_reps') && (
+                    <div className="field">
+                      <label className="label">Exercise</label>
+                      <input className="input" value={form.exercise} onChange={e=>setForm(f=>({...f,exercise:e.target.value}))} placeholder={form.type==='pr_gain' ? 'Squat' : 'Push-Up'} required />
+                    </div>
+                  )}
+                  {form.type === 'most_distance' && (
+                    <div className="field">
+                      <label className="label">Activity</label>
+                      <select className="input" value={form.exercise} onChange={e=>setForm(f=>({...f,exercise:e.target.value}))} required>
+                        <option value="" disabled>Choose an activity</option>
+                        {['Running','Walking','Biking','Swimming','Rowing','Hiking'].map(a => <option key={a} value={a}>{a}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div className="input-row">
+                    <div className="input-group">
+                      <label className="label">Start</label>
+                      <input className="input" type="date" value={form.startDate} onChange={e=>setForm(f=>({...f,startDate:e.target.value}))} required/>
+                    </div>
+                    <div className="input-group">
+                      <label className="label">End</label>
+                      <input className="input" type="date" value={form.endDate} onChange={e=>setForm(f=>({...f,endDate:e.target.value}))} required/>
+                    </div>
+                  </div>
+                  {error && <p className="form-error">{error}</p>}
+                  <button className="btn-primary" type="submit">Create Challenge</button>
+                </form>
+              </div>
+            )}
 
-        {challenges.length === 0 && !showNew && <p className="muted">No challenges yet. Start one above.</p>}
-        {challenges.map(c => (
-          <div key={c.id} className="glass-card" style={{marginBottom:'10px'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div>
-                <div style={{fontWeight:'700',fontSize:'14px'}}>{c.title}</div>
-                <div style={{fontSize:'12px',color:'var(--muted)'}}>
-                  by {c.creator_username} · {formatDateStr(c.start_date)} – {formatDateStr(c.end_date)}
+            {challenges.length === 0 && !showNew && <p className="muted">No challenges yet. Start one above.</p>}
+            {challenges.map(c => (
+              <div key={c.id} className="glass-card clickable" style={{marginBottom:'10px',cursor:'pointer'}} onClick={()=>viewChallenge(c.id)}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div>
+                    <div style={{fontWeight:'700',fontSize:'14px'}}>{c.title}</div>
+                    <div style={{fontSize:'12px',color:'var(--muted)'}}>
+                      by {c.creator_username} · {formatDateStr(c.start_date)} – {formatDateStr(c.end_date)}
+                    </div>
+                  </div>
+                  {!c.joined && <button className="btn-accent-sm" onClick={(e)=>{e.stopPropagation();join(c.id);}}>Join</button>}
+                  {c.joined && <span style={{fontSize:'11px',color:'var(--teal)',fontWeight:'700'}}>Joined</span>}
                 </div>
               </div>
-              {!c.joined && <button className="btn-accent-sm" onClick={()=>join(c.id)}>Join</button>}
-              {c.joined && <span style={{fontSize:'11px',color:'var(--teal)',fontWeight:'700'}}>Joined</span>}
-            </div>
-          </div>
-        ))}
+            ))}
+          </>
+        )}
       </section>
     </div>
   );

@@ -219,6 +219,61 @@ const ICONS = {
       <path d="M10 24 C13 20 19 20 22 24" fill="none" stroke={r} strokeWidth="1.5" strokeLinecap="round"/>
     </Icon>
   ),
+
+  // ── CARDIO MILESTONE ACHIEVEMENTS ──
+  first_mile: () => (
+    <Icon>
+      <path d="M16 4 L23 9 V17 L16 22 L9 17 V9 Z" fill={c} opacity="0.18" stroke={c} strokeWidth="1.5"/>
+      <path d="M9 17 L4 26 M23 17 L28 26" stroke={r} strokeWidth="2" strokeLinecap="round"/>
+      <text x="16" y="16" textAnchor="middle" fontSize="8" fontWeight="700" fill={c}>1</text>
+      <text x="16" y="23" textAnchor="middle" fontSize="4.5" fontWeight="700" fill={c}>MI</text>
+    </Icon>
+  ),
+  first_5k: () => (
+    <Icon>
+      <path d="M16 4 L23 9 V17 L16 22 L9 17 V9 Z" fill={c} opacity="0.18" stroke={c} strokeWidth="1.5"/>
+      <path d="M9 17 L4 26 M23 17 L28 26" stroke={r} strokeWidth="2" strokeLinecap="round"/>
+      <text x="16" y="17" textAnchor="middle" fontSize="7" fontWeight="700" fill={c}>5K</text>
+    </Icon>
+  ),
+  first_10k: () => (
+    <Icon>
+      <path d="M16 4 L23 9 V17 L16 22 L9 17 V9 Z" fill={c} opacity="0.18" stroke={c} strokeWidth="1.5"/>
+      <path d="M9 17 L4 26 M23 17 L28 26" stroke={r} strokeWidth="2" strokeLinecap="round"/>
+      <text x="16" y="17" textAnchor="middle" fontSize="6" fontWeight="700" fill={c}>10K</text>
+    </Icon>
+  ),
+  first_half: () => (
+    <Icon>
+      <circle cx="16" cy="13" r="9" fill={r} opacity="0.18" stroke={r} strokeWidth="1.5"/>
+      <path d="M16 4 A9 9 0 0 1 16 22 Z" fill={r} opacity="0.35"/>
+      <path d="M12 22 L9 28 M20 22 L23 28" stroke={c} strokeWidth="2" strokeLinecap="round"/>
+      <text x="16" y="16" textAnchor="middle" fontSize="4.5" fontWeight="700" fill={r}>HALF</text>
+    </Icon>
+  ),
+  first_marathon: () => (
+    <Icon>
+      <circle cx="16" cy="13" r="9" fill={r} opacity="0.3" stroke={r} strokeWidth="1.8"/>
+      <path d="M12 22 L9 28 M20 22 L23 28" stroke={c} strokeWidth="2" strokeLinecap="round"/>
+      <path d="M11 13 L14.5 16.5 L21.5 9.5" stroke={r} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    </Icon>
+  ),
+  first_century: () => (
+    <Icon>
+      <circle cx="10" cy="22" r="6" fill="none" stroke={c} strokeWidth="2"/>
+      <circle cx="22" cy="22" r="6" fill="none" stroke={c} strokeWidth="2"/>
+      <path d="M10 22 L14 11 H18 M14 11 L10 8 M14 11 L20 15 L22 22" stroke={r} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <text x="16" y="7" textAnchor="middle" fontSize="4.5" fontWeight="700" fill={c}>100</text>
+    </Icon>
+  ),
+  first_mile_swim: () => (
+    <Icon>
+      <circle cx="16" cy="14" r="10" fill={g} opacity="0.15" stroke={g} strokeWidth="1.5"/>
+      <path d="M8 13 C10 11 12 11 14 13 C16 15 18 15 20 13 C22 11 24 11 26 13" fill="none" stroke={g} strokeWidth="2" strokeLinecap="round"/>
+      <path d="M8 18 C10 16 12 16 14 18 C16 20 18 20 20 18 C22 16 24 16 26 18" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round"/>
+      <text x="16" y="9" textAnchor="middle" fontSize="4.5" fontWeight="700" fill={g}>1MI</text>
+    </Icon>
+  ),
 };
 
 export default function AchievementIcon({ id, size = 36, active = true }) {

@@ -15,23 +15,49 @@ function blankLiftingExercise() {
   };
 }
 
-function LiftingNameInput({ value, onChange }) {
-  const [show, setShow]   = useState(false);
-  const [query, setQuery] = useState(value);
+function TimeInput({ minutesDecimal, onChange }) {
+  function toDisplay(dec) {
+    if (dec === '' || dec == null) return '';
+    const total = Math.round(Number(dec) * 60);
+    const m = Math.floor(total / 60), s = total % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+  const [text, setText] = useState(toDisplay(minutesDecimal));
+  useEffect(() => { setText(toDisplay(minutesDecimal)); }, [minutesDecimal]);
 
-  const filtered = query.length >= 1
-    ? LIFTING_EXERCISES.filter(e => e.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
+  function handleChange(e) {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 4);
+    if (digits === '') { setText(''); onChange(''); return; }
+    if (digits.length <= 2) {
+      setText(digits);
+      onChange(+(parseInt(digits, 10) || 0).toFixed(3));
+      return;
+    }
+    const minPart = digits.slice(0, -2) || '0';
+    const secPart = Math.min(59, parseInt(digits.slice(-2), 10));
+    setText(`${minPart}:${String(secPart).padStart(2, '0')}`);
+    onChange(+(parseInt(minPart, 10) + secPart / 60).toFixed(3));
+  }
+
+  return <input className="input" type="text" inputMode="numeric" placeholder="20:47" value={text} onChange={handleChange} />;
+}
+
+function LiftingNameInput({ value, onChange }) {
+  const [show, setShow] = useState(false);
+
+  const filtered = value.length >= 1
+    ? LIFTING_EXERCISES.filter(e => e.toLowerCase().includes(value.toLowerCase())).slice(0, 8)
     : [];
 
-  function select(ex) { setQuery(ex); onChange(ex); setShow(false); }
-  function handleChange(e) { setQuery(e.target.value); onChange(e.target.value); setShow(true); }
+  function select(ex) { onChange(ex); setShow(false); }
+  function handleChange(e) { onChange(e.target.value); setShow(true); }
 
   return (
     <div style={{ position: 'relative' }}>
       <input
         className="input"
         placeholder="e.g. Bench Press"
-        value={query}
+        value={value}
         onChange={handleChange}
         onFocus={() => setShow(true)}
         onBlur={() => setTimeout(() => setShow(false), 150)}
@@ -181,24 +207,8 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
           <p className="muted" style={{ margin: '0 0 4px', fontSize: '12px' }}>All fields below are optional.</p>
           <div className="input-row">
             <div className="input-group">
-              <label className="label">Duration (min : sec)</label>
-              <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
-                <input className="input" type="number" min="0" placeholder="20" style={{flex:1,textAlign:'right'}}
-                  value={ex.durationMinutes === '' || ex.durationMinutes == null ? '' : Math.floor(Number(ex.durationMinutes))}
-                  onChange={e => {
-                    const mm = e.target.value === '' ? '' : Number(e.target.value);
-                    const ss = ex.durationMinutes === '' || ex.durationMinutes == null ? 0 : Math.round((Number(ex.durationMinutes) - Math.floor(Number(ex.durationMinutes))) * 60);
-                    update({ durationMinutes: mm === '' && !ss ? '' : +((mm || 0) + ss / 60).toFixed(3) });
-                  }} />
-                <span style={{fontWeight:'700',color:'var(--muted)'}}>:</span>
-                <input className="input" type="number" min="0" max="59" placeholder="47" style={{flex:1}}
-                  value={ex.durationMinutes === '' || ex.durationMinutes == null ? '' : String(Math.round((Number(ex.durationMinutes) - Math.floor(Number(ex.durationMinutes))) * 60)).padStart(2,'0')}
-                  onChange={e => {
-                    const ss = e.target.value === '' ? 0 : Math.min(59, Number(e.target.value));
-                    const mm = ex.durationMinutes === '' || ex.durationMinutes == null ? 0 : Math.floor(Number(ex.durationMinutes));
-                    update({ durationMinutes: +(mm + ss / 60).toFixed(3) });
-                  }} />
-              </div>
+              <label className="label">Duration (min:sec)</label>
+              <TimeInput minutesDecimal={ex.durationMinutes} onChange={v => update({ durationMinutes: v })} />
             </div>
             <div className="input-group">
               <label className="label">Distance</label>
@@ -321,19 +331,55 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
   async function handleWorkoutVoice(text) {
     setVoiceLoading(true); setVoiceError('');
     try {
-      const { exercises: parsed } = await api.parseWorkoutVoice({ transcript: text });
-      const mapped = parsed.map(p => p.category === 'cardio' ? {
-        category: 'cardio', exerciseName: p.exerciseName || '', notes: '',
-        durationMinutes: p.durationMinutes || '', distance: p.distance || '',
-        distanceUnit: p.distanceUnit || user?.distanceUnit || 'mi',
-        calories: '', avgHeartRate: '', pace: '',
-      } : {
-        category: 'lifting', exerciseName: p.exerciseName || '', notes: '',
-        sets: p.sets || '', reps: p.reps || '', weight: p.weight || '', perSetWeights: false, setsData: [],
-      });
+      // Speech recognition frequently mishears "rep(s)" as "wrap(s)" — normalize before sending.
+      const cleaned = text.replace(/\bwraps?\b/gi, m => m.toLowerCase() === 'wrap' ? 'rep' : 'reps');
+      const { exercises: parsed } = await api.parseWorkoutVoice({ transcript: cleaned });
+
       setExercises(prev => {
-        const isBlankDefault = prev.length === 1 && !prev[0].exerciseName && !prev[0].sets && !prev[0].weight;
-        return isBlankDefault ? mapped : [...prev, ...mapped];
+        const isBlankDefault = prev.length === 1 && !prev[0].exerciseName && !prev[0].sets && !prev[0].weight && !prev[0].durationMinutes;
+        let next = isBlankDefault ? [] : [...prev];
+
+        parsed.forEach(p => {
+          const isCardio = String(p.category || '').toLowerCase().startsWith('cardio');
+          const matchedActivity = isCardio ? CARDIO_ACTIVITIES.find(a => a.toLowerCase() === String(p.exerciseName || '').toLowerCase()) : null;
+          const pName = isCardio ? (matchedActivity || p.exerciseName || '') : (p.exerciseName || '');
+
+          // If this exercise is already in the list (e.g. prefilled from a workout plan with
+          // sets/reps still blank), fill in the spoken details there instead of adding a duplicate.
+          const existingIdx = next.findIndex(e =>
+            e.category === (isCardio ? 'cardio' : 'lifting') &&
+            (e.exerciseName || '').toLowerCase() === pName.toLowerCase() && pName
+          );
+
+          if (existingIdx !== -1) {
+            next[existingIdx] = isCardio ? {
+              ...next[existingIdx],
+              durationMinutes: p.durationMinutes ?? next[existingIdx].durationMinutes,
+              distance: p.distance ?? next[existingIdx].distance,
+              distanceUnit: p.distanceUnit || next[existingIdx].distanceUnit,
+            } : {
+              ...next[existingIdx],
+              sets: p.sets ?? next[existingIdx].sets,
+              reps: p.reps ?? next[existingIdx].reps,
+              weight: p.weight ?? next[existingIdx].weight,
+            };
+          } else if (isCardio) {
+            next = [...next, {
+              category: 'cardio', exerciseName: matchedActivity || 'Other',
+              customName: matchedActivity ? '' : (p.exerciseName || ''), notes: '',
+              durationMinutes: p.durationMinutes || '', distance: p.distance || '',
+              distanceUnit: p.distanceUnit || user?.distanceUnit || 'mi',
+              calories: '', avgHeartRate: '', pace: '',
+            }];
+          } else {
+            next = [...next, {
+              category: 'lifting', exerciseName: pName, notes: '',
+              sets: p.sets || '', reps: p.reps || '', weight: p.weight || '', perSetWeights: false, setsData: [],
+            }];
+          }
+        });
+
+        return next.length ? next : [blankLiftingExercise()];
       });
     } catch (err) {
       setVoiceError(err.message || 'Could not process that — try again or enter it manually.');

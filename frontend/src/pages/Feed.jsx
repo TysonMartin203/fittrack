@@ -25,10 +25,16 @@ function FeedItem({ item, onReact, currentUserId }) {
     ? (isMine ? `/workouts/${item.ref_id}` : `/workouts/${item.ref_id}/view`)
     : null;
 
+  const avatarUrl = item.avatar_url ? api.fileUrl(item.avatar_url) : null;
+  const initials = item.username?.slice(0, 2).toUpperCase() || '?';
+
   const body = (
     <>
       <div style={{display:'flex',alignItems:'flex-start',gap:'10px'}}>
-        <span style={{flexShrink:0,color:'var(--accent)'}}><FeedIcon style={{width:'20px',height:'20px'}}/></span>
+        <div style={{width:'32px',height:'32px',borderRadius:'50%',flexShrink:0,overflow:'hidden',background:'var(--surface-tint)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'12px',fontWeight:'700',color:'var(--accent)'}}>
+          {avatarUrl ? <img src={avatarUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/> : initials}
+        </div>
+        <span style={{flexShrink:0,color:'var(--accent)',marginTop:'2px'}}><FeedIcon style={{width:'18px',height:'18px'}}/></span>
         <div style={{flex:1}}>
           <div style={{fontSize:'14px'}}><strong>{item.username}</strong> {item.headline}</div>
           {item.detail && <div style={{fontSize:'12px',color:'var(--muted)',marginTop:'2px'}}>{item.detail}</div>}

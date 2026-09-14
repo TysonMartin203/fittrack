@@ -1,12 +1,14 @@
-const { createChallenge, listChallenges, joinChallenge } = require('../models/challenge.model');
+const { createChallenge, listChallenges, joinChallenge, getChallengeProgress } = require('../models/challenge.model');
+
+const NEEDS_EXERCISE = ['pr_gain', 'most_distance', 'bodyweight_reps'];
 
 async function create(req, res) {
   try {
     const { title, type, exercise, targetValue, startDate, endDate } = req.body;
     if (!title || !type || !startDate || !endDate)
       return res.status(400).json({ error: 'title, type, startDate, endDate required' });
-    if (type === 'pr_gain' && !exercise)
-      return res.status(400).json({ error: 'exercise required for pr_gain challenges' });
+    if (NEEDS_EXERCISE.includes(type) && !exercise)
+      return res.status(400).json({ error: 'exercise required for this challenge type' });
     const id = await createChallenge(req.userId, { title, type, exercise, targetValue, startDate, endDate });
     res.status(201).json({ id });
   } catch (err) {
@@ -33,4 +35,16 @@ async function join(req, res) {
   }
 }
 
-module.exports = { create, list, join };
+async function progress(req, res) {
+  try {
+    const result = await getChallengeProgress(req.params.id, req.userId);
+    if (!result) return res.status(404).json({ error: 'Not found' });
+    if (result.forbidden) return res.status(403).json({ error: 'Not visible to you' });
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+module.exports = { create, list, join, progress };

@@ -10,7 +10,7 @@ async function addFeedEvent({ userId, type, refId, headline, detail }) {
 // Feed = the user's own events + their accepted friends' events
 async function getFeed(userId, viewerId) {
   const [rows] = await pool.query(
-    `SELECT fe.*, u.username
+    `SELECT fe.*, u.username, u.avatar_url
      FROM FeedEvents fe
      JOIN Users u ON u.id = fe.user_id
      WHERE fe.type != 'template_pick'
