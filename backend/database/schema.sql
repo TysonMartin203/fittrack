@@ -81,3 +81,18 @@ CREATE TABLE IF NOT EXISTS Messages (
   FOREIGN KEY (sender_id)   REFERENCES Users(id) ON DELETE CASCADE,
   FOREIGN KEY (receiver_id) REFERENCES Users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+-- Was previously only ever lazy-created by the app on first use (meal.controller.js's
+-- ensureTable()) rather than defined here — added so a fresh install has it from the start.
+CREATE TABLE IF NOT EXISTS MealPlans (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  name VARCHAR(100) NOT NULL DEFAULT 'My Meal Plan',
+  profile JSON,
+  plan JSON,
+  is_favorite TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+  INDEX idx_meal_user (user_id)
+) ENGINE=InnoDB;

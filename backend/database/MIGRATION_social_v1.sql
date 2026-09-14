@@ -125,13 +125,10 @@ ALTER TABLE MealPlans ADD COLUMN shared_from_user_id INT NULL;
 -- 12.
 ALTER TABLE MealPlans ADD COLUMN shared_from_username VARCHAR(50) NULL;
 
--- 13. Let a progress photo optionally be tied to the workout it was taken during
--- (this was missing from the original version of this migration — if you already ran
--- steps 1-12 before, just run 13 and 14 now, nothing else needs to be re-run)
-ALTER TABLE ProgressPhotos ADD COLUMN workout_id INT NULL;
-
--- 14.
-ALTER TABLE ProgressPhotos ADD FOREIGN KEY (workout_id) REFERENCES Workouts(id) ON DELETE SET NULL;
+-- (steps 13-14, adding ProgressPhotos.workout_id, are no longer here — schema.sql
+-- now already includes this column and its FK directly, so a fresh install doesn't
+-- need them. Your existing production database already has this column from when
+-- this migration was originally run there.)
 
 -- 15. Dark mode preference, saved per account
 ALTER TABLE Users ADD COLUMN theme VARCHAR(10) NOT NULL DEFAULT 'light';

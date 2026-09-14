@@ -1,3 +1,10 @@
+-- HISTORICAL — already fully reflected in schema.sql as of the current version.
+-- Do NOT run this against a fresh install built from today's schema.sql: it will
+-- fail (schema.sql already defines Workouts/WorkoutExercises/WorkoutSets in this
+-- exact shape). This file is kept only as a record of how the live production
+-- database was actually migrated at the time, since it was built up incrementally
+-- rather than from a fresh schema.sql.
+--
 -- Run these in Railway's MySQL "Data" console, ONE AT A TIME, in order.
 -- This replaces the old single-exercise Workouts table with a structure that
 -- supports multiple exercises per workout, cardio + lifting, per-set weights,
