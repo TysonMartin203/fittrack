@@ -1,3 +1,5 @@
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const pool = require('../config/db');
 const { createUser, findByEmail, findByUsername } = require('../models/user.model');
 
@@ -47,14 +49,26 @@ async function deleteAccount(req, res) {
 
 // Clears the password so the account holder is prompted to set a new one next
 // time they try to log in (see auth.controller's login for that flow).
+// Characters chosen to avoid visual ambiguity (no 0/O, 1/l/I) since this gets
+// read aloud or typed by hand from wherever the admin relays it.
+const TEMP_PW_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+function generateTempPassword(length = 10) {
+  const bytes = crypto.randomBytes(length);
+  return Array.from(bytes, b => TEMP_PW_CHARS[b % TEMP_PW_CHARS.length]).join('');
+}
+
 async function resetUserPassword(req, res) {
   try {
+    const tempPassword = generateTempPassword();
+    const hash = await bcrypt.hash(tempPassword, 12);
     const [result] = await pool.query(
-      'UPDATE Users SET password_hash = NULL, reset_token = NULL, reset_token_expires = NULL WHERE id = ?',
-      [req.params.id]
+      'UPDATE Users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE id = ?',
+      [hash, req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Not found' });
-    res.json({ success: true });
+    // This is the only moment the plaintext password exists — it's never stored
+    // or retrievable again, so the admin needs to relay it to the person now.
+    res.json({ success: true, tempPassword });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

@@ -39,9 +39,15 @@ export default function Admin() {
     catch (err) { setError(err.message); }
   }
 
+  const [tempPasswordInfo, setTempPasswordInfo] = useState(null);
+
   async function resetPassword(id, username) {
-    if (!window.confirm(`Clear ${username}'s password? They'll be prompted to set a new one next time they try to log in.`)) return;
-    try { await api.adminResetPassword(id); loadUsers(); }
+    if (!window.confirm(`Generate a new temporary password for ${username}? Their current password will stop working immediately.`)) return;
+    try {
+      const res = await api.adminResetPassword(id);
+      setTempPasswordInfo({ username, password: res.tempPassword });
+      loadUsers();
+    }
     catch (err) { setError(err.message); }
   }
 
@@ -79,6 +85,22 @@ export default function Admin() {
     <div className="page">
       <h2 className="page-title">Admin</h2>
       {error && <p className="form-error" style={{marginBottom:'12px'}}>{error}</p>}
+      {tempPasswordInfo && (
+        <div className="glass-card" style={{marginBottom:'16px',border:'1px solid var(--accent)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'10px'}}>
+            <div>
+              <div style={{fontSize:'13px',fontWeight:'700',marginBottom:'6px'}}>New password for {tempPasswordInfo.username}</div>
+              <div style={{fontFamily:'monospace',fontSize:'20px',fontWeight:'700',letterSpacing:'.03em',background:'var(--surface-tint)',padding:'8px 12px',borderRadius:'var(--r-sm)',display:'inline-block'}}>
+                {tempPasswordInfo.password}
+              </div>
+              <p className="muted" style={{fontSize:'12px',marginTop:'8px',marginBottom:0}}>
+                Send this to them directly (text, call, in person) — it won't be shown again. They can log in with it and change it themselves in Settings → Account.
+              </p>
+            </div>
+            <button className="btn-ghost-sm" onClick={()=>setTempPasswordInfo(null)} style={{flexShrink:0}}>Dismiss</button>
+          </div>
+        </div>
+      )}
       <div className="tab-row" style={{marginBottom:'16px'}}>
         <button className={tab==='users'?'tab active':'tab'} onClick={()=>setTab('users')}>Users {users ? `(${users.length})` : ''}</button>
         <button className={tab==='crews'?'tab active':'tab'} onClick={()=>setTab('crews')}>Crews {crews ? `(${crews.length})` : ''}</button>
@@ -103,7 +125,7 @@ export default function Admin() {
               </div>
               <div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
                 <button className="btn-ghost-sm" onClick={()=>viewWorkouts(u)}>Workouts</button>
-                <button className="btn-ghost-sm" onClick={()=>resetPassword(u.id, u.username)}>Reset PW</button>
+                <button className="btn-ghost-sm" onClick={()=>resetPassword(u.id, u.username)}>New Password</button>
                 <button className="btn-ghost-sm" style={{color:'var(--danger)'}} onClick={()=>deleteUser(u.id, u.username)}>Delete</button>
               </div>
             </div>
