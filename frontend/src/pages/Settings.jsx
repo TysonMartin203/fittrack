@@ -7,6 +7,7 @@ import AchievementIcon from '../components/AchievementIcon';
 import { compressImage } from '../compressImage';
 import { enablePush, disablePush, getPushStatus } from '../push';
 import ProfileEditModal from '../components/ProfileEditModal';
+import { MAP_STYLES, MAP_STYLE_STORAGE_KEY, getSavedMapStyle } from '../data/mapStyles';
 
 // How-to descriptions for each achievement
 const HOW_TO = {
@@ -45,6 +46,12 @@ export default function Settings() {
   const [savingBio,    setSavingBio]    = useState(false);
   const [pushStatus,   setPushStatus]   = useState('unknown');
   const [mwSummaryCount, setMwSummaryCount] = useState(0);
+  const [mapStyle, setMapStyle] = useState(getSavedMapStyle);
+
+  function selectMapStyle(style) {
+    setMapStyle(style);
+    localStorage.setItem(MAP_STYLE_STORAGE_KEY, style);
+  }
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAccount, setShowAccount] = useState(null); // 'username' | 'email' | 'password' | null
   const [usernameInput, setUsernameInput] = useState(user?.username || '');
@@ -284,9 +291,17 @@ export default function Settings() {
         <div className="section-header">
           <span className="section-title">Appearance</span>
         </div>
-        <div className="tab-row">
+        <div className="tab-row" style={{marginBottom:'14px'}}>
           <button className={user?.theme !== 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('light')} style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconSun style={{width:'15px',height:'15px'}}/> Light</button>
           <button className={user?.theme === 'dark' ? 'tab active' : 'tab'} onClick={() => setTheme('dark')} style={{display:'flex',alignItems:'center',gap:'6px',justifyContent:'center'}}><IconMoon style={{width:'15px',height:'15px'}}/> Dark</button>
+        </div>
+        <div className="item-meta" style={{marginBottom:'6px'}}>Map style (used when tracking a run, walk, or bike)</div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+          {Object.entries(MAP_STYLES).map(([key, s]) => (
+            <button key={key} type="button" className={mapStyle===key?'tab active':'tab'} onClick={()=>selectMapStyle(key)} style={{flex:'1 1 auto',minWidth:'80px'}}>
+              {s.label}
+            </button>
+          ))}
         </div>
       </div>
 

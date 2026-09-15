@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+import { MAP_STYLES, MAP_STYLE_STORAGE_KEY, getSavedMapStyle } from '../data/mapStyles';
+
 const TRACKABLE_ACTIVITIES = ['Running', 'Walking', 'Biking'];
 const ROUTE_COLOR = '#E07A5F';
 
@@ -41,6 +43,8 @@ export default function RunTracker() {
 
   const mapRef = useRef(null);
   const mapObjRef = useRef(null);
+  const tileLayerRef = useRef(null);
+  const [mapStyle, setMapStyleState] = useState(getSavedMapStyle);
   const polylineRef = useRef(null);
   const markerRef = useRef(null);
   const watchIdRef = useRef(null);
@@ -56,7 +60,8 @@ export default function RunTracker() {
   useEffect(() => {
     if (mapRef.current && !mapObjRef.current) {
       const map = L.map(mapRef.current, { zoomControl: false, attributionControl: false }).setView([39.8283, -98.5795], 4);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+      tileLayerRef.current = L.tileLayer(MAP_STYLES[mapStyle].url, { maxZoom: MAP_STYLES[mapStyle].maxZoom }).addTo(map);
+      map.getPane('tilePane').style.filter = MAP_STYLES[mapStyle].filter || '';
       L.control.zoom({ position: 'bottomright' }).addTo(map);
       polylineRef.current = L.polyline([], { color: ROUTE_COLOR, weight: 5 }).addTo(map);
       mapObjRef.current = map;
@@ -64,6 +69,17 @@ export default function RunTracker() {
     return () => cleanup();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function setMapStyle(style) {
+    setMapStyleState(style);
+    localStorage.setItem(MAP_STYLE_STORAGE_KEY, style);
+    const map = mapObjRef.current;
+    if (map && tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+      tileLayerRef.current = L.tileLayer(MAP_STYLES[style].url, { maxZoom: MAP_STYLES[style].maxZoom }).addTo(map);
+      map.getPane('tilePane').style.filter = MAP_STYLES[style].filter || '';
+    }
+  }
 
   // Leaflet needs a nudge to redraw correctly once its container becomes visible again.
   useEffect(() => {
@@ -208,11 +224,26 @@ export default function RunTracker() {
         </>
       )}
 
-      <div ref={mapRef} style={{
-        width:'100%', height: status==='finished' ? '220px' : '280px', borderRadius:'var(--r-lg)',
-        marginBottom: showMap ? '16px' : 0, border: showMap ? '1px solid var(--border)' : 'none',
-        display: showMap ? 'block' : 'none',
-      }}/>
+      <div style={{ position: 'relative', display: showMap ? 'block' : 'none' }}>
+        <div ref={mapRef} style={{
+          width:'100%', height: status==='finished' ? '220px' : '280px', borderRadius:'var(--r-lg)',
+          marginBottom: showMap ? '16px' : 0, border: showMap ? '1px solid var(--border)' : 'none',
+        }}/>
+        {showMap && (
+          <div style={{ position:'absolute', top:'10px', left:'10px', zIndex:1000, display:'flex', gap:'4px', background:'rgba(255,255,255,0.9)', borderRadius:'var(--r-sm)', padding:'4px' }}>
+            {Object.entries(MAP_STYLES).map(([key, s]) => (
+              <button key={key} type="button" onClick={() => setMapStyle(key)}
+                style={{
+                  fontSize:'11px', padding:'4px 8px', borderRadius:'6px', border:'none', cursor:'pointer',
+                  background: mapStyle === key ? 'var(--accent)' : 'transparent',
+                  color: mapStyle === key ? '#fff' : '#3D405B', fontWeight: mapStyle === key ? '700' : '500',
+                }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {(status === 'tracking' || status === 'paused') && (
         <>
