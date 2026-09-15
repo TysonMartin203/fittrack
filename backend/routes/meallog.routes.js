@@ -7,7 +7,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 *
 
 router.use(auth);
 router.post('/',        create);
-router.post('/recognize', upload.single('photo'), recognize);
+router.post('/recognize', upload.fields([{ name: 'photo', maxCount: 1 }, { name: 'photo2', maxCount: 1 }]), recognize);
 router.post('/parse-voice', parseVoice);
 router.get('/',          listForDate);
 router.get('/history',   history);

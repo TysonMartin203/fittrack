@@ -68,23 +68,31 @@ async function remove(req, res) {
 // saved — only used for this one-time recognition — so no upload/storage plumbing needed.
 async function recognize(req, res) {
   try {
-    if (!req.file) return res.status(400).json({ error: 'No photo provided' });
+    const photo = req.files?.photo?.[0];
+    const photo2 = req.files?.photo2?.[0];
+    if (!photo) return res.status(400).json({ error: 'No photo provided' });
     const client = getClient();
 
     const profile = await getProfile(req.userId).catch(() => null);
     const palmWidth = profile?.palmWidth || null;
 
     const scaleNote = palmWidth
-      ? `The user's palm width (straight across, not including thumb) is ${palmWidth} inches. If a hand is visible in the photo, use it as a precise scale reference.`
+      ? `The user's palm width (straight across, not including thumb) is ${palmWidth} inches. If a hand is visible in a photo, use it as a precise scale reference.`
       : `The user hasn't recorded their palm width. If a hand is visible, assume an average adult palm width of about 3.5 inches as a rough scale reference.`;
 
-    const prompt = `You are an experienced dietitian estimating a meal's nutrition from a photo. Work through this carefully — accuracy matters more than speed.
+    const angleNote = photo2
+      ? `You've been given TWO photos of the same meal from different angles (e.g. one from above, one from the side). Use both together — a single photo can't show how tall or deep a pile of food is, so cross-reference the two to judge portion volume much more accurately than either photo alone would allow. If the photos disagree on something, trust whichever view shows that specific detail more clearly rather than averaging blindly.`
+      : `Only one photo was provided. Note that a single 2D photo can't fully show portion depth/height — lean more on stable references (plate/bowl size, hand if visible) than on pile height or shading, which are the least reliable cues from a single angle and vary a lot with camera angle.`;
+
+    const prompt = `You are an experienced dietitian estimating a meal's nutrition from ${photo2 ? 'photos' : 'a photo'}. Work through this carefully — accuracy matters more than speed.
 
 ${scaleNote} Other useful size references if visible: a standard dinner plate is ~10-11 inches across, a standard bowl holds ~16-20oz, a fist is roughly 1 cup, a deck-of-cards-sized portion of meat is ~3-4oz, a thumb is roughly 1oz of cheese or fat.
 
+${angleNote}
+
 Steps:
-1. Identify each distinct food/ingredient visible on the plate separately — don't lump them into one guess.
-2. For each item, estimate its portion size using the visual scale references above (plate/bowl size, hand if visible, density and height of the pile).
+1. Identify each distinct food/ingredient visible separately — don't lump them into one guess.
+2. For each item, estimate its portion size using the visual scale references above, prioritizing stable references (plate/bowl diameter, hand) over depth-dependent cues (pile height, shading) that shift with camera angle.
 3. Consider preparation method from visual cues (fried vs. baked vs. steamed, visible oil sheen, breading, cheese, sauce, dressing) — these are the single biggest source of underestimated calories in photo-based tracking, since oil and dressing are often invisible or hard to judge but calorically dense. If the food looks like it was cooked with oil/butter or has a sauce/dressing, factor that in even though you can't see the exact amount.
 4. Estimate calories and macros for each item individually, then sum them for the totals.
 5. Note any meaningful assumptions or uncertainty (e.g. "assumed steamed, not roasted with oil" or "sauce could add 100-200 cal if creamy rather than vinegar-based") so the user can adjust if you guessed wrong.
@@ -105,15 +113,23 @@ Return ONLY valid JSON, no markdown, in this exact structure:
 
 Give your best reasonable estimate rather than refusing, even when uncertain — that's the whole point of this tool. Use "low" confidence honestly when the dish is complex, mixed, or heavily sauced rather than defaulting to "medium".`;
 
+    const imageContent = [
+      { type: 'image', source: { type: 'base64', media_type: photo.mimetype, data: photo.buffer.toString('base64') } },
+    ];
+    if (photo2) {
+      imageContent.push({ type: 'image', source: { type: 'base64', media_type: photo2.mimetype, data: photo2.buffer.toString('base64') } });
+    }
+
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1200,
+      // Low temperature so scanning the same photo(s) twice gives the same
+      // estimate — this is a numeric estimation task, not creative writing,
+      // so we want the model's most consistent reasoning, not varied ones.
+      temperature: 0,
       messages: [{
         role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: req.file.mimetype, data: req.file.buffer.toString('base64') } },
-          { type: 'text', text: prompt },
-        ],
+        content: [...imageContent, { type: 'text', text: prompt }],
       }],
     });
 
@@ -155,6 +171,7 @@ Give your best reasonable estimate rather than refusing, even if the description
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 700,
+      temperature: 0,
       messages: [{ role: 'user', content: prompt }],
     });
 

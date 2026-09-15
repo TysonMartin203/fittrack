@@ -34,7 +34,10 @@ export default function LogMeal() {
   const [scanError, setScanError] = useState('');
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [voiceError, setVoiceError] = useState('');
+  const [firstPhoto, setFirstPhoto] = useState(null);
+  const [addingAngle, setAddingAngle] = useState(false);
   const fileRef = useRef();
+  const secondFileRef = useRef();
 
   const [meals, setMeals] = useState([]);
   const [totals, setTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
@@ -94,6 +97,7 @@ export default function LogMeal() {
     setScanning(true); setScanError('');
     try {
       const compressed = await compressImage(file, { maxDimension: 1536, quality: 0.85 });
+      setFirstPhoto(compressed);
       const fd = new FormData();
       fd.append('photo', compressed);
       const result = await api.recognizeFood(fd);
@@ -102,9 +106,33 @@ export default function LogMeal() {
     } catch (err) {
       setScanError(err.message || 'Could not read that photo — try a clearer shot or enter it manually.');
       setScanResult(null);
+      setFirstPhoto(null);
     } finally {
       setScanning(false);
       if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
+  // A single photo can't show how tall or deep a pile of food is — a second
+  // angle gives the model something to cross-reference, which meaningfully
+  // improves portion-size accuracy beyond what temperature or prompting alone can.
+  async function addSecondAngle(e) {
+    const file = e.target.files[0];
+    if (!file || !firstPhoto) return;
+    setAddingAngle(true); setScanError('');
+    try {
+      const compressed = await compressImage(file, { maxDimension: 1536, quality: 0.85 });
+      const fd = new FormData();
+      fd.append('photo', firstPhoto);
+      fd.append('photo2', compressed);
+      const result = await api.recognizeFood(fd);
+      applyAiResult(result);
+      setScanResult(result);
+    } catch (err) {
+      setScanError(err.message || 'Could not read that photo — try a clearer shot.');
+    } finally {
+      setAddingAngle(false);
+      if (secondFileRef.current) secondFileRef.current.value = '';
     }
   }
 
@@ -136,6 +164,7 @@ export default function LogMeal() {
       });
       setIngredients([blankIngredient()]); setNotes('');
       setScanResult(null);
+      setFirstPhoto(null);
       loadDay();
     } catch (err) { setError(err.message); }
     finally { setSaving(false); }
@@ -184,7 +213,7 @@ export default function LogMeal() {
         <div className="card-form">
           <div className="glass-card" style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px',border:'1px solid var(--accent)'}}>
             <IconWave style={{width:'22px',height:'22px',color:'var(--accent)',flexShrink:0}}/>
-            <p style={{fontSize:'13px',fontWeight:'600',margin:0}}>Place your open hand flat next to the food before you snap the photo — it's the key to a more accurate size estimate.</p>
+            <p style={{fontSize:'13px',fontWeight:'600',margin:0}}>Shoot from directly above with your open hand flat next to the food — top-down shots with a hand in frame give the most accurate size estimate.</p>
           </div>
           <input ref={fileRef} type="file" accept="image/*" onChange={scanPhoto} style={{display:'none'}} id="food-photo-input"/>
           <label htmlFor="food-photo-input" className="btn-secondary" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',cursor:'pointer',marginBottom:'10px'}}>
@@ -204,6 +233,14 @@ export default function LogMeal() {
                 </span>
               </div>
               {scanResult.notes && <p className="muted" style={{fontSize:'12px',marginTop:'6px',fontStyle:'italic'}}>{scanResult.notes}</p>}
+              {firstPhoto && (
+                <>
+                  <input ref={secondFileRef} type="file" accept="image/*" onChange={addSecondAngle} style={{display:'none'}} id="food-photo-input-2"/>
+                  <label htmlFor="food-photo-input-2" className="btn-ghost-sm" style={{display:'inline-flex',alignItems:'center',gap:'6px',cursor:'pointer',marginTop:'10px'}}>
+                    <IconCamera style={{width:'13px',height:'13px'}}/> {addingAngle ? 'Reading second photo…' : '+ Add another angle for better accuracy'}
+                  </label>
+                </>
+              )}
             </div>
           )}
           <VoiceNoteButton label="Or Describe What You Ate" onTranscript={handleVoiceTranscript}/>
