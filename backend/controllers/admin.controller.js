@@ -66,7 +66,7 @@ async function listCrews(req, res) {
     const [rows] = await pool.query(
       `SELECT c.id, c.name, c.created_at, u.username AS creator_username,
               (SELECT COUNT(*) FROM CrewMembers cm WHERE cm.crew_id = c.id) AS member_count
-       FROM Crews c LEFT JOIN Users u ON u.id = c.creator_id
+       FROM Crews c LEFT JOIN Users u ON u.id = c.created_by
        ORDER BY c.created_at DESC`
     );
     res.json(rows);

@@ -1,10 +1,10 @@
 const pool = require('../config/db');
 
-async function logMeal({ userId, date, mealType, name, calories, protein, carbs, fat, notes }) {
+async function logMeal({ userId, date, mealType, name, calories, protein, carbs, fat, notes, ingredients }) {
   const [result] = await pool.query(
-    `INSERT INTO LoggedMeals (user_id, date, meal_type, name, calories, protein, carbs, fat, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [userId, date, mealType, name, calories || null, protein || null, carbs || null, fat || null, notes || null]
+    `INSERT INTO LoggedMeals (user_id, date, meal_type, name, calories, protein, carbs, fat, notes, ingredients)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [userId, date, mealType, name, calories || null, protein || null, carbs || null, fat || null, notes || null, ingredients ? JSON.stringify(ingredients) : null]
   );
   return result.insertId;
 }
