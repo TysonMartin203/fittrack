@@ -479,6 +479,8 @@ export default function WorkoutPlans() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
+  const [scope, setScope] = useState('week');
+  const [dayResult, setDayResult] = useState(null);
   const [profile, setProfile] = useState({ weight:'', goalWeight:'', goal:GOALS[2], timeline:'', notes:'', planName:'My Workout Plan' });
 
   useEffect(() => {
@@ -493,16 +495,25 @@ export default function WorkoutPlans() {
 
   async function generate(e) {
     e.preventDefault();
-    setError(''); setGenerating(true);
+    setError(''); setGenerating(true); setDayResult(null);
     try {
-      const data = await api.generateWorkoutPlan(profile);
       const { planName, ...profileToSave } = profile;
       api.saveProfile(profileToSave).catch(()=>{});
-      loadPlans();
-      setActivePlan(data.planId);
-      setView('detail');
+      if (scope === 'day') {
+        const data = await api.generateWorkoutPlan({ ...profile, scope: 'day' });
+        setDayResult(data.workout);
+      } else {
+        const data = await api.generateWorkoutPlan(profile);
+        loadPlans();
+        setActivePlan(data.planId);
+        setView('detail');
+      }
     } catch (err) { setError(err.message || 'Failed to generate plan.'); }
     finally { setGenerating(false); }
+  }
+
+  function logDayResult() {
+    navigate('/log/new', { state: { initialExercises: dayResult.exercises.map(toFormExercise), planLabel: dayResult.focus || 'AI Workout' } });
   }
 
   async function useTemplate(id, name) {
@@ -546,9 +557,18 @@ export default function WorkoutPlans() {
         <form onSubmit={generate} className="form-stack">
           <div className="card-form">
             <div className="field" style={{marginBottom:'12px'}}>
-              <label className="label">Plan Name</label>
-              <input className="input" placeholder="e.g. Summer Strength Block" value={profile.planName} onChange={e=>setProfile(p=>({...p,planName:e.target.value}))} required/>
+              <label className="label">Plan Length</label>
+              <div className="tab-row">
+                <button type="button" className={scope==='week'?'tab active':'tab'} onClick={()=>setScope('week')}>Weekly Plan</button>
+                <button type="button" className={scope==='day'?'tab active':'tab'} onClick={()=>setScope('day')}>Individual Workout</button>
+              </div>
             </div>
+            {scope === 'week' && (
+              <div className="field" style={{marginBottom:'12px'}}>
+                <label className="label">Plan Name</label>
+                <input className="input" placeholder="e.g. Summer Strength Block" value={profile.planName} onChange={e=>setProfile(p=>({...p,planName:e.target.value}))} required/>
+              </div>
+            )}
             <div className="input-row">
               <div className="input-group"><label className="label">Current Weight (lbs)</label><input className="input" type="number" placeholder="185" value={profile.weight} onChange={e=>setProfile(p=>({...p,weight:e.target.value}))}/></div>
               <div className="input-group"><label className="label">Goal Weight (lbs)</label><input className="input" type="number" placeholder="175" value={profile.goalWeight} onChange={e=>setProfile(p=>({...p,goalWeight:e.target.value}))}/></div>
@@ -560,18 +580,31 @@ export default function WorkoutPlans() {
                   {GOALS.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
-              <div className="input-group"><label className="label">Timeline (weeks)</label><input className="input" type="number" placeholder="12" value={profile.timeline} onChange={e=>setProfile(p=>({...p,timeline:e.target.value}))}/></div>
+              {scope === 'week' && (
+                <div className="input-group"><label className="label">Timeline (weeks)</label><input className="input" type="number" placeholder="12" value={profile.timeline} onChange={e=>setProfile(p=>({...p,timeline:e.target.value}))}/></div>
+              )}
             </div>
             <div className="field" style={{marginTop:'12px'}}>
-              <label className="label">Notes for the AI (goals, injuries, preferences)</label>
-              <textarea className="input" rows={3} placeholder="e.g. training for a half marathon, bad left knee so avoid heavy squats, prefer dumbbells over barbells"
+              <label className="label">Notes for the AI (goals, injuries, preferences{scope==='day' ? ', what you want today' : ''})</label>
+              <textarea className="input" rows={3} placeholder={scope==='day' ? "e.g. leg day, bad left knee so avoid heavy squats, prefer dumbbells" : "e.g. training for a half marathon, bad left knee so avoid heavy squats, prefer dumbbells over barbells"}
                 value={profile.notes} onChange={e=>setProfile(p=>({...p,notes:e.target.value}))} />
             </div>
           </div>
           <button className="btn-primary" type="submit" disabled={generating}>
-            {generating ? 'Building your plan…' : <><IconSparkle style={{width:'16px',height:'16px',marginRight:'6px'}}/>Generate Plan</>}
+            {generating ? 'Building your workout…' : <><IconSparkle style={{width:'16px',height:'16px',marginRight:'6px'}}/>{scope==='day' ? 'Generate Workout' : 'Generate Plan'}</>}
           </button>
         </form>
+        {dayResult && (
+          <div className="glass-card" style={{marginTop:'16px'}}>
+            <div style={{fontWeight:'700',fontSize:'16px',marginBottom:'10px'}}>{dayResult.focus || 'Today\'s Workout'}</div>
+            {dayResult.exercises.map((ex, i) => (
+              <div key={i} className="item-meta" style={{fontSize:'13px',marginBottom:'4px'}}>
+                {ex.exerciseName} — {ex.sets} × {ex.reps}
+              </div>
+            ))}
+            <button className="btn-primary" style={{marginTop:'12px'}} onClick={logDayResult}>Log This Workout</button>
+          </div>
+        )}
       </div>
     );
   }

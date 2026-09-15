@@ -136,10 +136,43 @@ async function sharePlan(req, res) {
 async function generate(req, res) {
   try {
     const client = getClient();
-    const { weight, goalWeight, goal, timeline, activityLevel = '', notes = '', planName = 'My Workout Plan' } = req.body;
+    const { weight, goalWeight, goal, timeline, activityLevel = '', notes = '', planName = 'My Workout Plan', scope = 'week' } = req.body;
 
     const [prs] = await pool.query('SELECT exercise, max_weight FROM PRs WHERE user_id = ? LIMIT 8', [req.userId]);
     const prText = prs.length > 0 ? prs.map(p => `${p.exercise}: ${p.max_weight}lbs`).join(', ') : 'Not provided';
+
+    if (scope === 'day') {
+      const prompt = `You are a certified strength coach. Build ONE well-structured workout session as JSON, tailored to this person.
+
+User stats:
+- Current weight: ${weight || 'not provided'} lbs
+- Goal weight: ${goalWeight || 'not provided'} lbs
+- Goal: ${goal || 'general fitness'}
+- Activity level: ${activityLevel || 'not provided'}
+- Current lifting PRs: ${prText}
+- What they want from today's session / any notes (goals, injuries, preferences): ${notes || 'none specified — pick something sensible and well-rounded'}
+
+Pick a sensible focus for a single session (e.g. Push, Pull, Legs, Full Body, or whatever the notes suggest). If notes mention an injury or limitation, avoid exercises that would aggravate it. For each exercise give sets and a rep range as a string (e.g. "8-10"). Use common gym exercise names.
+
+Order exercises like a real trainer would: big compound lifts first while fresh, isolation moves last. Never place an isolation exercise for a muscle before a compound exercise that already works that same muscle hard. Don't cluster two same-muscle isolation exercises back to back.
+
+Return ONLY valid JSON, no markdown:
+{
+  "focus": "e.g. Push Day",
+  "exercises": [
+    { "category": "lifting", "exerciseName": "Bench Press", "sets": 4, "reps": "6-8", "notes": "" }
+  ]
+}`;
+
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-6', max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      let text = message.content[0].text.trim();
+      text = text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
+      const workout = JSON.parse(text);
+      return res.json({ workout });
+    }
 
     const prompt = `You are a certified strength coach. Build a 7-day weekly workout split as JSON, tailored to this person.
 
