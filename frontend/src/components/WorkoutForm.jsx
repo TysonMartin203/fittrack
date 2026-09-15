@@ -17,30 +17,27 @@ function blankLiftingExercise() {
 }
 
 function TimeInput({ minutesDecimal, onChange }) {
-  function toDisplay(dec) {
-    if (dec === '' || dec == null) return '';
-    const total = Math.round(Number(dec) * 60);
-    const m = Math.floor(total / 60), s = total % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
-  }
-  const [text, setText] = useState(toDisplay(minutesDecimal));
-  useEffect(() => { setText(toDisplay(minutesDecimal)); }, [minutesDecimal]);
+  const totalSeconds = minutesDecimal === '' || minutesDecimal == null ? null : Math.round(Number(minutesDecimal) * 60);
+  const mins = totalSeconds != null ? Math.floor(totalSeconds / 60) : '';
+  const secs = totalSeconds != null ? totalSeconds % 60 : '';
 
-  function handleChange(e) {
-    const digits = e.target.value.replace(/\D/g, '').slice(0, 4);
-    if (digits === '') { setText(''); onChange(''); return; }
-    if (digits.length <= 2) {
-      setText(digits);
-      onChange(+(parseInt(digits, 10) || 0).toFixed(3));
-      return;
-    }
-    const minPart = digits.slice(0, -2) || '0';
-    const secPart = Math.min(59, parseInt(digits.slice(-2), 10));
-    setText(`${minPart}:${String(secPart).padStart(2, '0')}`);
-    onChange(+(parseInt(minPart, 10) + secPart / 60).toFixed(3));
+  function updateFromParts(newMins, newSecs) {
+    if (newMins === '' && newSecs === '') { onChange(''); return; }
+    const m = newMins === '' ? 0 : Math.max(0, parseInt(newMins, 10) || 0);
+    const s = newSecs === '' ? 0 : Math.min(59, Math.max(0, parseInt(newSecs, 10) || 0));
+    onChange(+(m + s / 60).toFixed(3));
   }
 
-  return <input className="input" type="text" inputMode="numeric" placeholder="20:47" value={text} onChange={handleChange} />;
+  return (
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+      <input className="input" type="number" min="0" inputMode="numeric" placeholder="20"
+        value={mins} onChange={e => updateFromParts(e.target.value, secs)} style={{ flex: 1 }} />
+      <span className="muted" style={{ fontSize: '13px', flexShrink: 0 }}>min</span>
+      <input className="input" type="number" min="0" max="59" inputMode="numeric" placeholder="00"
+        value={secs} onChange={e => updateFromParts(mins, e.target.value)} style={{ flex: 1 }} />
+      <span className="muted" style={{ fontSize: '13px', flexShrink: 0 }}>sec</span>
+    </div>
+  );
 }
 
 function LiftingNameInput({ value, onChange }) {
