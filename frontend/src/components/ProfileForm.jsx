@@ -84,6 +84,24 @@ export default function ProfileForm({ profile, setProfile }) {
         {!profile.weight && <p className="muted" style={{fontSize:'12px',marginTop:'4px'}}>Fill in your weight above to use the calculator.</p>}
       </div>
       <div className="field">
+        <label className="label">Daily Macro Goals in grams (optional)</label>
+        <div className="input-row">
+          <div className="input-group">
+            <label className="label" style={{fontSize:'12px'}}>Protein</label>
+            <input className="input" type="number" min="0" placeholder="auto" value={profile.proteinGoal || ''} onChange={e=>setProfile(p=>({...p,proteinGoal:e.target.value}))}/>
+          </div>
+          <div className="input-group">
+            <label className="label" style={{fontSize:'12px'}}>Carbs</label>
+            <input className="input" type="number" min="0" placeholder="auto" value={profile.carbsGoal || ''} onChange={e=>setProfile(p=>({...p,carbsGoal:e.target.value}))}/>
+          </div>
+          <div className="input-group">
+            <label className="label" style={{fontSize:'12px'}}>Fat</label>
+            <input className="input" type="number" min="0" placeholder="auto" value={profile.fatGoal || ''} onChange={e=>setProfile(p=>({...p,fatGoal:e.target.value}))}/>
+          </div>
+        </div>
+        <p className="muted" style={{fontSize:'12px',marginTop:'4px'}}>Leave blank to use a standard split (30% protein / 40% carbs / 30% fat) of your calorie goal.</p>
+      </div>
+      <div className="field">
         <label className="label">Palm Width (optional)</label>
         <div style={{display:'flex',gap:'14px',alignItems:'flex-start'}}>
           <HandMeasureDiagram size={72}/>

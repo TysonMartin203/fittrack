@@ -14,6 +14,14 @@ async function buzz(req, res) {
     const friends = await areFriends(req.userId, friendId);
     if (!friends) return res.status(403).json({ error: 'Not friends' });
 
+    const [[recentWorkout]] = await pool.query(
+      "SELECT id FROM Workouts WHERE user_id = ? AND created_at >= NOW() - INTERVAL 18 HOUR LIMIT 1",
+      [friendId]
+    );
+    if (recentWorkout) {
+      return res.status(429).json({ error: 'They already worked out in the last 18 hours — no need to buzz them.' });
+    }
+
     const key = `${req.userId}->${friendId}`;
     const now = Date.now();
     const last = lastBuzz.get(key);

@@ -12,15 +12,16 @@ function FireIcon(props) {
 function FlexIcon(props) {
   return (
     <svg {...common} {...props}>
-      {/* Bent arm: upper arm/shoulder, forearm bending up to a fist, bicep bulge at the elbow */}
-      <g transform="rotate(15 15 18)">
-        <rect x="12.5" y="8" width="5.5" height="14" rx="2.75" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
+      {/* Bicep flex: bigger, clearer muscle bulge with a highlight contour for definition */}
+      <g transform="rotate(12 15 18)">
+        <rect x="12" y="7" width="6" height="15" rx="3" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
       </g>
-      <g transform="rotate(-60 9 12)">
-        <rect x="7" y="4" width="4.4" height="11" rx="2.2" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
+      <g transform="rotate(-62 8.5 12)">
+        <rect x="6.2" y="3.5" width="4.6" height="11.5" rx="2.3" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
       </g>
-      <circle cx="6.3" cy="7.3" r="3" fill="#E9A98C" stroke="#B85C43" strokeWidth="0.6"/>
-      <circle cx="12.5" cy="11.5" r="4.8" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
+      <circle cx="5.8" cy="6.5" r="2.9" fill="#E9A98C" stroke="#B85C43" strokeWidth="0.6"/>
+      <circle cx="12.8" cy="11.5" r="5.6" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.7"/>
+      <path d="M9.3 9.2 C10.5 8 12.8 7.7 14.7 8.8" stroke="#F2CC8F" strokeWidth="1.3" strokeLinecap="round" fill="none" opacity="0.85"/>
     </svg>
   );
 }
@@ -28,16 +29,20 @@ function FlexIcon(props) {
 function ClapIcon(props) {
   return (
     <svg {...common} {...props}>
-      {/* Two hands meeting with motion lines above, reading as a clap */}
-      <g transform="rotate(-15 8 12)">
-        <rect x="4.5" y="8" width="7" height="9" rx="3.2" fill="#E9A98C" stroke="#B85C43" strokeWidth="0.6"/>
-        <rect x="3" y="10.5" width="3" height="4.5" rx="1.5" fill="#E9A98C" stroke="#B85C43" strokeWidth="0.6"/>
+      {/* Fist bump: two clenched fists with knuckle lines, meeting with impact lines */}
+      <g transform="rotate(-20 7 13)">
+        <rect x="3" y="8" width="9" height="9" rx="2.5" fill="#E9A98C" stroke="#B85C43" strokeWidth="0.7"/>
+        <line x1="6" y1="8.5" x2="6" y2="16.5" stroke="#B85C43" strokeWidth="0.6"/>
+        <line x1="9" y1="8.5" x2="9" y2="16.5" stroke="#B85C43" strokeWidth="0.6"/>
+        <rect x="1.5" y="12" width="3" height="4" rx="1.4" fill="#E9A98C" stroke="#B85C43" strokeWidth="0.6"/>
       </g>
-      <g transform="rotate(15 16 12)">
-        <rect x="12.5" y="8" width="7" height="9" rx="3.2" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
-        <rect x="18" y="10.5" width="3" height="4.5" rx="1.5" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
+      <g transform="rotate(20 17 13)">
+        <rect x="12" y="8" width="9" height="9" rx="2.5" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.7"/>
+        <line x1="15" y1="8.5" x2="15" y2="16.5" stroke="#B85C43" strokeWidth="0.6"/>
+        <line x1="18" y1="8.5" x2="18" y2="16.5" stroke="#B85C43" strokeWidth="0.6"/>
+        <rect x="19.5" y="12" width="3" height="4" rx="1.4" fill="#E07A5F" stroke="#B85C43" strokeWidth="0.6"/>
       </g>
-      <path d="M9 4.5 L9.6 6.3 M12 3.8 L12 5.7 M15 4.5 L14.4 6.3" stroke="#8F5D5D" strokeWidth="1.1" strokeLinecap="round"/>
+      <path d="M12 5 L12.5 7.2 M9.5 4.7 L10.3 6.8 M14.5 4.7 L13.7 6.8" stroke="#8F5D5D" strokeWidth="1.1" strokeLinecap="round"/>
     </svg>
   );
 }

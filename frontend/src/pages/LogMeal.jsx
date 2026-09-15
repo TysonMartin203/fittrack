@@ -5,6 +5,8 @@ import { today, formatDateStr } from '../dateUtils';
 import { IconTrash, IconCamera, IconWave, IconPlus } from '../components/Icons';
 import { compressImage } from '../compressImage';
 import VoiceNoteButton from '../components/VoiceNoteButton';
+import MacroProgressBar from '../components/MacroProgressBar';
+import { getMacroGoals } from '../macroGoals';
 
 const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
@@ -38,10 +40,11 @@ export default function LogMeal() {
   const [totals, setTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
   const [loadingDay, setLoadingDay] = useState(true);
   const [calorieGoal, setCalorieGoal] = useState(null);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     loadDay();
-    api.getProfile().then(d => { if (d.profile?.calorieGoal) setCalorieGoal(Number(d.profile.calorieGoal)); }).catch(()=>{});
+    api.getProfile().then(d => { setProfile(d.profile); if (d.profile?.calorieGoal) setCalorieGoal(Number(d.profile.calorieGoal)); }).catch(()=>{});
   }, [date]);
 
   function loadDay() {
@@ -144,8 +147,8 @@ export default function LogMeal() {
     catch { loadDay(); }
   }
 
-  const pct = calorieGoal ? Math.min(100, Math.round((totals.calories / calorieGoal) * 100)) : null;
   const overGoal = calorieGoal && totals.calories > calorieGoal;
+  const macroGoals = getMacroGoals(profile, calorieGoal);
 
   return (
     <div className="page">
@@ -267,15 +270,23 @@ export default function LogMeal() {
             <span className="muted" style={{fontSize:'13px'}}>{calorieGoal ? `of ${calorieGoal} cal goal` : 'calories logged'}</span>
           </div>
           {calorieGoal != null && (
-            <div style={{width:'100%',height:'8px',background:'var(--surface-tint)',borderRadius:'999px',overflow:'hidden',marginBottom:'12px'}}>
-              <div style={{width:`${pct}%`,height:'100%',background: overGoal ? 'var(--danger)' : 'var(--accent)',borderRadius:'999px',transition:'width .3s'}}/>
+            <div style={{marginBottom:'14px'}}>
+              <MacroProgressBar value={totals.calories} max={calorieGoal}/>
             </div>
           )}
-          <div style={{display:'flex',gap:'16px',fontSize:'13px'}}>
-            <span><strong>{Math.round(totals.protein)}g</strong> <span className="muted">protein</span></span>
-            <span><strong>{Math.round(totals.carbs)}g</strong> <span className="muted">carbs</span></span>
-            <span><strong>{Math.round(totals.fat)}g</strong> <span className="muted">fat</span></span>
-          </div>
+          {[
+            { label: 'Protein', value: totals.protein, goal: macroGoals.protein, color: 'var(--teal)' },
+            { label: 'Carbs',   value: totals.carbs,   goal: macroGoals.carbs,   color: 'var(--rose)' },
+            { label: 'Fat',     value: totals.fat,     goal: macroGoals.fat,     color: 'var(--accent)' },
+          ].map(m => (
+            <div key={m.label} style={{marginBottom:'8px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',marginBottom:'3px'}}>
+                <span style={{fontWeight:'700'}}>{m.label}</span>
+                <span className="muted">{Math.round(m.value)}g{m.goal ? ` / ${m.goal}g` : ''}</span>
+              </div>
+              {m.goal && <MacroProgressBar value={m.value} max={m.goal} color={m.color} height="6px"/>}
+            </div>
+          ))}
         </div>
 
         {loadingDay ? <div className="spinner"/> : meals.length === 0 ? (
