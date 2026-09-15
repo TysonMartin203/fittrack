@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { today, formatDateStr } from '../dateUtils';
 import { IconTrash, IconCamera, IconWave, IconPlus } from '../components/Icons';
@@ -16,17 +16,29 @@ function blankIngredient() {
 
 export default function LogMeal() {
   const location = useLocation();
+  const navigate = useNavigate();
   const prefill = location.state; // { mealType, name, calories, protein, carbs, fat } when arriving from a meal plan
+  const editMeal = location.state?.editMeal; // full meal row when arriving from Meal History to edit
 
-  const [date, setDate] = useState(today());
-  const [mealType, setMealType] = useState(prefill?.mealType && MEAL_TYPES.includes(prefill.mealType) ? prefill.mealType : 'Breakfast');
+  const [date, setDate] = useState(editMeal?.date || today());
+  const [mealType, setMealType] = useState(
+    editMeal?.meal_type || (prefill?.mealType && MEAL_TYPES.includes(prefill.mealType) ? prefill.mealType : 'Breakfast')
+  );
   const [ingredients, setIngredients] = useState(() => {
+    if (editMeal) {
+      const existing = editMeal.ingredients;
+      if (Array.isArray(existing) && existing.length) {
+        return existing.map(ing => ({ key: Math.random().toString(36).slice(2), name: ing.name || '', calories: ing.calories ?? '', protein: ing.protein ?? '', carbs: ing.carbs ?? '', fat: ing.fat ?? '' }));
+      }
+      // Older meals logged before per-ingredient breakdown existed — fall back to the single totals row.
+      return [{ key: 'edit', name: editMeal.name || '', calories: editMeal.calories ?? '', protein: editMeal.protein ?? '', carbs: editMeal.carbs ?? '', fat: editMeal.fat ?? '' }];
+    }
     if (prefill?.name) {
       return [{ key: 'prefill', name: prefill.name, calories: prefill.calories ?? '', protein: prefill.protein ?? '', carbs: prefill.carbs ?? '', fat: prefill.fat ?? '' }];
     }
     return [blankIngredient()];
   });
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(editMeal?.notes || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [scanning, setScanning] = useState(false);
@@ -157,11 +169,17 @@ export default function LogMeal() {
     setSaving(true); setError('');
     try {
       const name = cleanIngredients.map(i => i.name).join(', ');
-      await api.logMeal({
+      const payload = {
         date, mealType, name, notes,
         calories: liveTotals.calories || null, protein: liveTotals.protein || null, carbs: liveTotals.carbs || null, fat: liveTotals.fat || null,
         ingredients: cleanIngredients.map(({ key, ...rest }) => rest),
-      });
+      };
+      if (editMeal) {
+        await api.updateLoggedMeal(editMeal.id, payload);
+        navigate('/meals/history');
+        return;
+      }
+      await api.logMeal(payload);
       setIngredients([blankIngredient()]); setNotes('');
       setScanResult(null);
       setFirstPhoto(null);
@@ -183,7 +201,7 @@ export default function LogMeal() {
   return (
     <div className="page">
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px'}}>
-        <h2 className="page-title" style={{marginBottom:0}}>Log a Meal</h2>
+        <h2 className="page-title" style={{marginBottom:0}}>{editMeal ? 'Edit Meal' : 'Log a Meal'}</h2>
         <Link to="/meals" className="link-small">← Meals</Link>
       </div>
       {prefill?.planLabel && (
@@ -294,7 +312,7 @@ export default function LogMeal() {
         </div>
 
         {error && <p className="form-error">{error}</p>}
-        <button className="btn-primary" type="submit" disabled={saving}>{saving ? 'Logging…' : 'Log Meal'}</button>
+        <button className="btn-primary" type="submit" disabled={saving}>{saving ? 'Saving…' : editMeal ? 'Save Changes' : 'Log Meal'}</button>
       </form>
 
       {/* Calorie tracker for the selected day */}

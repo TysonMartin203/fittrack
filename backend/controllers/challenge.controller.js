@@ -1,15 +1,15 @@
 const { createChallenge, listChallenges, joinChallenge, getChallengeProgress } = require('../models/challenge.model');
 
-const NEEDS_EXERCISE = ['pr_gain', 'most_distance', 'bodyweight_reps'];
+const NEEDS_EXERCISE = ['pr_gain', 'most_distance', 'bodyweight_reps', 'reach_weight', 'reach_reps', 'reach_pace', 'reach_distance'];
 
 async function create(req, res) {
   try {
-    const { title, type, exercise, targetValue, startDate, endDate } = req.body;
+    const { title, type, exercise, targetValue, startDate, endDate, visibility } = req.body;
     if (!title || !type || !startDate || !endDate)
       return res.status(400).json({ error: 'title, type, startDate, endDate required' });
     if (NEEDS_EXERCISE.includes(type) && !exercise)
       return res.status(400).json({ error: 'exercise required for this challenge type' });
-    const id = await createChallenge(req.userId, { title, type, exercise, targetValue, startDate, endDate });
+    const id = await createChallenge(req.userId, { title, type, exercise, targetValue, startDate, endDate, visibility });
     res.status(201).json({ id });
   } catch (err) {
     console.error(err);

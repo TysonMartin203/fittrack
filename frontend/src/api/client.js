@@ -73,6 +73,7 @@ export const api = {
 
   listMealPlans:    ()     => request('GET',    '/api/meals'),
   logMeal:          (b)    => request('POST',   '/api/meal-logs', b),
+  updateLoggedMeal: (id,b) => request('PUT',    `/api/meal-logs/${id}`, b),
   recognizeFood:    (fd)   => uploadFile('/api/meal-logs/recognize', fd),
   parseMealVoice:   (b)    => request('POST', '/api/meal-logs/parse-voice', b),
   getMealsForDate:  (date) => request('GET',    `/api/meal-logs?date=${date}`),

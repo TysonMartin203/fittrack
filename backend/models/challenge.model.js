@@ -10,6 +10,10 @@ const TYPE_LABELS = {
   most_calories: 'Most calories burned',
   most_meals_logged: 'Most meals logged',
   bodyweight_reps: exercise => `Most ${exercise} reps in one set`,
+  reach_weight: exercise => `Reach a target ${exercise} weight`,
+  reach_reps: exercise => `Reach a target ${exercise} rep count`,
+  reach_pace: exercise => `Reach a target ${exercise} pace`,
+  reach_distance: exercise => `Reach a target ${exercise || 'cardio'} distance in one outing`,
 };
 
 function labelFor(type, exercise) {
@@ -17,24 +21,29 @@ function labelFor(type, exercise) {
   return typeof l === 'function' ? l(exercise) : l || type;
 }
 
-async function createChallenge(userId, { title, type, exercise, targetValue, startDate, endDate }) {
-  const needsExercise = ['pr_gain', 'most_distance', 'bodyweight_reps'].includes(type);
+async function createChallenge(userId, { title, type, exercise, targetValue, startDate, endDate, visibility }) {
+  const needsExercise = ['pr_gain', 'most_distance', 'bodyweight_reps', 'reach_weight', 'reach_reps', 'reach_pace', 'reach_distance'].includes(type);
   const [result] = await pool.query(
-    `INSERT INTO Challenges (creator_id, title, type, exercise, target_value, start_date, end_date)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [userId, title, type, needsExercise ? exercise : null, targetValue || null, startDate, endDate]
+    `INSERT INTO Challenges (creator_id, title, type, exercise, target_value, start_date, end_date, visibility)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [userId, title, type, needsExercise ? exercise : null, targetValue || null, startDate, endDate, visibility === 'personal' ? 'personal' : 'public']
   );
   const id = result.insertId;
   await pool.query('INSERT INTO ChallengeParticipants (challenge_id, user_id) VALUES (?, ?)', [id, userId]);
-  addFeedEvent({
-    userId, type: 'challenge', refId: id,
-    headline: `started a challenge — ${title}`,
-    detail: labelFor(type, exercise),
-  }).catch(err => console.error('Feed event failed:', err));
+  // Personal goals are private — no point announcing them on the feed.
+  if (visibility !== 'personal') {
+    addFeedEvent({
+      userId, type: 'challenge', refId: id,
+      headline: `started a challenge — ${title}`,
+      detail: labelFor(type, exercise),
+    }).catch(err => console.error('Feed event failed:', err));
+  }
   return id;
 }
 
-// Visible = created by you, joined by you, or created by a friend
+// Visible = created by you, joined by you, or created by a friend — personal
+// challenges are excluded from the friend-visible part entirely, so they never
+// show up for anyone but their creator.
 async function listChallenges(userId) {
   const [rows] = await pool.query(
     `SELECT DISTINCT c.*, u.username AS creator_username,
@@ -46,7 +55,7 @@ async function listChallenges(userId) {
        (f.requester_id = ? AND f.receiver_id = c.creator_id) OR
        (f.receiver_id = ? AND f.requester_id = c.creator_id)
      ) AND f.status = 'accepted'
-     WHERE c.creator_id = ? OR cp.user_id IS NOT NULL OR f.status = 'accepted'
+     WHERE c.creator_id = ? OR (c.visibility = 'public' AND (cp.user_id IS NOT NULL OR f.status = 'accepted'))
      ORDER BY c.end_date ASC`,
     [userId, userId, userId, userId, userId]
   );
@@ -150,11 +159,66 @@ async function getChallengeProgress(challengeId, userId) {
       );
       const base = Number(baseline.w) || 0, peakW = Number(peak.w) || 0;
       progress = Math.max(0, peakW - base); unit = 'lbs gained';
+    } else if (type === 'reach_weight') {
+      const [[r]] = await pool.query(
+        `SELECT MAX(GREATEST(COALESCE(we.weight,0), COALESCE((
+            SELECT MAX(ws.weight) FROM WorkoutSets ws WHERE ws.workout_exercise_id = we.id
+          ),0))) AS w
+         FROM WorkoutExercises we JOIN Workouts w ON w.id = we.workout_id
+         WHERE w.user_id = ? AND we.exercise_name = ? AND we.category = 'lifting' AND w.date BETWEEN ? AND ?`,
+        [p.id, exercise, start, end]
+      );
+      progress = Number(r.w) || 0; unit = 'lbs';
+    } else if (type === 'reach_reps') {
+      const [[r]] = await pool.query(
+        `SELECT MAX(GREATEST(COALESCE(we.reps,0), COALESCE((
+            SELECT MAX(ws.reps) FROM WorkoutSets ws WHERE ws.workout_exercise_id=we.id
+          ),0))) AS reps
+         FROM WorkoutExercises we JOIN Workouts w ON w.id=we.workout_id
+         WHERE w.user_id=? AND we.exercise_name=? AND we.category='lifting' AND w.date BETWEEN ? AND ?`,
+        [p.id, exercise, start, end]
+      );
+      progress = Number(r.reps) || 0; unit = 'reps';
+    } else if (type === 'reach_distance') {
+      const [[r]] = await pool.query(
+        `SELECT MAX(CASE we.distance_unit
+            WHEN 'km' THEN we.distance*0.621371 WHEN 'm' THEN we.distance*0.000621371
+            WHEN 'yd' THEN we.distance*0.000568182 WHEN 'mi' THEN we.distance ELSE 0 END) AS miles
+         FROM WorkoutExercises we JOIN Workouts w ON w.id=we.workout_id
+         WHERE w.user_id=? AND we.category='cardio' AND we.exercise_name=? AND w.date BETWEEN ? AND ?`,
+        [p.id, exercise, start, end]
+      );
+      progress = Math.round((Number(r.miles) || 0) * 100) / 100; unit = 'mi (best single outing)';
+    } else if (type === 'reach_pace') {
+      // Lower is better here — best (fastest) seconds-per-mile pace achieved
+      // in a single session. null means no qualifying session yet, so it
+      // never looks like a (falsely impressive) instant 0-second mile.
+      const [[r]] = await pool.query(
+        `SELECT MIN(we.duration_minutes*60 / (CASE we.distance_unit
+            WHEN 'km' THEN we.distance*0.621371 WHEN 'm' THEN we.distance*0.000621371
+            WHEN 'yd' THEN we.distance*0.000568182 WHEN 'mi' THEN we.distance ELSE NULL END)) AS best_pace
+         FROM WorkoutExercises we JOIN Workouts w ON w.id=we.workout_id
+         WHERE w.user_id=? AND we.category='cardio' AND we.exercise_name=? AND w.date BETWEEN ? AND ?
+           AND we.duration_minutes IS NOT NULL AND we.distance IS NOT NULL AND we.distance > 0`,
+        [p.id, exercise, start, end]
+      );
+      progress = r.best_pace != null ? Math.round(Number(r.best_pace)) : null; unit = 'sec/mi (best pace)';
     }
     return { id: p.id, username: p.username, progress };
   }));
 
-  leaderboard.sort((a, b) => b.progress - a.progress);
+  const target = Number(challenge.target_value) || null;
+  const lowerIsBetter = type === 'reach_pace';
+  leaderboard.forEach(entry => {
+    entry.reached = target != null && entry.progress != null
+      ? (lowerIsBetter ? entry.progress <= target : entry.progress >= target)
+      : false;
+  });
+  leaderboard.sort((a, b) => {
+    if (a.progress == null) return 1;
+    if (b.progress == null) return -1;
+    return lowerIsBetter ? a.progress - b.progress : b.progress - a.progress;
+  });
   return { ...challenge, unit, leaderboard };
 }
 

@@ -1,7 +1,15 @@
 const pool = require('../config/db');
 const { areFriends } = require('./friend.model');
 
+// No scheduled job in this app — instead, any invite whose proposed time is
+// more than 30 minutes in the past gets cleared out the next time invites are
+// read or written, which is simple and reliable without needing a cron setup.
+async function deleteExpiredInvites() {
+  await pool.query(`DELETE FROM TrainInvites WHERE proposed_at < NOW() - INTERVAL 30 MINUTE`);
+}
+
 async function createInvite({ senderId, receiverId, proposedAt, message }) {
+  await deleteExpiredInvites();
   const friends = await areFriends(senderId, receiverId);
   if (!friends) throw Object.assign(new Error('Not friends'), { status: 403 });
   const [result] = await pool.query(
@@ -12,6 +20,7 @@ async function createInvite({ senderId, receiverId, proposedAt, message }) {
 }
 
 async function getInvites(userId) {
+  await deleteExpiredInvites();
   const [rows] = await pool.query(
     `SELECT ti.*, su.username AS sender_username, ru.username AS receiver_username
      FROM TrainInvites ti

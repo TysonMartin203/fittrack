@@ -1,4 +1,4 @@
-const { logMeal, getMealsForDate, getMealHistory, deleteMeal, getDailyTotals, getCaloriesBurned } = require('../models/meallog.model');
+const { logMeal, updateMeal, getMealsForDate, getMealHistory, deleteMeal, getDailyTotals, getCaloriesBurned } = require('../models/meallog.model');
 const { getProfile } = require('../models/profile.model');
 const Anthropic = require('@anthropic-ai/sdk');
 
@@ -9,22 +9,42 @@ function getClient() {
 
 const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
+function cleanIngredientsList(ingredients) {
+  return Array.isArray(ingredients)
+    ? ingredients.filter(i => i && i.name && i.name.trim()).map(i => ({
+        name: i.name.trim().slice(0, 200),
+        calories: i.calories ?? null, protein: i.protein ?? null, carbs: i.carbs ?? null, fat: i.fat ?? null,
+      }))
+    : null;
+}
+
 async function create(req, res) {
   try {
     const { date, mealType, name, calories, protein, carbs, fat, notes, ingredients } = req.body;
     if (!date || !mealType || !name?.trim()) return res.status(400).json({ error: 'date, mealType, and name are required' });
     if (!MEAL_TYPES.includes(mealType)) return res.status(400).json({ error: 'Invalid meal type' });
-    const cleanIngredients = Array.isArray(ingredients)
-      ? ingredients.filter(i => i && i.name && i.name.trim()).map(i => ({
-          name: i.name.trim().slice(0, 200),
-          calories: i.calories ?? null, protein: i.protein ?? null, carbs: i.carbs ?? null, fat: i.fat ?? null,
-        }))
-      : null;
+    const cleanIngredients = cleanIngredientsList(ingredients);
     // Matches the LoggedMeals.name column width — a scanned meal with several
     // ingredients can otherwise exceed it and fail the insert entirely.
     const safeName = name.trim().slice(0, 500);
     const id = await logMeal({ userId: req.userId, date, mealType, name: safeName, calories, protein, carbs, fat, notes, ingredients: cleanIngredients?.length ? cleanIngredients : null });
     res.status(201).json({ id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+async function update(req, res) {
+  try {
+    const { date, mealType, name, calories, protein, carbs, fat, notes, ingredients } = req.body;
+    if (!date || !mealType || !name?.trim()) return res.status(400).json({ error: 'date, mealType, and name are required' });
+    if (!MEAL_TYPES.includes(mealType)) return res.status(400).json({ error: 'Invalid meal type' });
+    const cleanIngredients = cleanIngredientsList(ingredients);
+    const safeName = name.trim().slice(0, 500);
+    const id = await updateMeal(req.params.id, req.userId, { date, mealType, name: safeName, calories, protein, carbs, fat, notes, ingredients: cleanIngredients?.length ? cleanIngredients : null });
+    if (!id) return res.status(404).json({ error: 'Not found' });
+    res.json({ id });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -187,4 +207,4 @@ Give your best reasonable estimate rather than refusing, even if the description
   }
 }
 
-module.exports = { create, listForDate, history, remove, recognize, parseVoice };
+module.exports = { create, update, listForDate, history, remove, recognize, parseVoice };

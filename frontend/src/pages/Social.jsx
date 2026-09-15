@@ -8,6 +8,7 @@ import FireIcon from '../components/StreakFire';
 import { enablePush, getPushStatus } from '../push';
 import SharePlanPanel from '../components/SharePlanPanel';
 import { closestComparison } from '../weightComparisons';
+import TimeInput from '../components/TimeInput';
 import { formatCompact } from '../format';
 import { displayWeight, weightUnitLabel } from '../units';
 
@@ -180,6 +181,41 @@ function FriendsTab() {
   );
 }
 
+// A generous set of common personal fitness milestones — quick-pick templates
+// that fill in type/exercise/target so people don't have to configure these by hand.
+const PERSONAL_TEMPLATES = [
+  { title: 'Bench Press 135', type: 'reach_weight', exercise: 'Bench Press', targetValue: 135 },
+  { title: 'Bench Press 225', type: 'reach_weight', exercise: 'Bench Press', targetValue: 225 },
+  { title: 'Bench Press 315', type: 'reach_weight', exercise: 'Bench Press', targetValue: 315 },
+  { title: 'Squat 225', type: 'reach_weight', exercise: 'Squat', targetValue: 225 },
+  { title: 'Squat 315', type: 'reach_weight', exercise: 'Squat', targetValue: 315 },
+  { title: 'Squat 405', type: 'reach_weight', exercise: 'Squat', targetValue: 405 },
+  { title: 'Deadlift 315', type: 'reach_weight', exercise: 'Deadlift', targetValue: 315 },
+  { title: 'Deadlift 405', type: 'reach_weight', exercise: 'Deadlift', targetValue: 405 },
+  { title: 'Deadlift 500', type: 'reach_weight', exercise: 'Deadlift', targetValue: 500 },
+  { title: 'Overhead Press 135', type: 'reach_weight', exercise: 'Overhead Press', targetValue: 135 },
+  { title: '1 Pull-Up', type: 'reach_reps', exercise: 'Pull-Up', targetValue: 1 },
+  { title: '10 Pull-Ups', type: 'reach_reps', exercise: 'Pull-Up', targetValue: 10 },
+  { title: '20 Pull-Ups', type: 'reach_reps', exercise: 'Pull-Up', targetValue: 20 },
+  { title: '50 Push-Ups', type: 'reach_reps', exercise: 'Push-Up', targetValue: 50 },
+  { title: '100 Push-Ups', type: 'reach_reps', exercise: 'Push-Up', targetValue: 100 },
+  { title: '6 Minute Mile', type: 'reach_pace', exercise: 'Running', targetValue: 360 },
+  { title: '7 Minute Mile', type: 'reach_pace', exercise: 'Running', targetValue: 420 },
+  { title: '8 Minute Mile', type: 'reach_pace', exercise: 'Running', targetValue: 480 },
+  { title: 'Run a 5K (3.1 mi)', type: 'reach_distance', exercise: 'Running', targetValue: 3.1 },
+  { title: 'Run a 10K (6.2 mi)', type: 'reach_distance', exercise: 'Running', targetValue: 6.2 },
+  { title: 'Run a Half Marathon', type: 'reach_distance', exercise: 'Running', targetValue: 13.1 },
+  { title: 'Bike 25 Miles', type: 'reach_distance', exercise: 'Biking', targetValue: 25 },
+  { title: 'Bike 50 Miles', type: 'reach_distance', exercise: 'Biking', targetValue: 50 },
+  { title: 'Bike Century Ride (100 mi)', type: 'reach_distance', exercise: 'Biking', targetValue: 100 },
+];
+
+function formatPaceSec(sec) {
+  if (sec == null) return null;
+  const m = Math.floor(sec / 60), s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
 // ── Compete sub-tab (leaderboard, streak, challenges) ──
 function CompeteTab() {
   const { user } = useAuth();
@@ -188,7 +224,7 @@ function CompeteTab() {
   const [metric,     setMetric]     = useState('workouts'); // workouts | volume | streak
   const [period,     setPeriod]     = useState('week');     // week|month|year|lifetime, or daily|weekly for streak
   const [showNew,    setShowNew]    = useState(false);
-  const [form, setForm] = useState({ title:'', type:'most_workouts', exercise:'', startDate: today(), endDate: today() });
+  const [form, setForm] = useState({ title:'', type:'most_workouts', exercise:'', targetValue:'', startDate: today(), endDate: today(), visibility:'public' });
   const [error, setError] = useState('');
   const [myVolume, setMyVolume] = useState(null);
 
@@ -215,9 +251,13 @@ function CompeteTab() {
     try {
       await api.createChallenge(form);
       setShowNew(false);
-      setForm({ title:'', type:'most_workouts', exercise:'', startDate: today(), endDate: today() });
+      setForm({ title:'', type:'most_workouts', exercise:'', targetValue:'', startDate: today(), endDate: today(), visibility:'public' });
       reloadChallenges();
     } catch (err) { setError(err.message); }
+  }
+
+  function applyTemplate(t) {
+    setForm(f => ({ ...f, title: t.title, type: t.type, exercise: t.exercise, targetValue: t.targetValue }));
   }
 
   async function join(id) {
@@ -297,7 +337,10 @@ function CompeteTab() {
                   <div key={r.id} className="list-item" style={{marginBottom:'6px'}}>
                     <span style={{width:'22px',color:'var(--muted)',fontWeight:'700',fontSize:'13px'}}>{i+1}</span>
                     <Link to={`/profile/${r.id}`} className="item-main" style={{flex:1,color:'inherit',textDecoration:'none'}}>{r.username}</Link>
-                    <span className="item-accent">{r.progress.toLocaleString()} {progressData.unit}</span>
+                    <span className="item-accent">
+                      {r.progress == null ? 'No attempts yet' : progressData.unit?.startsWith('sec/mi') ? `${formatPaceSec(r.progress)}/mi` : `${r.progress.toLocaleString()} ${progressData.unit}`}
+                      {r.reached && <span style={{marginLeft:'6px',color:'var(--teal)'}}>✓ Reached!</span>}
+                    </span>
                   </div>
                 ))}
               </>
@@ -309,28 +352,64 @@ function CompeteTab() {
               <div className="card-form">
                 <form onSubmit={createChallenge} className="form-stack">
                   <div className="field">
-                    <label className="label">Title</label>
-                    <input className="input" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Most workouts in March" required />
+                    <label className="label">Visibility</label>
+                    <div className="tab-row">
+                      <button type="button" className={form.visibility==='public'?'tab active':'tab'}
+                        onClick={()=>setForm(f=>({...f,visibility:'public',type:'most_workouts',exercise:'',targetValue:''}))}>Public (with friends)</button>
+                      <button type="button" className={form.visibility==='personal'?'tab active':'tab'}
+                        onClick={()=>setForm(f=>({...f,visibility:'personal',type:'reach_weight',exercise:'',targetValue:''}))}>Personal goal</button>
+                    </div>
                   </div>
-                  <div className="field">
-                    <label className="label">Type</label>
-                    <select className="input" value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value,exercise:''}))}>
-                      <option value="most_workouts">Most workouts</option>
-                      <option value="total_volume">Most total volume lifted</option>
-                      <option value="pr_gain">Biggest PR gain on an exercise</option>
-                      <option value="bodyweight_reps">Most reps in one set (bodyweight)</option>
-                      <option value="most_distance">Most cardio distance</option>
-                      <option value="most_calories">Most calories burned</option>
-                      <option value="most_meals_logged">Most meals logged</option>
-                    </select>
-                  </div>
-                  {(form.type === 'pr_gain' || form.type === 'bodyweight_reps') && (
+
+                  {form.visibility === 'personal' && (
                     <div className="field">
-                      <label className="label">Exercise</label>
-                      <input className="input" value={form.exercise} onChange={e=>setForm(f=>({...f,exercise:e.target.value}))} placeholder={form.type==='pr_gain' ? 'Squat' : 'Push-Up'} required />
+                      <label className="label">Quick pick a goal</label>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+                        {PERSONAL_TEMPLATES.map(t => (
+                          <button key={t.title} type="button" className="btn-ghost-sm" onClick={()=>applyTemplate(t)} style={{fontSize:'12px'}}>
+                            {t.title}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  {form.type === 'most_distance' && (
+
+                  <div className="field">
+                    <label className="label">Title</label>
+                    <input className="input" value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} placeholder={form.visibility==='personal' ? 'Bench Press 225' : 'Most workouts in March'} required />
+                  </div>
+
+                  <div className="field">
+                    <label className="label">Type</label>
+                    <select className="input" value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value,exercise:'',targetValue:''}))}>
+                      {form.visibility === 'public' ? (
+                        <>
+                          <option value="most_workouts">Most workouts</option>
+                          <option value="total_volume">Most total volume lifted</option>
+                          <option value="pr_gain">Biggest PR gain on an exercise</option>
+                          <option value="bodyweight_reps">Most reps in one set (bodyweight)</option>
+                          <option value="most_distance">Most cardio distance</option>
+                          <option value="most_calories">Most calories burned</option>
+                          <option value="most_meals_logged">Most meals logged</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="reach_weight">Reach a weight on a lift</option>
+                          <option value="reach_reps">Reach a rep count</option>
+                          <option value="reach_pace">Reach a running pace</option>
+                          <option value="reach_distance">Reach a distance in one outing</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+
+                  {(form.type === 'pr_gain' || form.type === 'bodyweight_reps' || form.type === 'reach_weight' || form.type === 'reach_reps') && (
+                    <div className="field">
+                      <label className="label">Exercise</label>
+                      <input className="input" value={form.exercise} onChange={e=>setForm(f=>({...f,exercise:e.target.value}))} placeholder={form.type==='pr_gain' || form.type==='reach_weight' ? 'Squat' : 'Push-Up'} required />
+                    </div>
+                  )}
+                  {(form.type === 'most_distance' || form.type === 'reach_distance' || form.type === 'reach_pace') && (
                     <div className="field">
                       <label className="label">Activity</label>
                       <select className="input" value={form.exercise} onChange={e=>setForm(f=>({...f,exercise:e.target.value}))} required>
@@ -339,13 +418,28 @@ function CompeteTab() {
                       </select>
                     </div>
                   )}
+
+                  {(form.type === 'reach_weight' || form.type === 'reach_reps' || form.type === 'reach_distance') && (
+                    <div className="field">
+                      <label className="label">{form.type==='reach_weight' ? 'Target weight (lbs)' : form.type==='reach_reps' ? 'Target reps' : 'Target distance (mi)'}</label>
+                      <input className="input" type="number" min="0" step={form.type==='reach_distance' ? '0.1' : '1'}
+                        value={form.targetValue} onChange={e=>setForm(f=>({...f,targetValue:e.target.value}))} required />
+                    </div>
+                  )}
+                  {form.type === 'reach_pace' && (
+                    <div className="field">
+                      <label className="label">Target pace (per mile)</label>
+                      <TimeInput minutesDecimal={form.targetValue ? form.targetValue/60 : ''} onChange={mins => setForm(f=>({...f,targetValue: mins===''?'':Math.round(mins*60)}))} />
+                    </div>
+                  )}
+
                   <div className="input-row">
                     <div className="input-group">
                       <label className="label">Start</label>
                       <input className="input" type="date" value={form.startDate} onChange={e=>setForm(f=>({...f,startDate:e.target.value}))} required/>
                     </div>
                     <div className="input-group">
-                      <label className="label">End</label>
+                      <label className="label">{form.visibility==='personal' ? 'Goal date' : 'End'}</label>
                       <input className="input" type="date" value={form.endDate} onChange={e=>setForm(f=>({...f,endDate:e.target.value}))} required/>
                     </div>
                   </div>
@@ -360,13 +454,13 @@ function CompeteTab() {
               <div key={c.id} className="glass-card clickable" style={{marginBottom:'10px',cursor:'pointer'}} onClick={()=>viewChallenge(c.id)}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                   <div>
-                    <div style={{fontWeight:'700',fontSize:'14px'}}>{c.title}</div>
+                    <div style={{fontWeight:'700',fontSize:'14px'}}>{c.title} {c.visibility==='personal' && <span style={{fontSize:'10px',color:'var(--accent)',fontWeight:'700'}}>PERSONAL</span>}</div>
                     <div style={{fontSize:'12px',color:'var(--muted)'}}>
-                      by {c.creator_username} · {formatDateStr(c.start_date)} – {formatDateStr(c.end_date)}
+                      {c.visibility==='personal' ? `Goal by ${formatDateStr(c.end_date)}` : `by ${c.creator_username} · ${formatDateStr(c.start_date)} – ${formatDateStr(c.end_date)}`}
                     </div>
                   </div>
-                  {!c.joined && <button className="btn-accent-sm" onClick={(e)=>{e.stopPropagation();join(c.id);}}>Join</button>}
-                  {c.joined && <span style={{fontSize:'11px',color:'var(--teal)',fontWeight:'700'}}>Joined</span>}
+                  {c.visibility!=='personal' && !c.joined && <button className="btn-accent-sm" onClick={(e)=>{e.stopPropagation();join(c.id);}}>Join</button>}
+                  {c.visibility!=='personal' && c.joined && <span style={{fontSize:'11px',color:'var(--teal)',fontWeight:'700'}}>Joined</span>}
                 </div>
               </div>
             ))}
