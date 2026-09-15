@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import WorkoutForm from '../components/WorkoutForm';
-import { CARDIO_ACTIVITIES } from '../data/exercises';
+import { ALL_CARDIO_NAMES } from '../data/exercises';
 
 function toFormInitial(workout) {
   return {
@@ -24,7 +24,7 @@ function toFormInitial(workout) {
           setsData: (e.sets_data || []).map(s => ({ reps: s.reps ?? '', weight: s.weight ?? '' })),
         };
       }
-      const known = CARDIO_ACTIVITIES.includes(e.exercise_name);
+      const known = ALL_CARDIO_NAMES.includes(e.exercise_name);
       return {
         category: 'cardio',
         exerciseName: known ? e.exercise_name : 'Other',
@@ -36,6 +36,7 @@ function toFormInitial(workout) {
         calories: e.calories ?? '',
         avgHeartRate: e.avg_heart_rate ?? '',
         pace: e.pace || '',
+        intensity: e.intensity || '',
       };
     }),
   };

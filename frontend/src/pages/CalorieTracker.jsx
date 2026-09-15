@@ -7,7 +7,7 @@ import MacroProgressBar from '../components/MacroProgressBar';
 
 export default function CalorieTracker() {
   const [date, setDate] = useState(today());
-  const [totals, setTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0, mealCount: 0 });
+  const [totals, setTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0, mealCount: 0, caloriesBurned: 0 });
   const [loading, setLoading] = useState(true);
   const [calorieGoal, setCalorieGoal] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -24,8 +24,12 @@ export default function CalorieTracker() {
     }).catch(()=>{});
   }, [date]);
 
-  const overGoal = calorieGoal && totals.calories > calorieGoal;
-  const remaining = calorieGoal ? Math.max(0, calorieGoal - totals.calories) : null;
+  // Calories burned from exercise effectively add to the day's allowance —
+  // the same "goal + exercise - food = remaining" approach most calorie
+  // tracker apps use.
+  const effectiveGoal = calorieGoal ? calorieGoal + (totals.caloriesBurned || 0) : null;
+  const overGoal = effectiveGoal && totals.calories > effectiveGoal;
+  const remaining = effectiveGoal ? Math.max(0, effectiveGoal - totals.calories) : null;
   const macroGoals = getMacroGoals(profile, calorieGoal);
 
   return (
@@ -45,14 +49,19 @@ export default function CalorieTracker() {
           <div style={{textAlign:'center',marginBottom:'10px'}}>
             <div style={{fontSize:'40px',fontWeight:'700',color: overGoal ? 'var(--danger)' : 'var(--accent)'}}>{totals.calories}</div>
             <div className="muted" style={{fontSize:'13px'}}>
-              {calorieGoal ? `of ${calorieGoal} calorie goal` : 'calories logged'}
-              {calorieGoal && !overGoal && ` · ${remaining} remaining`}
-              {overGoal && ` · ${totals.calories - calorieGoal} over`}
+              {calorieGoal ? `of ${effectiveGoal} calorie goal` : 'calories logged'}
+              {effectiveGoal && !overGoal && ` · ${remaining} remaining`}
+              {overGoal && ` · ${totals.calories - effectiveGoal} over`}
             </div>
+            {totals.caloriesBurned > 0 && (
+              <div className="muted" style={{fontSize:'12px',marginTop:'2px'}}>
+                {calorieGoal ? `Includes +${totals.caloriesBurned} from exercise` : `${totals.caloriesBurned} calories burned from exercise`}
+              </div>
+            )}
           </div>
-          {calorieGoal != null && (
+          {effectiveGoal != null && (
             <div style={{marginBottom:'18px'}}>
-              <MacroProgressBar value={totals.calories} max={calorieGoal} height="10px"/>
+              <MacroProgressBar value={totals.calories} max={effectiveGoal} height="10px"/>
             </div>
           )}
           {!calorieGoal && (

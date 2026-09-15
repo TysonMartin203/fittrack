@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { LIFTING_EXERCISES, CARDIO_ACTIVITIES, DISTANCE_UNITS } from '../data/exercises';
+import { LIFTING_EXERCISES, CARDIO_ACTIVITIES, CARDIO_TYPES, SPORT_NAMES, INTENSITY_LEVELS, DISTANCE_UNITS, calculateCardioCalories, formatPace } from '../data/exercises';
 import { compressImage } from '../compressImage';
 import { today } from '../dateUtils';
 import { IconTrophy, IconCheck } from './Icons';
@@ -88,7 +88,7 @@ function LiftingNameInput({ value, onChange }) {
   );
 }
 
-function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
+function ExerciseCard({ ex, index, onChange, onRemove, canRemove, profileWeight }) {
   const { user } = useAuth();
   const weightUnit = user?.weightUnit || 'lbs';
   const wLabel = weightUnitLabel(weightUnit);
@@ -99,7 +99,7 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
     if (category === 'lifting') onChange(index, { ...blankLiftingExercise(), notes: ex.notes });
     else onChange(index, {
       category: 'cardio', exerciseName: '', customName: '', notes: ex.notes,
-      durationMinutes: '', distance: '', distanceUnit: user?.distanceUnit || 'mi', calories: '', avgHeartRate: '', pace: '',
+      durationMinutes: '', distance: '', distanceUnit: user?.distanceUnit || 'mi', calories: '', avgHeartRate: '', pace: '', intensity: '',
     });
   }
 
@@ -129,6 +129,52 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
   function updateSetRow(i, patch) {
     const setsData = ex.setsData.map((s, idx) => idx === i ? { ...s, ...patch } : s);
     update({ setsData });
+  }
+
+  // Cardio/sport derived values — computed fresh from a formula each render,
+  // not stored as separate live state, so they can never drift out of sync.
+  const isSport = ex.category === 'cardio' && SPORT_NAMES.includes(ex.exerciseName);
+  const cardioType = ex.category === 'cardio' ? CARDIO_TYPES[ex.exerciseName] : null;
+  const metric = cardioType?.metric || (ex.category === 'cardio' ? 'distance' : null);
+  // Sports always use the intensity selector; other cardio uses it only where
+  // pace doesn't reliably predict effort (see calorieMode in exercises.js).
+  const usesIntensity = isSport || cardioType?.calorieMode === 'intensity';
+  const autoCalories = ex.category === 'cardio' && ex.exerciseName
+    ? calculateCardioCalories(ex.exerciseName, ex, profileWeight)
+    : null;
+
+  let autoPace = null;
+  if (!isSport && ex.durationMinutes && ex.distance && Number(ex.distance) > 0) {
+    const secondsPerUnit = (Number(ex.durationMinutes) * 60) / Number(ex.distance);
+    if (metric === 'distance') autoPace = formatPace(secondsPerUnit) ? `${formatPace(secondsPerUnit)}/${ex.distanceUnit}` : null;
+    else if (metric === 'laps') autoPace = formatPace(secondsPerUnit) ? `${formatPace(secondsPerUnit)}/lap` : null;
+  }
+
+  // Keep the actual saved fields (calories, pace) in sync with the computed
+  // display values, so what gets submitted matches what's shown.
+  useEffect(() => {
+    if (ex.category === 'cardio' && autoCalories != null && Number(ex.calories) !== autoCalories) {
+      update({ calories: String(autoCalories) });
+    }
+  }, [ex.category, autoCalories]);
+  useEffect(() => {
+    if (!isSport && (metric === 'distance' || metric === 'laps') && ex.pace !== (autoPace || '')) {
+      update({ pace: autoPace || '' });
+    }
+  }, [isSport, metric, autoPace]);
+
+  function handleActivityChange(name) {
+    const newIsSport = SPORT_NAMES.includes(name);
+    const newMetric = CARDIO_TYPES[name]?.metric;
+    if (newIsSport) {
+      update({ exerciseName: name, customName: '', distance: '', distanceUnit: '', pace: '', intensity: ex.intensity || '' });
+    } else {
+      update({
+        exerciseName: name, customName: '', intensity: '',
+        distanceUnit: newMetric === 'laps' ? 'laps' : newMetric === 'flights' ? 'flights' : (user?.distanceUnit || 'mi'),
+        distance: '',
+      });
+    }
   }
 
   return (
@@ -194,9 +240,14 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
         <>
           <div className="field">
             <label className="label">Activity</label>
-            <select className="input" value={ex.exerciseName} onChange={e => update({ exerciseName: e.target.value })} required>
+            <select className="input" value={ex.exerciseName} onChange={e => handleActivityChange(e.target.value)} required>
               <option value="" disabled>Select an activity</option>
-              {CARDIO_ACTIVITIES.map(a => <option key={a} value={a}>{a}</option>)}
+              <optgroup label="Cardio">
+                {CARDIO_ACTIVITIES.map(a => <option key={a} value={a}>{a}</option>)}
+              </optgroup>
+              <optgroup label="Sports">
+                {SPORT_NAMES.map(a => <option key={a} value={a}>{a}</option>)}
+              </optgroup>
             </select>
           </div>
           {ex.exerciseName === 'Other' && (
@@ -206,44 +257,73 @@ function ExerciseCard({ ex, index, onChange, onRemove, canRemove }) {
                 onChange={e => update({ customName: e.target.value })} required />
             </div>
           )}
-          <p className="muted" style={{ margin: '0 0 4px', fontSize: '12px' }}>All fields below are optional.</p>
+          <p className="muted" style={{ margin: '0 0 4px', fontSize: '12px' }}>Calories are calculated automatically below.</p>
           <div className="field">
             <label className="label">Duration (min:sec)</label>
             <TimeInput minutesDecimal={ex.durationMinutes} onChange={v => update({ durationMinutes: v })} />
           </div>
-          <div className="input-row">
-            <div className="input-group">
-              <label className="label">Distance</label>
-              <input className="input" type="number" min="0" step="0.01" placeholder="3.1" value={ex.distance}
-                onChange={e => update({ distance: e.target.value })} />
-            </div>
-            <div className="input-group" style={{ maxWidth: '90px' }}>
-              <label className="label">Unit</label>
-              <select className="input" value={ex.distanceUnit} onChange={e => update({ distanceUnit: e.target.value })}>
-                {DISTANCE_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-              </select>
-            </div>
-          </div>
-          <button type="button" className="btn-ghost-sm" onClick={() => setShowCardioDetails(s => !s)} style={{marginBottom: showCardioDetails ? '10px' : 0}}>
-            {showCardioDetails ? '− Fewer details' : '+ More details (calories, heart rate, pace)'}
-          </button>
-          {showCardioDetails && (
+
+          {!isSport && metric === 'distance' && (
             <div className="input-row">
               <div className="input-group">
-                <label className="label">Calories</label>
-                <input className="input" type="number" min="0" placeholder="300" value={ex.calories}
-                  onChange={e => update({ calories: e.target.value })} />
+                <label className="label">Distance</label>
+                <input className="input" type="number" min="0" step="0.01" placeholder="3.1" value={ex.distance}
+                  onChange={e => update({ distance: e.target.value })} />
               </div>
-              <div className="input-group">
-                <label className="label">Avg heart rate</label>
-                <input className="input" type="number" min="0" placeholder="150" value={ex.avgHeartRate}
-                  onChange={e => update({ avgHeartRate: e.target.value })} />
+              <div className="input-group" style={{ maxWidth: '90px' }}>
+                <label className="label">Unit</label>
+                <select className="input" value={ex.distanceUnit} onChange={e => update({ distanceUnit: e.target.value })}>
+                  {DISTANCE_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
               </div>
-              <div className="input-group">
-                <label className="label">Pace</label>
-                <input className="input" placeholder="9:40/mi" value={ex.pace}
-                  onChange={e => update({ pace: e.target.value })} />
+            </div>
+          )}
+          {!isSport && metric === 'laps' && (
+            <div className="field">
+              <label className="label">Laps</label>
+              <input className="input" type="number" min="0" step="1" placeholder="20" value={ex.distance}
+                onChange={e => update({ distance: e.target.value })} />
+            </div>
+          )}
+          {!isSport && metric === 'flights' && (
+            <div className="field">
+              <label className="label">Flights of Stairs</label>
+              <input className="input" type="number" min="0" step="1" placeholder="15" value={ex.distance}
+                onChange={e => update({ distance: e.target.value })} />
+            </div>
+          )}
+
+          {usesIntensity && (
+            <div className="field">
+              <label className="label">Intensity</label>
+              <div className="tab-row">
+                {INTENSITY_LEVELS.map(level => (
+                  <button key={level} type="button" className={ex.intensity === level ? 'tab active' : 'tab'} onClick={() => update({ intensity: level })}>
+                    {level}
+                  </button>
+                ))}
               </div>
+            </div>
+          )}
+
+          {autoPace && (
+            <p className="muted" style={{ fontSize: '12px', margin: '4px 0 8px' }}>Pace: {autoPace}</p>
+          )}
+          {autoCalories != null && (
+            <p style={{ fontSize: '13px', fontWeight: '700', margin: '2px 0 8px' }}>≈ {autoCalories} calories</p>
+          )}
+          {!profileWeight && ex.durationMinutes && (usesIntensity ? ex.intensity : ex.distance) && (
+            <p className="muted" style={{ fontSize: '12px', margin: '0 0 8px' }}>Add your weight to your Meal & Workout Profile to calculate calories.</p>
+          )}
+
+          <button type="button" className="btn-ghost-sm" onClick={() => setShowCardioDetails(s => !s)} style={{marginBottom: showCardioDetails ? '10px' : 0}}>
+            {showCardioDetails ? '− Fewer details' : '+ More details (heart rate)'}
+          </button>
+          {showCardioDetails && (
+            <div className="field">
+              <label className="label">Avg heart rate</label>
+              <input className="input" type="number" min="0" placeholder="150" value={ex.avgHeartRate}
+                onChange={e => update({ avgHeartRate: e.target.value })} />
             </div>
           )}
         </>
@@ -299,7 +379,12 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
   const [error,        setError]        = useState('');
   const [result,       setResult]       = useState(null);
   const [loading,      setLoading]      = useState(false);
+  const [profileWeight, setProfileWeight] = useState(null);
   const fileRef = useRef();
+
+  useEffect(() => {
+    api.getProfile().then(d => { if (d.profile?.weight) setProfileWeight(Number(d.profile.weight)); }).catch(()=>{});
+  }, []);
 
   // Auto-save a draft as they type, so an accidental navigation away doesn't lose it —
   // but not if the form is still completely blank, since there'd be nothing to protect.
@@ -542,6 +627,7 @@ export default function WorkoutForm({ mode = 'create', initial, onSubmit, onDele
           key={i} ex={ex} index={i}
           onChange={updateExercise} onRemove={removeExercise}
           canRemove={exercises.length > 1}
+          profileWeight={profileWeight}
         />
       ))}
 

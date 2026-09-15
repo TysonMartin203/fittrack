@@ -1,4 +1,4 @@
-const { logMeal, getMealsForDate, getMealHistory, deleteMeal, getDailyTotals } = require('../models/meallog.model');
+const { logMeal, getMealsForDate, getMealHistory, deleteMeal, getDailyTotals, getCaloriesBurned } = require('../models/meallog.model');
 const { getProfile } = require('../models/profile.model');
 const Anthropic = require('@anthropic-ai/sdk');
 
@@ -32,11 +32,12 @@ async function listForDate(req, res) {
   try {
     const date = req.query.date;
     if (!date) return res.status(400).json({ error: 'date query param required' });
-    const [meals, totals] = await Promise.all([
+    const [meals, totals, caloriesBurned] = await Promise.all([
       getMealsForDate(req.userId, date),
       getDailyTotals(req.userId, date),
+      getCaloriesBurned(req.userId, date),
     ]);
-    res.json({ meals, totals });
+    res.json({ meals, totals: { ...totals, caloriesBurned } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

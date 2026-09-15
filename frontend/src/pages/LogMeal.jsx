@@ -147,7 +147,8 @@ export default function LogMeal() {
     catch { loadDay(); }
   }
 
-  const overGoal = calorieGoal && totals.calories > calorieGoal;
+  const effectiveGoal = calorieGoal ? calorieGoal + (totals.caloriesBurned || 0) : null;
+  const overGoal = effectiveGoal && totals.calories > effectiveGoal;
   const macroGoals = getMacroGoals(profile, calorieGoal);
 
   return (
@@ -265,13 +266,18 @@ export default function LogMeal() {
           <span className="section-title">{date === today() ? "Today" : formatDateStr(date, {month:'long',day:'numeric'})}</span>
         </div>
         <div className="glass-card" style={{marginBottom:'16px'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'8px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'2px'}}>
             <span style={{fontSize:'24px',fontWeight:'700',color: overGoal ? 'var(--danger)' : 'var(--accent)'}}>{totals.calories}</span>
-            <span className="muted" style={{fontSize:'13px'}}>{calorieGoal ? `of ${calorieGoal} cal goal` : 'calories logged'}</span>
+            <span className="muted" style={{fontSize:'13px'}}>{calorieGoal ? `of ${effectiveGoal} cal goal` : 'calories logged'}</span>
           </div>
-          {calorieGoal != null && (
+          {totals.caloriesBurned > 0 && (
+            <div className="muted" style={{fontSize:'12px',marginBottom:'10px'}}>
+              {calorieGoal ? `Includes +${totals.caloriesBurned} from exercise` : `${totals.caloriesBurned} calories burned from exercise`}
+            </div>
+          )}
+          {effectiveGoal != null && (
             <div style={{marginBottom:'14px'}}>
-              <MacroProgressBar value={totals.calories} max={calorieGoal}/>
+              <MacroProgressBar value={totals.calories} max={effectiveGoal}/>
             </div>
           )}
           {[

@@ -43,4 +43,19 @@ async function getDailyTotals(userId, date) {
   };
 }
 
-module.exports = { logMeal, getMealsForDate, getMealHistory, deleteMeal, getDailyTotals };
+// Sums calories burned from cardio exercises logged for a given day — only
+// counts exercises that actually have a calorie value (manually entered,
+// formula-calculated for sports, or otherwise), so entries with no calorie
+// data simply contribute nothing rather than being estimated.
+async function getCaloriesBurned(userId, date) {
+  const [[row]] = await pool.query(
+    `SELECT COALESCE(SUM(we.calories),0) AS burned
+     FROM WorkoutExercises we
+     JOIN Workouts w ON w.id = we.workout_id
+     WHERE w.user_id = ? AND w.date = ? AND we.category = 'cardio' AND we.calories IS NOT NULL`,
+    [userId, date]
+  );
+  return Number(row.burned);
+}
+
+module.exports = { logMeal, getMealsForDate, getMealHistory, deleteMeal, getDailyTotals, getCaloriesBurned };

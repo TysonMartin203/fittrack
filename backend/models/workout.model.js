@@ -30,8 +30,8 @@ async function insertExercises(conn, workoutId, exercises, userId, date) {
       `INSERT INTO WorkoutExercises
        (workout_id, category, exercise_name, order_index, notes,
         sets, reps, weight, per_set_weights,
-        duration_minutes, distance, distance_unit, calories, avg_heart_rate, pace)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        duration_minutes, distance, distance_unit, calories, avg_heart_rate, pace, intensity)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         workoutId, ex.category, ex.exerciseName, order++, ex.notes || null,
         isLifting ? (ex.sets || null) : null,
@@ -44,6 +44,7 @@ async function insertExercises(conn, workoutId, exercises, userId, date) {
         !isLifting ? (ex.calories || null) : null,
         !isLifting ? (ex.avgHeartRate || null) : null,
         !isLifting ? (ex.pace || null) : null,
+        !isLifting ? (ex.intensity || null) : null,
       ]
     );
     const workoutExerciseId = result.insertId;
