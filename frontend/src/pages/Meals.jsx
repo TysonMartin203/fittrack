@@ -42,12 +42,42 @@ function buildShoppingList(plan) {
 
 function ShoppingList({ plan }) {
   const [list, setList] = useState({});
+  const [copied, setCopied] = useState(false);
   useEffect(() => { setList(buildShoppingList(plan)); }, [plan]);
   function toggle(section, idx) { setList(l => ({...l,[section]:l[section].map((item,i)=>i!==idx?item:{...item,checked:!item.checked})})); }
   const sections = SECTIONS.filter(s => list[s]?.length > 0);
+  const unchecked = sections.flatMap(s => list[s].filter(x => !x.checked));
+
+  function copyList() {
+    const text = unchecked.map(x => x.text).join('\n');
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   if (sections.length === 0) return <p className="muted">Shopping list will appear after generating a plan.</p>;
   return (
     <div>
+      {unchecked.length > 0 && (
+        <div className="glass-card" style={{marginBottom:'20px'}}>
+          <div style={{fontSize:'13px',fontWeight:'700',marginBottom:'4px'}}>Send to Walmart</div>
+          <p className="muted" style={{fontSize:'12px',marginBottom:'10px'}}>
+            Walmart doesn't support adding a whole list to your cart from another app — but each item below opens straight to its Walmart search so you can add it in a couple taps, and Copy List gives you a clean list to paste into Walmart's app search if you'd rather do it from there.
+          </p>
+          <button type="button" className="btn-ghost-sm" onClick={copyList} style={{marginBottom:'10px'}}>
+            {copied ? 'Copied!' : `Copy List (${unchecked.length} item${unchecked.length===1?'':'s'})`}
+          </button>
+          <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+            {unchecked.map((item, i) => (
+              <a key={i} href={`https://www.walmart.com/search?q=${encodeURIComponent(item.base)}`} target="_blank" rel="noopener noreferrer"
+                className="btn-ghost-sm" style={{textDecoration:'none',fontSize:'12px'}}>
+                {item.text} ↗
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
       {sections.map(section => (
         <div key={section} style={{marginBottom:'20px'}}>
           <div className="section-header">
